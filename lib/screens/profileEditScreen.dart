@@ -13,7 +13,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   // ── Design tokens ──────────────────────────────────────────
   static const Color bgDark = Color(0xFF1A0F08);
-  static const Color cardBg = Color(0xFF2A1A0E);
   static const Color fieldBg = Color(0xFF231409);
   static const Color accent = Color(0xFFD4622A);
   static const Color accentLight = Color(0xFFE8763C);

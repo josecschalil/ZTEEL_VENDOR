@@ -6,16 +6,16 @@ import 'package:frontend/widgets/app_bottom_nav.dart';
 part 'dashboard_all_categories.dart';
 
 // ── Design tokens ──────────────────────────────
-const _bg = Color(0xFF0F0A07);
-const _surface = Color(0xFF16100A);
-const _surfaceRaised = Color(0xFF1C1410);
-const _orange = Color(0xFFE87722);
-const _orangeDim = Color(0x29E87722);
-const _orangeBorder = Color(0x40E87722);
-const _white = Color(0xFFF0EBE3);
-const _grey1 = Color(0xFF8A7E74);
-const _grey2 = Color(0xFF2A2018);
-const _grey3 = Color(0xFF3A2E24);
+const _bg = Color(0xFF1A0E0A);
+const _surface = Color(0xFF251510);
+const _surfaceRaised = Color(0xFF2D1A10);
+const _orange = Color(0xFFE8622A);
+const _orangeDim = Color(0x29E8622A);
+const _orangeBorder = Color(0x40E8622A);
+const _white = Color(0xFFFFFFFF);
+const _grey1 = Color(0xFF9E7E72);
+const _grey2 = Color(0xFF3A2015);
+const _grey3 = Color(0xFF2A1810);
 const _green = Color(0xFF4ade80);
 const _greenDim = Color(0x1A4ade80);
 const _greenBorder = Color(0x404ade80);
@@ -106,14 +106,14 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           child: GestureDetector(
             onTap: _openCreateCategoryModal,
             child: Container(
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: _orange,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(12),
               ),
               child:
-                  const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+                  const Icon(Icons.add_rounded, color: Colors.white, size: 22),
             ),
           ),
         ),
@@ -212,8 +212,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: _surface,
-              border: Border.all(color: _grey3, width: 0.5),
+              color: _grey3,
+              border: Border.all(color: _grey2, width: 0.5),
               borderRadius: BorderRadius.circular(9),
             ),
             child: const Icon(Icons.notifications_none_rounded,
@@ -233,7 +233,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _grey3, width: 0.5),
+        border: Border.all(color: _grey2, width: 0.5),
       ),
       child: Stack(
         children: [
@@ -353,7 +353,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A0E06),
+                  color: const Color(0xFF2D1A0F),
                   border: Border.all(color: _orangeBorder, width: 0.5),
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -457,7 +457,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _surface,
-        border: Border.all(color: _grey3, width: 0.5),
+        border: Border.all(color: _grey2, width: 0.5),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -568,7 +568,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             decoration: BoxDecoration(
               color: _surface,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: _grey3, width: 0.5),
+              border: Border.all(color: _grey2, width: 0.5),
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
@@ -603,9 +603,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   const SizedBox(height: 16),
                   Container(
                     decoration: BoxDecoration(
-                      color: _surfaceRaised,
+                      color: _surface,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: _grey3, width: 0.5),
+                      border: Border.all(color: _grey2, width: 0.5),
                     ),
                     child: TextField(
                       controller: _categoryNameController,
@@ -678,7 +678,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       decoration: BoxDecoration(
         color: _surface,
-        border: Border.all(color: _grey3, width: 0.5),
+        border: Border.all(color: _grey2, width: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       // ClipRRect so child backgrounds don't bleed outside rounded corners
@@ -736,7 +736,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             ),
 
             // ── Hard divider between header and items ──
-            Container(height: 0.5, color: _grey2),
+            Container(height: 0.5, color: Color(0xFF3A2015)),
 
             // ── Item rows on surface background ──
             ...cat.items.asMap().entries.map((e) {
@@ -748,7 +748,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: _grey2, width: 0.5)),
+                border: Border(
+                    top: BorderSide(color: Color(0xFF3A2015), width: 0.5)),
               ),
               child: TextButton(
                 onPressed: () {
@@ -790,7 +791,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         color: _surface,
         border: isLast
             ? null
-            : const Border(bottom: BorderSide(color: _grey2, width: 0.5)),
+            : const Border(
+                bottom: BorderSide(color: Color(0xFF3A2015), width: 0.5)),
       ),
       child: Row(
         children: [
@@ -799,7 +801,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             height: 46,
             decoration: BoxDecoration(
               color: _surfaceRaised,
-              border: Border.all(color: _grey3, width: 0.5),
+              border: Border.all(color: _grey2, width: 0.5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
@@ -827,7 +829,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             height: 30,
             decoration: BoxDecoration(
               color: _surfaceRaised,
-              border: Border.all(color: _grey3, width: 0.5),
+              border: Border.all(color: _grey2, width: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.edit_outlined, color: _grey1, size: 14),

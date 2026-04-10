@@ -291,64 +291,70 @@ class _OffersScreenState extends State<OffersScreen>
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          _FilterChip(
-            label: 'All Active',
-            count: activeCount,
-            selected: _selectedTab == 0,
-            onTap: () => setState(() => _selectedTab = 0),
-          ),
-          const SizedBox(width: 10),
-          _FilterChip(
-            label: 'Non Active',
-            count: nonActiveCount,
-            selected: _selectedTab == 1,
-            onTap: () => setState(() => _selectedTab = 1),
-          ),
-          const Spacer(),
-          // Create Offer CTA
-          GestureDetector(
-            onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const CreateOfferScreen()));
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [kOrangeLight, kOrange],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: kOrange.withOpacity(0.35),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _FilterChip(
+              label: 'All Active',
+              count: activeCount,
+              selected: _selectedTab == 0,
+              onTap: () => setState(() => _selectedTab = 0),
+            ),
+            const SizedBox(width: 10),
+            _FilterChip(
+              label: 'Non Active',
+              count: nonActiveCount,
+              selected: _selectedTab == 1,
+              onTap: () => setState(() => _selectedTab = 1),
+            ),
+            const SizedBox(width: 10),
+            // Create Offer CTA
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CreateOfferScreen()));
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [kOrangeLight, kOrange],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                  SizedBox(width: 5),
-                  Text(
-                    'Create Offer',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kOrange.withOpacity(0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                    SizedBox(width: 5),
+                    Text(
+                      'Create Offer',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -457,6 +463,8 @@ class _OffersScreenState extends State<OffersScreen>
                       // Title
                       const Text(
                         'Golden Hour Feast',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -468,6 +476,8 @@ class _OffersScreenState extends State<OffersScreen>
                       const SizedBox(height: 6),
                       const Text(
                         '40% OFF across the entire Main Course menu.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Color(0xFFE0C5A8),
                           fontSize: 12.5,
@@ -744,6 +754,8 @@ class _OffersScreenState extends State<OffersScreen>
                     children: [
                       Text(
                         'Milestone Rewards',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: kOrange,
                           fontSize: 15,
@@ -753,6 +765,8 @@ class _OffersScreenState extends State<OffersScreen>
                       ),
                       Text(
                         'Configure spend-based rewards for loyal guests',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: kTextSecondary,
                           fontSize: 11,
@@ -765,6 +779,8 @@ class _OffersScreenState extends State<OffersScreen>
               const SizedBox(height: 14),
               const Text(
                 'Set spend milestones and assign rewards that keep customers coming back. Tap to open the milestone reward setup.',
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: kTextSecondary,
                   fontSize: 12.5,
@@ -961,6 +977,8 @@ class _OfferListCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             offer.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: kTextPrimary,
                               fontSize: 15.5,
@@ -1015,6 +1033,8 @@ class _OfferListCard extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       offer.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: kTextSecondary,
                         fontSize: 12,
@@ -1026,12 +1046,16 @@ class _OfferListCard extends StatelessWidget {
                       children: [
                         _MetaLabel(label: 'Category'),
                         const Spacer(),
-                        Text(
-                          offer.category,
-                          style: TextStyle(
-                            color: offer.categoryColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            offer.category,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: offer.categoryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -1041,12 +1065,16 @@ class _OfferListCard extends StatelessWidget {
                       children: [
                         _MetaLabel(label: 'Ends in'),
                         const Spacer(),
-                        Text(
-                          offer.duration,
-                          style: const TextStyle(
-                            color: kTextPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            offer.duration,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: kTextPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],

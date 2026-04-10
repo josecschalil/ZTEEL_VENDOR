@@ -65,8 +65,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 36,
+              height: 36,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color(0xFF3D1F10),
@@ -82,7 +82,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               'Saffron Bistro',
               style: TextStyle(
                 color: textWhite,
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
               ),
@@ -90,8 +90,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ],
         ),
         Container(
-          width: 38,
-          height: 38,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             color: const Color(0xFF2A1810),
             borderRadius: BorderRadius.circular(10),
@@ -99,7 +99,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           child: const Icon(
             Icons.notifications_outlined,
             color: orange,
-            size: 22,
+            size: 20,
           ),
         ),
       ],
@@ -114,7 +114,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           'Your Orders',
           style: TextStyle(
             color: textWhite,
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.5,
           ),
@@ -124,7 +124,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           'Track your culinary journey with us.',
           style: TextStyle(
             color: textGrey,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w400,
           ),
         ),
@@ -159,7 +159,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   style: TextStyle(
                     color: selected ? textWhite : textGrey,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -231,7 +231,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             'Late Night Dinner',
             style: TextStyle(
               color: textWhite,
-              fontSize: 20,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -243,14 +243,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  width: 62,
-                  height: 62,
+                  width: 52,
+                  height: 52,
                   color: const Color(0xFF3A2015),
                   child: Image.network(
                     'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=200',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.restaurant, color: orange, size: 28),
+                        const Icon(Icons.restaurant, color: orange, size: 24),
                   ),
                 ),
               ),
@@ -261,16 +261,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   children: [
                     const Text(
                       'Saffron Infused Risotto',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textWhite,
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       'Extra spice, No onions',
-                      style: TextStyle(color: textGrey, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: textGrey, fontSize: 11),
                     ),
                   ],
                 ),
@@ -293,14 +297,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  width: 62,
-                  height: 62,
+                  width: 52,
+                  height: 52,
                   color: const Color(0xFF3A2015),
                   child: Image.network(
                     'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.local_bar, color: orange, size: 28),
+                        const Icon(Icons.local_bar, color: orange, size: 24),
                   ),
                 ),
               ),
@@ -311,16 +315,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   children: [
                     const Text(
                       'Midnight Spritz',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textWhite,
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       'Standard serve',
-                      style: TextStyle(color: textGrey, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: textGrey, fontSize: 11),
                     ),
                   ],
                 ),
@@ -349,14 +357,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 children: [
                   Text(
                     'Estimated arrival',
-                    style: TextStyle(color: textGrey, fontSize: 12),
+                    style: TextStyle(color: textGrey, fontSize: 11),
                   ),
                   const SizedBox(height: 2),
                   const Text(
                     '15 – 20 mins',
                     style: TextStyle(
                       color: textWhite,
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -367,14 +375,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 children: [
                   Text(
                     'Total amount',
-                    style: TextStyle(color: textGrey, fontSize: 12),
+                    style: TextStyle(color: textGrey, fontSize: 11),
                   ),
                   const SizedBox(height: 2),
                   const Text(
                     '\$48.50',
                     style: TextStyle(
                       color: orange,
-                      fontSize: 22,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -448,7 +456,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             'Corporate Lunch',
             style: TextStyle(
               color: textWhite,
-              fontSize: 20,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -460,14 +468,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  width: 62,
-                  height: 62,
+                  width: 52,
+                  height: 52,
                   color: const Color(0xFF3A2015),
                   child: Image.network(
                     'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.eco, color: orange, size: 28),
+                        const Icon(Icons.eco, color: orange, size: 24),
                   ),
                 ),
               ),
@@ -478,16 +486,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   children: [
                     const Text(
                       'Bistro Signature Salad',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textWhite,
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       'Vegan option',
-                      style: TextStyle(color: textGrey, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: textGrey, fontSize: 11),
                     ),
                   ],
                 ),
@@ -514,8 +526,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Row(
                 children: [
                   Container(
-                    width: 38,
-                    height: 38,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
                       color: const Color(0xFF2A1810),
                       shape: BoxShape.circle,
@@ -523,7 +535,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     child: const Icon(
                       Icons.directions_bike,
                       color: textGrey,
-                      size: 20,
+                      size: 18,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -532,13 +544,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     children: [
                       Text(
                         'Rider',
-                        style: TextStyle(color: textGrey, fontSize: 12),
+                        style: TextStyle(color: textGrey, fontSize: 11),
                       ),
                       const Text(
                         'Marcello K.',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: textWhite,
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -551,14 +565,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 children: [
                   Text(
                     'Total amount',
-                    style: TextStyle(color: textGrey, fontSize: 12),
+                    style: TextStyle(color: textGrey, fontSize: 11),
                   ),
                   const SizedBox(height: 2),
                   const Text(
                     '\$62.00',
                     style: TextStyle(
                       color: orange,
-                      fontSize: 22,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -581,17 +595,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
         },
         backgroundColor: orange,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        icon: const Icon(Icons.qr_code_scanner, color: textWhite, size: 22),
+        icon: const Icon(Icons.qr_code_scanner, color: textWhite, size: 20),
         label: const Text(
           'Scan QR',
           style: TextStyle(
             color: textWhite,
             fontWeight: FontWeight.w700,
-            fontSize: 15,
+            fontSize: 13,
           ),
         ),
       ),
     );
   }
-
 }

@@ -58,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen>
         _fadeController.forward().then((_) {
           if (mounted) {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const RestaurantDashboard()),
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
             );
           }
         });
