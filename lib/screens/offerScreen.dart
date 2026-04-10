@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/MilestoneScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
+import 'package:frontend/widgets/app_bottom_nav.dart';
 
 // ─── Color Palette ───────────────────────────────────────────────────────────
 const kBg = Color(0xFF130A04);
@@ -84,7 +85,6 @@ class OffersScreen extends StatefulWidget {
 class _OffersScreenState extends State<OffersScreen>
     with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
-  int _navIndex = 1;
   late AnimationController _heroController;
   late Animation<double> _heroFade;
 
@@ -111,6 +111,7 @@ class _OffersScreenState extends State<OffersScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBg,
+      bottomNavigationBar: const VendorBottomNav(currentTab: VendorTab.offers),
       body: SafeArea(
         child: Column(
           children: [
@@ -137,7 +138,6 @@ class _OffersScreenState extends State<OffersScreen>
                 ),
               ),
             ),
-            _buildBottomNav(),
           ],
         ),
       ),
@@ -690,61 +690,6 @@ class _OffersScreenState extends State<OffersScreen>
   }
 
   // ── Bottom Navigation ───────────────────────────────────────────────────────
-  Widget _buildBottomNav() {
-    const items = [
-      (Icons.grid_view_rounded, 'Dashboard'),
-      (Icons.local_offer_rounded, 'Offers'),
-      (Icons.receipt_long_rounded, 'Orders'),
-      (Icons.person_outline_rounded, 'Profile'),
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: kSurface,
-        border: Border(
-          top: BorderSide(color: kCardBorder.withOpacity(0.6), width: 1),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(items.length, (i) {
-          final active = _navIndex == i;
-          return GestureDetector(
-            onTap: () => setState(() => _navIndex = i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: active ? kOrange.withOpacity(0.12) : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    items[i].$1,
-                    size: 22,
-                    color: active ? kOrange : kTextMuted,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    items[i].$2,
-                    style: TextStyle(
-                      color: active ? kOrange : kTextMuted,
-                      fontSize: 10,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
 }
 
 // ─── Reusable Widgets ─────────────────────────────────────────────────────────

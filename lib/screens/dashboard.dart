@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:frontend/screens/offerScreen.dart';
-import 'package:frontend/screens/orderScreen.dart';
 import 'categoryItemsScreen.dart';
-import 'profileEditScreen.dart';
+import 'package:frontend/widgets/app_bottom_nav.dart';
 
 // ── Design tokens ──────────────────────────────
 const _bg = Color(0xFF0F0A07);
@@ -61,8 +59,6 @@ class RestaurantDashboard extends StatefulWidget {
 
 class _RestaurantDashboardState extends State<RestaurantDashboard>
     with TickerProviderStateMixin {
-  int _navIndex = 0;
-
   late final AnimationController _entryAc = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 900),
@@ -117,7 +113,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         // ── Bottom nav: Scaffold.bottomNavigationBar stays fixed ──
-        bottomNavigationBar: _buildBottomNav(),
+        bottomNavigationBar:
+            const VendorBottomNav(currentTab: VendorTab.dashboard),
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -698,75 +695,4 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   }
 
   // ── Bottom nav ────────────────────────────────
-  Widget _buildBottomNav() {
-    final items = [
-      (Icons.grid_view_rounded, 'Dashboard', null),
-      (
-        Icons.local_offer_outlined,
-        'Offers',
-        () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => OffersScreen()))
-      ),
-      (
-        Icons.receipt_long_outlined,
-        'Orders',
-        () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => OrdersScreen()))
-      ),
-      (
-        Icons.person_outline_rounded,
-        'Profile',
-        () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const ProfileEditScreen()))
-      ),
-    ];
-    return Container(
-      decoration: const BoxDecoration(
-        color: _bg,
-        border: Border(top: BorderSide(color: Color(0x0FFFFFFF), width: 0.5)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            children: items.asMap().entries.map((e) {
-              final index = e.key;
-              final icon = e.value.$1;
-              final label = e.value.$2;
-              final onTap = e.value.$3;
-              final isActive = _navIndex == index;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => _navIndex = index);
-                    if (onTap != null) {
-                      onTap();
-                    }
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, color: isActive ? _orange : _grey1, size: 20),
-                      const SizedBox(height: 4),
-                      Text(
-                        label.toUpperCase(),
-                        style: TextStyle(
-                          color: isActive ? _orange : _grey1,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
 }

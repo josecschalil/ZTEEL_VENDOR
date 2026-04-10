@@ -129,7 +129,6 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   final _searchFocus = FocusNode();
   bool _searchFocused = false;
   String _query = '';
-  int _navIndex = 0;
 
   late final AnimationController _entryAc = AnimationController(
     vsync: this,
@@ -206,7 +205,6 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        bottomNavigationBar: _buildBottomNav(),
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SafeArea(
@@ -810,55 +808,4 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   }
 
   // ── Bottom nav ────────────────────────────────
-  Widget _buildBottomNav() {
-    final items = [
-      (Icons.grid_view_rounded, 'Dashboard'),
-      (Icons.local_offer_outlined, 'Offers'),
-      (Icons.receipt_long_outlined, 'Orders'),
-      (Icons.person_outline_rounded, 'Profile'),
-    ];
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: _bg,
-        border: Border(top: BorderSide(color: Color(0x0FFFFFFF), width: 0.5)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            children: items.asMap().entries.map((e) {
-              final index = e.key;
-              final icon = e.value.$1;
-              final label = e.value.$2;
-              final isActive = _navIndex == index;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _navIndex = index),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, color: isActive ? _orange : _grey1, size: 20),
-                      const SizedBox(height: 4),
-                      Text(
-                        label.toUpperCase(),
-                        style: TextStyle(
-                          color: isActive ? _orange : _grey1,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
 }

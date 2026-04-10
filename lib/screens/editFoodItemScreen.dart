@@ -125,7 +125,6 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                 ),
               ),
             ),
-            _buildBottomNav(),
           ],
         ),
       ),

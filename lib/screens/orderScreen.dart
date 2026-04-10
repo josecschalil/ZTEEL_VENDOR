@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/scan_qr.dart';
+import 'package:frontend/widgets/app_bottom_nav.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -10,7 +11,6 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   int _selectedTab = 0; // 0=Pending, 1=Completed, 2=Expired
-  int _selectedNav = 2; // 0=Dashboard, 1=Offers, 2=Orders, 3=Profile
 
   static const Color bgDark = Color(0xFF1A0E0A);
   static const Color cardBg = Color(0xFF251510);
@@ -23,6 +23,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgDark,
+      bottomNavigationBar: const VendorBottomNav(currentTab: VendorTab.orders),
       body: SafeArea(
         child: Column(
           children: [
@@ -49,7 +50,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
               ),
             ),
-            _buildBottomNav(),
           ],
         ),
       ),
@@ -594,53 +594,4 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Widget _buildBottomNav() {
-    final items = [
-      {'icon': Icons.grid_view_rounded, 'label': 'DASHBOARD'},
-      {'icon': Icons.local_offer_outlined, 'label': 'OFFERS'},
-      {'icon': Icons.list_alt_rounded, 'label': 'ORDERS'},
-      {'icon': Icons.person_outline_rounded, 'label': 'PROFILE'},
-    ];
-
-    return Container(
-      height: 68,
-      decoration: const BoxDecoration(
-        color: Color(0xFF150C08),
-        border: Border(
-          top: BorderSide(color: Color(0xFF2A1810), width: 1),
-        ),
-      ),
-      child: Row(
-        children: List.generate(items.length, (i) {
-          final selected = _selectedNav == i;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedNav = i),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    items[i]['icon'] as IconData,
-                    color: selected ? orange : textGrey,
-                    size: 22,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    items[i]['label'] as String,
-                    style: TextStyle(
-                      color: selected ? orange : textGrey,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
 }

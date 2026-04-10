@@ -35,7 +35,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   TimeOfDay _opensAt = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _closesAt = const TimeOfDay(hour: 22, minute: 0);
 
-  int _selectedNavIndex = 3; // Profile tab active
+  int _selectedNavIndex = 3;
 
   @override
   void initState() {
@@ -138,7 +138,6 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 ),
               ),
             ),
-            _buildBottomNav(),
           ],
         ),
       ),

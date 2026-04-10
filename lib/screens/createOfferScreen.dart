@@ -27,9 +27,6 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     false
   ]; // M T W T F S S
 
-  // Nav
-  int _selectedNav = 1; // Offers
-
   // Colors
   static const Color bgDark = Color(0xFF1A0E0A);
   static const Color cardBg = Color(0xFF251510);
@@ -76,7 +73,6 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                 ),
               ),
             ),
-            _buildBottomNav(),
           ],
         ),
       ),
@@ -587,51 +583,4 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
   }
 
   // ── Bottom Nav ───────────────────────────────────────────────
-  Widget _buildBottomNav() {
-    final items = [
-      {'icon': Icons.grid_view_rounded, 'label': 'DASHBOARD'},
-      {'icon': Icons.local_offer_outlined, 'label': 'OFFERS'},
-      {'icon': Icons.list_alt_rounded, 'label': 'ORDERS'},
-      {'icon': Icons.person_outline_rounded, 'label': 'PROFILE'},
-    ];
-
-    return Container(
-      height: 68,
-      decoration: const BoxDecoration(
-        color: Color(0xFF150C08),
-        border: Border(top: BorderSide(color: Color(0xFF2A1810), width: 1)),
-      ),
-      child: Row(
-        children: List.generate(items.length, (i) {
-          final selected = _selectedNav == i;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedNav = i),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    items[i]['icon'] as IconData,
-                    color: selected ? orange : const Color(0xFF9E7E72),
-                    size: 22,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    items[i]['label'] as String,
-                    style: TextStyle(
-                      color: selected ? orange : const Color(0xFF9E7E72),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
 }

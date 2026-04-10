@@ -78,7 +78,6 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               ),
             ),
           ),
-          _buildBottomNav(),
         ],
       ),
     );

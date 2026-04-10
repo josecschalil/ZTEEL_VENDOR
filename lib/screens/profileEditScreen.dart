@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/widgets/app_bottom_nav.dart';
 
 class ProfileEditScreen extends StatelessWidget {
   const ProfileEditScreen({super.key});
@@ -17,6 +18,7 @@ class ProfileEditScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgDark,
+      bottomNavigationBar: const VendorBottomNav(currentTab: VendorTab.profile),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(

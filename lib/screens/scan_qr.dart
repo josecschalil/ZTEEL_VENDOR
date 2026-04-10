@@ -9,8 +9,6 @@ class QRScannerScreen extends StatefulWidget {
 
 class _QRScannerScreenState extends State<QRScannerScreen>
     with TickerProviderStateMixin {
-  int _selectedNav = 2;
-
   late AnimationController _scanLineController;
   late Animation<double> _scanLineAnim;
   late AnimationController _pulseController;
@@ -101,8 +99,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                 // Instructions + controls
                 _buildBottomContent(),
 
-                // Nav bar
-                _buildBottomNav(),
               ],
             ),
           ),
@@ -324,55 +320,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   }
 
   // ── Bottom Navigation ────────────────────────────────────────
-  Widget _buildBottomNav() {
-    final items = [
-      {'icon': Icons.grid_view_rounded, 'label': 'DASHBOARD'},
-      {'icon': Icons.local_offer_outlined, 'label': 'OFFERS'},
-      {'icon': Icons.list_alt_rounded, 'label': 'ORDERS'},
-      {'icon': Icons.person_outline_rounded, 'label': 'PROFILE'},
-    ];
-
-    return Container(
-      height: 68,
-      decoration: BoxDecoration(
-        color: const Color(0xFF150C08).withOpacity(0.95),
-        border: const Border(
-          top: BorderSide(color: Color(0xFF2A1810), width: 1),
-        ),
-      ),
-      child: Row(
-        children: List.generate(items.length, (i) {
-          final selected = _selectedNav == i;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedNav = i),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    items[i]['icon'] as IconData,
-                    color: selected ? orange : textGrey,
-                    size: 22,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    items[i]['label'] as String,
-                    style: TextStyle(
-                      color: selected ? orange : textGrey,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
 }
 
 // ── Dark overlay with transparent scanner cutout ─────────────
