@@ -26,24 +26,26 @@ class Offer {
   final String category;
   final String duration;
   final OfferStatus status;
+  bool isActive;
   final bool isBestseller;
   final bool isFeatured;
   final Color categoryColor;
 
-  const Offer({
+  Offer({
     required this.id,
     required this.title,
     required this.subtitle,
     required this.category,
     required this.duration,
     required this.status,
+    required this.isActive,
     this.isBestseller = false,
     this.isFeatured = false,
     this.categoryColor = kOrange,
   });
 }
 
-const List<Offer> kOffers = [
+final List<Offer> kOffers = [
   Offer(
     id: '1',
     title: 'Golden Hour Feast',
@@ -51,6 +53,7 @@ const List<Offer> kOffers = [
     category: 'All Main Courses',
     duration: 'Oct 01 – Oct 31',
     status: OfferStatus.live,
+    isActive: true,
     isBestseller: true,
     isFeatured: true,
   ),
@@ -61,6 +64,7 @@ const List<Offer> kOffers = [
     category: 'Starters',
     duration: '12 Days left',
     status: OfferStatus.scheduled,
+    isActive: true,
     categoryColor: kOrange,
   ),
   Offer(
@@ -70,6 +74,7 @@ const List<Offer> kOffers = [
     category: 'Desserts',
     duration: 'Ongoing',
     status: OfferStatus.live,
+    isActive: false,
     categoryColor: kGold,
   ),
 ];
@@ -85,12 +90,29 @@ class OffersScreen extends StatefulWidget {
 class _OffersScreenState extends State<OffersScreen>
     with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
+  late final List<Offer> _offers;
   late AnimationController _heroController;
   late Animation<double> _heroFade;
 
   @override
   void initState() {
     super.initState();
+    _offers = kOffers
+        .map(
+          (offer) => Offer(
+            id: offer.id,
+            title: offer.title,
+            subtitle: offer.subtitle,
+            category: offer.category,
+            duration: offer.duration,
+            status: offer.status,
+            isActive: offer.isActive,
+            isBestseller: offer.isBestseller,
+            isFeatured: offer.isFeatured,
+            categoryColor: offer.categoryColor,
+          ),
+        )
+        .toList();
     _heroController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -128,7 +150,7 @@ class _OffersScreenState extends State<OffersScreen>
                     const SizedBox(height: 20),
                     FadeTransition(
                       opacity: _heroFade,
-                      child: _buildFeaturedCard(),
+                      child: _buildFeaturedCard(_featuredOffer),
                     ),
                     const SizedBox(height: 16),
                     ..._buildOfferList(),
@@ -141,6 +163,13 @@ class _OffersScreenState extends State<OffersScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Offer get _featuredOffer {
+    return _offers.firstWhere(
+      (offer) => offer.isFeatured,
+      orElse: () => _offers.first,
     );
   }
 
@@ -257,20 +286,23 @@ class _OffersScreenState extends State<OffersScreen>
 
   // ── Filter / Tab Bar ────────────────────────────────────────────────────────
   Widget _buildFilterBar() {
+    final activeCount = _offers.where((offer) => offer.isActive).length;
+    final nonActiveCount = _offers.length - activeCount;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
           _FilterChip(
             label: 'All Active',
-            count: 4,
+            count: activeCount,
             selected: _selectedTab == 0,
             onTap: () => setState(() => _selectedTab = 0),
           ),
           const SizedBox(width: 10),
           _FilterChip(
-            label: 'Drafts',
-            count: 2,
+            label: 'Non Active',
+            count: nonActiveCount,
             selected: _selectedTab == 1,
             onTap: () => setState(() => _selectedTab = 1),
           ),
@@ -322,7 +354,10 @@ class _OffersScreenState extends State<OffersScreen>
   }
 
   // ── Featured Hero Card ──────────────────────────────────────────────────────
-  Widget _buildFeaturedCard() {
+  Widget _buildFeaturedCard(Offer offer) {
+    final statusLabel = offer.isActive ? 'ACTIVE' : 'NON ACTIVE';
+    final statusColor = offer.isActive ? kGreen : kTextSecondary;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
@@ -415,7 +450,7 @@ class _OffersScreenState extends State<OffersScreen>
                             Colors.white,
                           ),
                           const SizedBox(width: 8),
-                          _buildLiveTag(),
+                          _buildStateTag(statusLabel, statusColor),
                         ],
                       ),
                       const Spacer(),
@@ -497,13 +532,13 @@ class _OffersScreenState extends State<OffersScreen>
     );
   }
 
-  Widget _buildLiveTag() {
+  Widget _buildStateTag(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.4),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: kGreen.withOpacity(0.5)),
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -517,10 +552,10 @@ class _OffersScreenState extends State<OffersScreen>
             ),
           ),
           const SizedBox(width: 5),
-          const Text(
-            'LIVE',
+          Text(
+            label,
             style: TextStyle(
-              color: kGreen,
+              color: color,
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
@@ -559,96 +594,185 @@ class _OffersScreenState extends State<OffersScreen>
 
   // ── Offer List ──────────────────────────────────────────────────────────────
   List<Widget> _buildOfferList() {
-    final nonFeatured = kOffers.where((o) => !o.isFeatured).toList();
-    return nonFeatured.map((offer) => _OfferListCard(offer: offer)).toList();
+    final filteredOffers = _offers
+        .where((offer) => offer.isFeatured == false)
+        .where((offer) => _selectedTab == 0 ? offer.isActive : !offer.isActive)
+        .toList();
+
+    if (filteredOffers.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: kCard,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: kCardBorder),
+            ),
+            child: const Text(
+              'No offers in this section yet.',
+              style: TextStyle(
+                color: kTextSecondary,
+                fontSize: 12.5,
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return filteredOffers
+        .map(
+          (offer) => _OfferListCard(
+            offer: offer,
+            onStatusRequested: () async {
+              final nextValue = !offer.isActive;
+              final confirmed = await _confirmOfferStatusChange(
+                offer: offer,
+                nextValue: nextValue,
+              );
+
+              if (!confirmed) {
+                return;
+              }
+
+              setState(() => offer.isActive = nextValue);
+            },
+          ),
+        )
+        .toList();
+  }
+
+  Future<bool> _confirmOfferStatusChange({
+    required Offer offer,
+    required bool nextValue,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: kCard,
+          title: Text(
+            nextValue ? 'Activate offer?' : 'Deactivate offer?',
+            style: const TextStyle(
+              color: kTextPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
+            nextValue
+                ? 'This offer will move to the active list and be treated as active.'
+                : 'This offer will move to the non-active list and stop being treated as active.',
+            style: const TextStyle(
+              color: kTextSecondary,
+              height: 1.45,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: kTextSecondary),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kOrange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return confirmed ?? false;
   }
 
   // ── Boost / Analytics Banner ────────────────────────────────────────────────
   Widget _buildBoostBanner() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            colors: [
-              kOrange.withOpacity(0.12),
-              kGold.withOpacity(0.08),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const MilestoneRewardsScreen(),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              colors: [
+                kOrange.withOpacity(0.12),
+                kGold.withOpacity(0.08),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(color: kOrange.withOpacity(0.25)),
           ),
-          border: Border.all(color: kOrange.withOpacity(0.25)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: kOrange.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.rocket_launch_rounded,
-                    color: kOrange,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Maximize Your Reach',
-                      style: TextStyle(
-                        color: kOrange,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: kOrange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    Text(
-                      'Boost for upcoming Friday',
-                      style: TextStyle(
-                        color: kTextSecondary,
-                        fontSize: 11,
-                      ),
+                    child: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: kOrange,
+                      size: 18,
                     ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            // Stat row
-            Row(
-              children: [
-                _StatChip(label: '3.4×', sublabel: 'More Engagement'),
-                const SizedBox(width: 10),
-                _StatChip(label: 'Fri', sublabel: 'Peak Weekend'),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Promoted offers receive 3.4× more engagement during weekend service. Consider boosting \'Golden Hour Feast\' for this Friday.',
-              style: TextStyle(
-                color: kTextSecondary,
-                fontSize: 12.5,
-                height: 1.55,
+                  ),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Milestone Rewards',
+                        style: TextStyle(
+                          color: kOrange,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      Text(
+                        'Configure spend-based rewards for loyal guests',
+                        style: TextStyle(
+                          color: kTextSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 18),
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const MilestoneRewardsScreen()),
-                );
-              },
-              child: Container(
+              const SizedBox(height: 14),
+              const Text(
+                'Set spend milestones and assign rewards that keep customers coming back. Tap to open the milestone reward setup.',
+                style: TextStyle(
+                  color: kTextSecondary,
+                  fontSize: 12.5,
+                  height: 1.55,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
@@ -667,11 +791,11 @@ class _OffersScreenState extends State<OffersScreen>
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.bar_chart_rounded,
+                    Icon(Icons.emoji_events_rounded,
                         color: Colors.white, size: 18),
                     SizedBox(width: 8),
                     Text(
-                      'View Analytics',
+                      'Open Milestone Rewards',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -682,8 +806,8 @@ class _OffersScreenState extends State<OffersScreen>
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -772,14 +896,19 @@ class _FilterChip extends StatelessWidget {
 
 class _OfferListCard extends StatelessWidget {
   final Offer offer;
+  final VoidCallback onStatusRequested;
 
-  const _OfferListCard({required this.offer});
+  const _OfferListCard({
+    required this.offer,
+    required this.onStatusRequested,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isLive = offer.status == OfferStatus.live;
     final statusColor = isLive ? kGreen : kGold;
     final statusLabel = isLive ? 'LIVE' : 'SCHEDULED';
+    final actionLabel = offer.isActive ? 'Mark Inactive' : 'Mark Active';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -802,7 +931,6 @@ class _OfferListCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail
               Container(
                 width: 64,
                 height: 64,
@@ -824,7 +952,6 @@ class _OfferListCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 14),
-              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,7 +970,6 @@ class _OfferListCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Status badge
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
@@ -878,6 +1004,12 @@ class _OfferListCard extends StatelessWidget {
                             ],
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        _StatusActionChip(
+                          label: actionLabel,
+                          active: offer.isActive,
+                          onTap: onStatusRequested,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 5),
@@ -890,7 +1022,6 @@ class _OfferListCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Meta row
                     Row(
                       children: [
                         _MetaLabel(label: 'Category'),
@@ -925,6 +1056,66 @@ class _OfferListCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusActionChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _StatusActionChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color:
+              active ? kGreen.withOpacity(0.12) : kTextMuted.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: active ? kGreen.withOpacity(0.35) : kCardBorder,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: active ? kGreen : kTextSecondary,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? kGreen : kTextSecondary,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.swap_horiz_rounded,
+              size: 13,
+              color: active ? kGreen : kTextSecondary,
+            ),
+          ],
         ),
       ),
     );

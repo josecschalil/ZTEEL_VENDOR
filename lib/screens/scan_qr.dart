@@ -98,7 +98,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
 
                 // Instructions + controls
                 _buildBottomContent(),
-
               ],
             ),
           ),

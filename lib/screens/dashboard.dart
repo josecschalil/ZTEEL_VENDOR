@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'categoryItemsScreen.dart';
 import 'package:frontend/widgets/app_bottom_nav.dart';
 
+part 'dashboard_all_categories.dart';
+
 // ── Design tokens ──────────────────────────────
 const _bg = Color(0xFF0F0A07);
 const _surface = Color(0xFF16100A);
@@ -33,7 +35,7 @@ class MenuCategory {
   const MenuCategory(this.name, this.itemCount, this.items);
 }
 
-const _categories = [
+const _initialCategories = [
   MenuCategory('Signature Starters', 12, [
     MenuItem('🥟', 'Crispy Saffron Samosas', '\$12.50'),
     MenuItem('🍢', 'Tandoori Paneer Tikka', '\$14.00'),
@@ -59,6 +61,9 @@ class RestaurantDashboard extends StatefulWidget {
 
 class _RestaurantDashboardState extends State<RestaurantDashboard>
     with TickerProviderStateMixin {
+  final TextEditingController _categoryNameController = TextEditingController();
+  final List<MenuCategory> _categories = List.of(_initialCategories);
+
   late final AnimationController _entryAc = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 900),
@@ -84,6 +89,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
 
   @override
   void dispose() {
+    _categoryNameController.dispose();
     _entryAc.dispose();
     super.dispose();
   }
@@ -98,7 +104,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         floatingActionButton: FadeTransition(
           opacity: _fade(4),
           child: GestureDetector(
-            onTap: () {},
+            onTap: _openCreateCategoryModal,
             child: Container(
               width: 52,
               height: 52,
@@ -496,12 +502,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Menu categories',
@@ -514,13 +520,19 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       style: TextStyle(color: _grey1, fontSize: 12)),
                 ],
               ),
-              Spacer(),
-              Text('VIEW ALL',
-                  style: TextStyle(
-                      color: _orange,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.5)),
+              const Spacer(),
+              GestureDetector(
+                onTap: _openAllCategoriesPage,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: Text('VIEW ALL',
+                      style: TextStyle(
+                          color: _orange,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5)),
+                ),
+              ),
             ],
           ),
         ),
@@ -528,6 +540,137 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         ..._categories.map((cat) => _buildCategoryCard(cat)),
       ],
     );
+  }
+
+  void _openAllCategoriesPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AllCategoriesScreen(categories: List.of(_categories)),
+      ),
+    );
+  }
+
+  void _openCreateCategoryModal() {
+    _categoryNameController.clear();
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _surface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: _grey3, width: 0.5),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: _grey3,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Create new category',
+                    style: TextStyle(
+                      color: _white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Add a new category to organize your menu.',
+                    style: TextStyle(color: _grey1, fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _surfaceRaised,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _grey3, width: 0.5),
+                    ),
+                    child: TextField(
+                      controller: _categoryNameController,
+                      autofocus: true,
+                      style: const TextStyle(
+                        color: _white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      cursorColor: _orange,
+                      decoration: const InputDecoration(
+                        hintText: 'Category name',
+                        hintStyle: TextStyle(color: _grey1, fontSize: 14),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _createCategory(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _createCategory,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _orange,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Create new category',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _createCategory() {
+    final categoryName = _categoryNameController.text.trim();
+    if (categoryName.isEmpty) return;
+
+    setState(() {
+      _categories.insert(0, MenuCategory(categoryName, 0, const []));
+    });
+
+    Navigator.of(context).pop();
   }
 
   Widget _buildCategoryCard(MenuCategory cat) {

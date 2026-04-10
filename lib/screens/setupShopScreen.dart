@@ -32,6 +32,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
+  final List<bool> _openDays = [true, true, true, true, true, true, true];
+
   TimeOfDay _opensAt = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _closesAt = const TimeOfDay(hour: 22, minute: 0);
 
@@ -127,6 +129,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                     ),
                     const SizedBox(height: 24),
                     _buildOperationalHours(),
+                    const SizedBox(height: 24),
+                    _buildOpenDaysSection(),
                     const SizedBox(height: 24),
                     _buildLocationSection(),
                     const SizedBox(height: 32),
@@ -491,6 +495,114 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                     child: _timeField(
                         'CLOSES AT', _closesAt, () => _pickTime(false))),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOpenDaysSection() {
+    const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const fullDayLabels = [
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: SBColors.surfaceElevated,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: SBColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionLabel('OPEN DAYS'),
+            const SizedBox(height: 8),
+            Text(
+              'Select the days your shop is open for customers.',
+              style: TextStyle(
+                color: SBColors.textSecondary,
+                fontSize: 12.5,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: List.generate(7, (i) {
+                final selected = _openDays[i];
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _openDays[i] = !_openDays[i]),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: selected ? SBColors.saffron : SBColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color:
+                                selected ? SBColors.saffron : SBColors.border,
+                          ),
+                          boxShadow: selected
+                              ? [
+                                  BoxShadow(
+                                    color: SBColors.saffron.withOpacity(0.25),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              dayLabels[i],
+                              style: TextStyle(
+                                color: selected
+                                    ? Colors.white
+                                    : SBColors.textSecondary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              fullDayLabels[i],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: selected
+                                    ? Colors.white
+                                    : SBColors.textMuted,
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                                height: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
             ),
           ],
         ),

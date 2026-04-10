@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/widgets/app_bottom_nav.dart';
 
-class ProfileEditScreen extends StatelessWidget {
+class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
+
+  @override
+  State<ProfileEditScreen> createState() => _ProfileEditScreenState();
+}
+
+class _ProfileEditScreenState extends State<ProfileEditScreen> {
+  final List<bool> _openDays = [true, true, true, true, true, true, true];
 
   // ── Design tokens ──────────────────────────────────────────
   static const Color bgDark = Color(0xFF1A0F08);
@@ -13,6 +20,8 @@ class ProfileEditScreen extends StatelessWidget {
   static const Color textPrimary = Color(0xFFF5E6D3);
   static const Color textSecond = Color(0xFF9A7B60);
   static const Color divider = Color(0xFF3D2515);
+
+  String _dayLabel(int index) => ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index];
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +47,10 @@ class ProfileEditScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     _buildTextField(
                         'Saffron Bistro', Icons.storefront_outlined),
+                    const SizedBox(height: 16),
+                    _buildLabel('DESCRIPTION'),
+                    const SizedBox(height: 6),
+                    _buildDescriptionField(),
                     const SizedBox(height: 16),
                     _buildLabel('LOCATION / ADDRESS'),
                     const SizedBox(height: 6),
@@ -73,6 +86,8 @@ class ProfileEditScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+                    _buildOpenDaysSection(),
                     const SizedBox(height: 20),
                     _buildMenuShowcase(),
                     const SizedBox(height: 28),
@@ -134,7 +149,7 @@ class ProfileEditScreen extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           const Text(
-            'Saffron Bistro',
+            'Zteel Vendor Panel',
             style: TextStyle(
               color: textPrimary,
               fontSize: 18,
@@ -337,6 +352,110 @@ class ProfileEditScreen extends StatelessWidget {
             ),
           ),
           Icon(icon, color: textSecond, size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: fieldBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: divider, width: 1),
+      ),
+      child: const TextField(
+        maxLines: 4,
+        style: TextStyle(
+          color: textPrimary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.45,
+        ),
+        cursorColor: accent,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Write a short description for your shop...',
+          hintStyle: TextStyle(
+            color: textSecond,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+          ),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOpenDaysSection() {
+    const fullDayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: fieldBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: divider, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLabel('OPEN DAYS'),
+          const SizedBox(height: 10),
+          Row(
+            children: List.generate(7, (i) {
+              final selected = _openDays[i];
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _openDays[i] = !_openDays[i]),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: selected ? accent : const Color(0xFF1E1008),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected ? accent : divider,
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _dayLabel(i),
+                            style: TextStyle(
+                              color: selected ? Colors.white : textSecond,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              height: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            fullDayLabels[i],
+                            style: TextStyle(
+                              color: selected ? Colors.white : textSecond,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                              height: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
         ],
       ),
     );
