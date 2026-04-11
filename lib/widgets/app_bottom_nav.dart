@@ -7,13 +7,18 @@ import 'package:frontend/screens/profileEditScreen.dart';
 enum VendorTab { dashboard, offers, orders, profile }
 
 class VendorBottomNav extends StatelessWidget {
-  const VendorBottomNav({super.key, required this.currentTab});
+  const VendorBottomNav({
+    super.key,
+    required this.currentTab,
+    this.onTabChanged,
+  });
 
   final VendorTab currentTab;
+  final Function(VendorTab)? onTabChanged;
 
-  static const Color _bg = Color(0xFF0F0A07);
-  static const Color _orange = Color(0xFFE87722);
-  static const Color _grey = Color(0xFF8A7E74);
+  static const Color _bg = Color(0xFF1A0E0A);
+  static const Color _orange = Color(0xFFE8622A);
+  static const Color _grey = Color(0xFF9E7E72);
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +99,7 @@ class VendorBottomNav extends StatelessWidget {
       return;
     }
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => item.builder()),
-    );
+    onTabChanged?.call(item.tab);
   }
 }
 

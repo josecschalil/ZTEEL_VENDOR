@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/widgets/app_bottom_nav.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -9,24 +8,122 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  final List<bool> _openDays = [true, true, true, true, true, true, true];
+  final List<List<_OpeningSession>> _daySessions = List.generate(
+    7,
+    (_) => <_OpeningSession>[],
+  );
+  int _selectedDayIndex = 0;
 
   // ── Design tokens ──────────────────────────────────────────
-  static const Color bgDark = Color(0xFF1A0F08);
-  static const Color fieldBg = Color(0xFF231409);
-  static const Color accent = Color(0xFFD4622A);
-  static const Color accentLight = Color(0xFFE8763C);
+  static const Color bgDark = Color(0xFF130A04);
+  static const Color fieldBg = Color(0xFF261509);
+  static const Color accent = Color(0xFFE8622A);
+  static const Color accentLight = Color(0xFFF07840);
   static const Color textPrimary = Color(0xFFF5E6D3);
-  static const Color textSecond = Color(0xFF9A7B60);
-  static const Color divider = Color(0xFF3D2515);
+  static const Color textSecond = Color(0xFF9A7A5F);
+  static const Color divider = Color(0xFF3A1E0A);
 
   String _dayLabel(int index) => ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index];
+
+  String _fullDayLabel(int index) => [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday'
+      ][index];
+
+  String _formatTime(TimeOfDay t) {
+    final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  int _toMinutes(TimeOfDay t) => (t.hour * 60) + t.minute;
+
+  String? _sessionValidationMessage(int dayIndex) {
+    final sessions = _daySessions[dayIndex];
+    if (sessions.isEmpty) return null;
+
+    final normalized = sessions
+        .map((s) => (_toMinutes(s.start), _toMinutes(s.end)))
+        .toList()
+      ..sort((a, b) => a.$1.compareTo(b.$1));
+
+    for (var i = 0; i < normalized.length; i++) {
+      if (normalized[i].$1 >= normalized[i].$2) {
+        return 'A session has an invalid time range.';
+      }
+      if (i > 0 && normalized[i].$1 < normalized[i - 1].$2) {
+        return 'Sessions overlap. Adjust times to avoid conflicts.';
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _pickSessionTime(
+    int dayIndex,
+    int sessionIndex,
+    bool isStart,
+  ) async {
+    final current = _daySessions[dayIndex][sessionIndex];
+    final initialTime = isStart ? current.start : current.end;
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: accent,
+            onSurface: textPrimary,
+            surface: fieldBg,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      final updated = _daySessions[dayIndex][sessionIndex].copyWith(
+        start: isStart ? picked : null,
+        end: isStart ? null : picked,
+      );
+      _daySessions[dayIndex][sessionIndex] = updated;
+    });
+  }
+
+  void _addSession(int dayIndex) {
+    final sessions = _daySessions[dayIndex];
+    final fallbackStart = sessions.isNotEmpty
+        ? sessions.last.end
+        : const TimeOfDay(hour: 9, minute: 0);
+    final fallbackEnd = TimeOfDay(
+      hour: (fallbackStart.hour + 3) % 24,
+      minute: fallbackStart.minute,
+    );
+
+    setState(() {
+      sessions.add(_OpeningSession(start: fallbackStart, end: fallbackEnd));
+    });
+  }
+
+  void _removeSession(int dayIndex, int sessionIndex) {
+    setState(() {
+      _daySessions[dayIndex].removeAt(sessionIndex);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgDark,
-      bottomNavigationBar: const VendorBottomNav(currentTab: VendorTab.profile),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -57,57 +154,29 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         Icons.location_on_outlined),
                     const SizedBox(height: 10),
                     _buildMapPlaceholder(),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('OPENING TIME'),
-                              const SizedBox(height: 6),
-                              _buildTimeField(
-                                  '11:00 AM', Icons.access_time_outlined),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('CLOSING TIME'),
-                              const SizedBox(height: 6),
-                              _buildTimeField(
-                                  '10:00 PM', Icons.bedtime_outlined),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 20),
                     _buildOpenDaysSection(),
                     const SizedBox(height: 20),
                     _buildMenuShowcase(),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 22),
                     _buildDivider(),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     _buildLabel('ACCOUNT & PREFERENCES'),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
                     _buildPreferenceItem(
                       Icons.account_balance_wallet_outlined,
                       'Payout Settings',
                       'Manage bank account & taxes',
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _buildPreferenceItem(
                       Icons.shield_outlined,
                       'Privacy & Security',
                       '2FA, Password & Permissions',
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
                     _buildSaveButton(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _buildLogoutButton(),
                     const SizedBox(height: 24),
                   ],
@@ -189,7 +258,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF4A2010), Color(0xFF6B3020), Color(0xFF3A1808)],
+              colors: [Color(0xFF3D1A05), Color(0xFF6B2E08), Color(0xFF5C2004)],
             ),
           ),
           child: Stack(
@@ -242,17 +311,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3A1A08),
+                  color: const Color(0xFF261509),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: bgDark, width: 3),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(11),
                   child: Container(
-                    color: const Color(0xFF2A1005),
+                    color: const Color(0xFF1F1108),
                     child: const Center(
                       child: Icon(Icons.person,
-                          color: Color(0xFF6A4030), size: 40),
+                          color: Color(0xFF5C3E28), size: 40),
                     ),
                   ),
                 ),
@@ -390,6 +459,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   Widget _buildOpenDaysSection() {
     const fullDayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final selectedDayValidation = _sessionValidationMessage(_selectedDayIndex);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -405,21 +475,26 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           const SizedBox(height: 10),
           Row(
             children: List.generate(7, (i) {
-              final selected = _openDays[i];
+              final hasSessions = _daySessions[i].isNotEmpty;
+              final isFocusedDay = _selectedDayIndex == i;
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
                   child: GestureDetector(
-                    onTap: () => setState(() => _openDays[i] = !_openDays[i]),
+                    onTap: () => setState(() => _selectedDayIndex = i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       height: 58,
                       decoration: BoxDecoration(
-                        color: selected ? accent : const Color(0xFF1E1008),
+                        color: const Color(0xFF1F1108),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: selected ? accent : divider,
-                          width: 1,
+                          color: isFocusedDay
+                              ? accent
+                              : (hasSessions
+                                  ? accent.withOpacity(0.45)
+                                  : divider),
+                          width: isFocusedDay ? 1.5 : 1,
                         ),
                       ),
                       alignment: Alignment.center,
@@ -430,7 +505,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Text(
                             _dayLabel(i),
                             style: TextStyle(
-                              color: selected ? Colors.white : textSecond,
+                              color: hasSessions ? accent : textSecond,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               height: 1,
@@ -440,7 +515,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Text(
                             fullDayLabels[i],
                             style: TextStyle(
-                              color: selected ? Colors.white : textSecond,
+                              color: hasSessions ? accentLight : textSecond,
                               fontSize: 8,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,
@@ -455,6 +530,185 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               );
             }),
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                '${_fullDayLabel(_selectedDayIndex)} Sessions',
+                style: const TextStyle(
+                  color: textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _addSession(_selectedDayIndex),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: accent.withOpacity(0.45)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_rounded, size: 13, color: accent),
+                      SizedBox(width: 4),
+                      Text(
+                        'Add Session',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_daySessions[_selectedDayIndex].isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1F1108),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: divider),
+              ),
+              child: const Text(
+                'This day is closed. Add a session to open this day.',
+                style: TextStyle(
+                  color: textSecond,
+                  fontSize: 11,
+                ),
+              ),
+            )
+          else ...[
+            ..._daySessions[_selectedDayIndex].asMap().entries.map((entry) {
+              final idx = entry.key;
+              final session = entry.value;
+              return Padding(
+                padding: EdgeInsets.only(top: idx == 0 ? 0 : 8),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1F1108),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: divider),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Session ${idx + 1}',
+                        style: const TextStyle(
+                          color: textSecond,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              _pickSessionTime(_selectedDayIndex, idx, true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: fieldBg,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: divider),
+                            ),
+                            child: Text(
+                              _formatTime(session.start),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: textPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '-',
+                          style: TextStyle(
+                            color: textSecond,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              _pickSessionTime(_selectedDayIndex, idx, false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: fieldBg,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: divider),
+                            ),
+                            child: Text(
+                              _formatTime(session.end),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: textPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _removeSession(_selectedDayIndex, idx),
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: accent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: accent.withOpacity(0.35)),
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 15,
+                            color: accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            if (selectedDayValidation != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  selectedDayValidation,
+                  style: const TextStyle(
+                    color: accentLight,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -465,7 +719,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Container(
       height: 110,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1008),
+        color: const Color(0xFF1F1108),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: divider, width: 1),
       ),
@@ -612,24 +866,24 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   // ── Preference item ────────────────────────────────────────
   Widget _buildPreferenceItem(IconData icon, String title, String subtitle) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: fieldBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(11),
         border: Border.all(color: divider, width: 1),
       ),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
-              color: const Color(0xFF3A1A08),
-              borderRadius: BorderRadius.circular(10),
+              color: const Color(0xFF1F1108),
+              borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(icon, color: accent, size: 18),
+            child: Icon(icon, color: accent, size: 16),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,7 +892,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   title,
                   style: const TextStyle(
                     color: textPrimary,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -647,13 +901,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   subtitle,
                   style: const TextStyle(
                     color: textSecond,
-                    fontSize: 11,
+                    fontSize: 10,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: textSecond, size: 20),
+          const Icon(Icons.chevron_right, color: textSecond, size: 18),
         ],
       ),
     );
@@ -663,7 +917,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 44,
       child: ElevatedButton(
         onPressed: () {},
         style: ElevatedButton.styleFrom(
@@ -671,15 +925,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(22),
           ),
         ),
         child: const Text(
           'SAVE ALL CHANGES',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 12,
             fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
+            letterSpacing: 0.8,
           ),
         ),
       ),
@@ -690,23 +944,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Widget _buildLogoutButton() {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 44,
       child: OutlinedButton.icon(
         onPressed: () {},
         style: OutlinedButton.styleFrom(
           foregroundColor: textPrimary,
           side: const BorderSide(color: divider, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(22),
           ),
         ),
-        icon: const Icon(Icons.logout, size: 16, color: textPrimary),
+        icon: const Icon(Icons.logout, size: 14, color: textPrimary),
         label: const Text(
           'LOGOUT FROM VENDOR PANEL',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: FontWeight.w700,
-            letterSpacing: 1.0,
+            letterSpacing: 0.7,
             color: textPrimary,
           ),
         ),
@@ -771,4 +1025,18 @@ class _FoodPatternPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _OpeningSession {
+  final TimeOfDay start;
+  final TimeOfDay end;
+
+  const _OpeningSession({required this.start, required this.end});
+
+  _OpeningSession copyWith({TimeOfDay? start, TimeOfDay? end}) {
+    return _OpeningSession(
+      start: start ?? this.start,
+      end: end ?? this.end,
+    );
+  }
 }

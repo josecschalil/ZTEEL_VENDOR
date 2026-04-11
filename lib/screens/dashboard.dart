@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'categoryItemsScreen.dart';
-import 'package:frontend/widgets/app_bottom_nav.dart';
-
 part 'dashboard_all_categories.dart';
 
 // ── Design tokens ──────────────────────────────
@@ -118,11 +116,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        // ── Bottom nav: Scaffold.bottomNavigationBar stays fixed ──
-        bottomNavigationBar:
-            const VendorBottomNav(currentTab: VendorTab.dashboard),
         body: SafeArea(
-          bottom: false,
+          bottom: true,
           child: Column(
             children: [
               _reveal(0, _buildTopBar()),
@@ -178,7 +173,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           const Text(
             'Saffron Bistro',
             style: TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w500, color: _white),
+              color: _white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
           ),
           const Spacer(),
           Container(
@@ -201,8 +200,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                 const Text('OPEN',
                     style: TextStyle(
                         color: _green,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
                         letterSpacing: 0.8)),
               ],
             ),
@@ -293,8 +292,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       'DASHBOARD',
                       style: TextStyle(
                           color: _orange,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 2),
                     ),
                   ),
@@ -303,8 +302,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     'Welcome back, Chef',
                     style: TextStyle(
                       color: _white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 27,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
                       height: 1.2,
                     ),
@@ -331,9 +330,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         label.toUpperCase(),
         style: const TextStyle(
           color: _grey1,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 1.8,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -364,7 +363,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Revenue today',
-                            style: TextStyle(color: _grey1, fontSize: 11)),
+                            style: TextStyle(
+                              color: _grey1,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                            )),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
@@ -385,7 +388,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                         style: TextStyle(
                             color: _orange,
                             fontSize: 28,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w700,
                             letterSpacing: -0.5)),
                     const Text('.50 collected',
                         style: TextStyle(color: _grey1, fontSize: 11)),
@@ -487,7 +490,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   style: const TextStyle(
                       color: _white,
                       fontSize: 28,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: -0.5)),
               Text(sub, style: const TextStyle(color: _grey1, fontSize: 11)),
             ],
@@ -513,11 +516,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   Text('Menu categories',
                       style: TextStyle(
                           color: _white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w500)),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3)),
                   SizedBox(height: 3),
                   Text('Manage your culinary offerings',
-                      style: TextStyle(color: _grey1, fontSize: 12)),
+                      style: TextStyle(color: _grey1, fontSize: 12.5)),
                 ],
               ),
               const Spacer(),
@@ -529,7 +533,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       style: TextStyle(
                           color: _orange,
                           fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 0.5)),
                 ),
               ),
@@ -592,7 +596,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     style: TextStyle(
                       color: _white,
                       fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -710,8 +714,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       cat.name,
                       style: const TextStyle(
                         color: _white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -728,7 +732,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       style: const TextStyle(
                           color: _orange,
                           fontSize: 10,
-                          fontWeight: FontWeight.w500),
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -771,7 +775,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   style: TextStyle(
                     color: _grey1,
                     fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -816,8 +820,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                 Text(item.name,
                     style: const TextStyle(
                         color: _white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500)),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 3),
                 Text(item.price,
                     style: const TextStyle(color: _grey1, fontSize: 12)),

@@ -335,7 +335,7 @@ class _BrandName extends StatelessWidget {
             text: 'Z',
             style: TextStyle(
               fontFamily: 'serif',
-              fontSize: 48,
+              fontSize: 42,
               fontWeight: FontWeight.w900,
               color: Colors.white,
               letterSpacing: 1,
@@ -345,7 +345,7 @@ class _BrandName extends StatelessWidget {
             text: 'tee',
             style: TextStyle(
               fontFamily: 'serif',
-              fontSize: 48,
+              fontSize: 42,
               fontWeight: FontWeight.w900,
               color: Color(0xFFE87722),
               letterSpacing: 1,
@@ -355,7 +355,7 @@ class _BrandName extends StatelessWidget {
             text: 'e',
             style: TextStyle(
               fontFamily: 'serif',
-              fontSize: 48,
+              fontSize: 42,
               fontWeight: FontWeight.w300,
               color: Color(0xFFE87722),
               letterSpacing: 1,
@@ -365,7 +365,7 @@ class _BrandName extends StatelessWidget {
             text: 'l',
             style: TextStyle(
               fontFamily: 'serif',
-              fontSize: 48,
+              fontSize: 42,
               fontWeight: FontWeight.w300,
               color: Colors.white,
               letterSpacing: 1,
@@ -391,7 +391,7 @@ class _Tagline extends StatelessWidget {
           'Discover the best food deals',
           style: TextStyle(
             color: Color(0xFFCCCCCC),
-            fontSize: 16,
+            fontSize: 13.5,
             fontWeight: FontWeight.w400,
             letterSpacing: 0.2,
           ),
@@ -400,7 +400,7 @@ class _Tagline extends StatelessWidget {
           'near you',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 16,
+            fontSize: 13.5,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
           ),
@@ -464,23 +464,23 @@ class _OfflineBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFE87722), width: 1.5),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(28),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle_outline, color: Color(0xFFE87722), size: 18),
-          SizedBox(width: 10),
+          Icon(Icons.check_circle_outline, color: Color(0xFFE87722), size: 16),
+          SizedBox(width: 8),
           Text(
             'INSTANT OFFLINE REDEMPTION',
             style: TextStyle(
               color: Color(0xFFE87722),
-              fontSize: 12,
+              fontSize: 9.5,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
+              letterSpacing: 0.8,
             ),
           ),
         ],

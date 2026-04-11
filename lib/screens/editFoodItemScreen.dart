@@ -171,7 +171,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               'Saffron Bistro',
               style: TextStyle(
                 color: SBColors.textPrimary,
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -244,7 +244,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
             'Edit Food Item',
             style: TextStyle(
               color: SBColors.textPrimary,
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
             ),
@@ -281,7 +281,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               'AVAILABLE',
               style: TextStyle(
                 color: _isAvailable ? SBColors.saffron : SBColors.textSecondary,
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.8,
               ),
@@ -355,7 +355,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                             'Tap to change main photo',
                             style: TextStyle(
                               color: SBColors.textSecondary,
-                              fontSize: 12.5,
+                              fontSize: 11.5,
                             ),
                           ),
                         ],
@@ -390,7 +390,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                               'Edit',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 11,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -445,7 +445,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               label,
               style: const TextStyle(
                 color: SBColors.textSecondary,
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
               ),
@@ -576,7 +576,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               label,
               style: TextStyle(
                 color: active ? color : SBColors.textSecondary,
-                fontSize: 13.5,
+                fontSize: 12.5,
                 fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -617,7 +617,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                     controller: _tagController,
                     style: const TextStyle(
                       color: SBColors.textPrimary,
-                      fontSize: 13.5,
+                      fontSize: 12.5,
                     ),
                     cursorColor: SBColors.saffron,
                     onSubmitted: _addTag,
@@ -625,7 +625,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                       hintText: 'Add tag...',
                       hintStyle: TextStyle(
                         color: SBColors.textMuted,
-                        fontSize: 13.5,
+                        fontSize: 12.5,
                       ),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 6),
@@ -671,7 +671,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
             tag,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12.5,
+              fontSize: 11.5,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -733,7 +733,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               'Save Item',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 15.5,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
               ),
@@ -781,7 +781,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                         items[i].$2,
                         style: TextStyle(
                           color: active ? SBColors.saffron : SBColors.textMuted,
-                          fontSize: 9.5,
+                          fontSize: 9,
                           fontWeight:
                               active ? FontWeight.w700 : FontWeight.w500,
                           letterSpacing: 0.5,
@@ -840,14 +840,14 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         keyboardType: keyboardType,
         style: const TextStyle(
           color: SBColors.textPrimary,
-          fontSize: 14,
+          fontSize: 13,
           height: 1.5,
         ),
         cursorColor: SBColors.saffron,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-              color: SBColors.textMuted.withOpacity(0.8), fontSize: 14),
+              color: SBColors.textMuted.withOpacity(0.8), fontSize: 13),
           prefixIcon: prefix != null
               ? Padding(
                   padding: const EdgeInsets.only(left: 16, right: 0),

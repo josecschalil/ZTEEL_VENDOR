@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/MilestoneScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
-import 'package:frontend/widgets/app_bottom_nav.dart';
 
 // ─── Color Palette ───────────────────────────────────────────────────────────
 const kBg = Color(0xFF130A04);
@@ -133,7 +132,6 @@ class _OffersScreenState extends State<OffersScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBg,
-      bottomNavigationBar: const VendorBottomNav(currentTab: VendorTab.offers),
       body: SafeArea(
         child: Column(
           children: [
@@ -176,13 +174,13 @@ class _OffersScreenState extends State<OffersScreen>
   // ── Top App Bar ─────────────────────────────────────────────────────────────
   Widget _buildTopBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
           // Logo
           Container(
-            width: 38,
-            height: 38,
+            width: 34,
+            height: 34,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: kOrange,
@@ -192,19 +190,19 @@ class _OffersScreenState extends State<OffersScreen>
                 'SB',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 9),
           const Text(
             'Zteel Offers',
             style: TextStyle(
               color: kTextPrimary,
-              fontSize: 17,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
             ),
@@ -215,8 +213,8 @@ class _OffersScreenState extends State<OffersScreen>
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: kCard,
                   borderRadius: BorderRadius.circular(12),
@@ -225,15 +223,15 @@ class _OffersScreenState extends State<OffersScreen>
                 child: const Icon(
                   Icons.notifications_outlined,
                   color: kTextPrimary,
-                  size: 20,
+                  size: 18,
                 ),
               ),
               Positioned(
                 top: 8,
                 right: 8,
                 child: Container(
-                  width: 8,
-                  height: 8,
+                  width: 7,
+                  height: 7,
                   decoration: const BoxDecoration(
                     color: kOrange,
                     shape: BoxShape.circle,
@@ -261,24 +259,23 @@ class _OffersScreenState extends State<OffersScreen>
                 'Active Offers',
                 style: TextStyle(
                   color: kTextPrimary,
-                  fontSize: 26,
+                  fontSize: 30,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
+                  letterSpacing: -0.5,
                 ),
               ),
-              SizedBox(width: 10),
             ],
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 6),
           Text(
             'Manage your seasonal promotions and exclusive member discounts from one cinematic dashboard.',
             style: TextStyle(
               color: kTextSecondary,
-              fontSize: 13,
-              height: 1.5,
+              fontSize: 12,
+              height: 1.45,
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 16),
         ],
       ),
     );
@@ -319,7 +316,7 @@ class _OffersScreenState extends State<OffersScreen>
               },
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [kOrangeLight, kOrange],
@@ -338,13 +335,13 @@ class _OffersScreenState extends State<OffersScreen>
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                    Icon(Icons.add_rounded, color: Colors.white, size: 15),
                     SizedBox(width: 5),
                     Text(
                       'Create Offer',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 13,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.2,
                       ),
@@ -369,7 +366,7 @@ class _OffersScreenState extends State<OffersScreen>
       child: GestureDetector(
         onTap: () {},
         child: Container(
-          height: 220,
+          height: 236,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
@@ -480,7 +477,7 @@ class _OffersScreenState extends State<OffersScreen>
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Color(0xFFE0C5A8),
-                          fontSize: 12.5,
+                          fontSize: 12,
                           height: 1.4,
                         ),
                       ),
@@ -578,7 +575,7 @@ class _OffersScreenState extends State<OffersScreen>
 
   Widget _buildMetaChip(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.35),
         borderRadius: BorderRadius.circular(8),
@@ -593,7 +590,7 @@ class _OffersScreenState extends State<OffersScreen>
             label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 10.5,
+              fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -853,7 +850,7 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? kOrange : kCard,
           borderRadius: BorderRadius.circular(12),
@@ -878,14 +875,14 @@ class _FilterChip extends StatelessWidget {
               label,
               style: TextStyle(
                 color: selected ? Colors.white : kTextSecondary,
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(width: 6),
             Container(
-              width: 20,
-              height: 20,
+              width: 18,
+              height: 18,
               decoration: BoxDecoration(
                 color: selected
                     ? Colors.white.withOpacity(0.2)
@@ -897,7 +894,7 @@ class _FilterChip extends StatelessWidget {
                   '$count',
                   style: TextStyle(
                     color: selected ? Colors.white : kTextSecondary,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -931,7 +928,7 @@ class _OfferListCard extends StatelessWidget {
       child: GestureDetector(
         onTap: () {},
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: kCard,
             borderRadius: BorderRadius.circular(18),
@@ -948,8 +945,8 @@ class _OfferListCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   gradient: LinearGradient(
@@ -964,30 +961,28 @@ class _OfferListCard extends StatelessWidget {
                 child: Icon(
                   isLive ? Icons.cake_rounded : Icons.lunch_dining_rounded,
                   color: offer.categoryColor,
-                  size: 28,
+                  size: 24,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      offer.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: kTextPrimary,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            offer.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: kTextPrimary,
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.1,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
@@ -1014,7 +1009,7 @@ class _OfferListCard extends StatelessWidget {
                                 statusLabel,
                                 style: TextStyle(
                                   color: statusColor,
-                                  fontSize: 9,
+                                  fontSize: 8.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.8,
                                 ),
@@ -1030,51 +1025,60 @@ class _OfferListCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 6),
                     Text(
                       offer.subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: kTextSecondary,
-                        fontSize: 12,
+                        fontSize: 11,
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _MetaLabel(label: 'Category'),
-                        const Spacer(),
                         Flexible(
-                          child: Text(
-                            offer.category,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: offer.categoryColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          fit: FlexFit.loose,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _MetaLabel(label: 'Category'),
+                              const SizedBox(height: 3),
+                              Text(
+                                offer.category,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: offer.categoryColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        _MetaLabel(label: 'Ends in'),
-                        const Spacer(),
+                        const SizedBox(width: 14),
                         Flexible(
-                          child: Text(
-                            offer.duration,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: kTextPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          fit: FlexFit.loose,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _MetaLabel(label: 'Ends in'),
+                              const SizedBox(height: 3),
+                              Text(
+                                offer.duration,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: kTextPrimary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -1107,7 +1111,7 @@ class _StatusActionChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color:
               active ? kGreen.withOpacity(0.12) : kTextMuted.withOpacity(0.12),
@@ -1132,7 +1136,7 @@ class _StatusActionChip extends StatelessWidget {
               label,
               style: TextStyle(
                 color: active ? kGreen : kTextSecondary,
-                fontSize: 10.5,
+                fontSize: 9.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
               ),
@@ -1140,7 +1144,7 @@ class _StatusActionChip extends StatelessWidget {
             const SizedBox(width: 4),
             Icon(
               Icons.swap_horiz_rounded,
-              size: 13,
+              size: 12,
               color: active ? kGreen : kTextSecondary,
             ),
           ],
@@ -1161,7 +1165,7 @@ class _MetaLabel extends StatelessWidget {
       label,
       style: const TextStyle(
         color: kTextMuted,
-        fontSize: 11.5,
+        fontSize: 10.5,
       ),
     );
   }

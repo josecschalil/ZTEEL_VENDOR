@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:frontend/screens/setupShopScreen.dart';
 
 // ── Tokens (same as login) ─────────────────────
-const _bg = Color(0xFF16100A);
-const _orange = Color(0xFFE87722);
-const _orangeDim = Color(0xFF7A3D10);
-const _white = Color(0xFFF5F0EB);
-const _grey1 = Color(0xFF9E9080);
-const _grey2 = Color(0xFF3A2E26);
-const _navy = Color(0xFF0F1C30);
+const _bg = Color(0xFF130A04);
+const _orange = Color(0xFFE8622A);
+const _orangeDim = Color(0xFF3A1E0A);
+const _white = Color(0xFFF5E6D3);
+const _grey1 = Color(0xFF9A7A5F);
+const _grey2 = Color(0xFF5C3E28);
+const _navy = Color(0xFF1F1108);
 
 // ── OTP Screen ────────────────────────────────
 class OtpScreen extends StatefulWidget {

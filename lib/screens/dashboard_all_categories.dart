@@ -11,8 +11,6 @@ class AllCategoriesScreen extends StatelessWidget {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: _bg,
-        bottomNavigationBar:
-            const VendorBottomNav(currentTab: VendorTab.dashboard),
         body: SafeArea(
           bottom: false,
           child: Column(

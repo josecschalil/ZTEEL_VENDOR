@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:frontend/screens/dashboard.dart';
+import 'package:frontend/screens/vendor_home.dart';
 
 // ─── Color Palette ───────────────────────────────────────────────
 class SBColors {
-  static const bg = Color(0xFF160D00);
-  static const surface = Color(0xFF231508);
-  static const surfaceElevated = Color(0xFF2C1A08);
+  static const bg = Color(0xFF130A04);
+  static const surface = Color(0xFF1F1108);
+  static const surfaceElevated = Color(0xFF261509);
   static const saffron = Color(0xFFE8622A);
-  static const saffronLight = Color(0xFFF07340);
+  static const saffronLight = Color(0xFFF07840);
   static const saffronDim = Color(0x33E8622A);
-  static const gold = Color(0xFFD4A85A);
-  static const textPrimary = Color(0xFFF5EDD8);
-  static const textSecondary = Color(0xFF9B7E60);
+  static const gold = Color(0xFFD4A853);
+  static const textPrimary = Color(0xFFF5E6D3);
+  static const textSecondary = Color(0xFF9A7A5F);
   static const textMuted = Color(0xFF5C3E28);
-  static const border = Color(0xFF3A2010);
-  static const borderAccent = Color(0xFF6B3A18);
-  static const mapDark = Color(0xFF0D1B2A);
+  static const border = Color(0xFF3A1E0A);
+  static const borderAccent = Color(0xFF5C3E28);
+  static const mapDark = Color(0xFF1F1108);
 }
 
 class SetupShopScreen extends StatefulWidget {
@@ -32,10 +32,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
-  final List<bool> _openDays = [true, true, true, true, true, true, true];
-
-  TimeOfDay _opensAt = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _closesAt = const TimeOfDay(hour: 22, minute: 0);
+  final List<List<_OpeningSession>> _daySessions =
+      List.generate(7, (_) => <_OpeningSession>[]);
+  int _selectedDayIndex = 0;
 
   int _selectedNavIndex = 3;
 
@@ -67,10 +66,48 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     return '$hour:$minute $period';
   }
 
-  Future<void> _pickTime(bool isOpening) async {
+  String _fullDayLabel(int index) => [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday'
+      ][index];
+
+  int _toMinutes(TimeOfDay t) => (t.hour * 60) + t.minute;
+
+  String? _sessionValidationMessage(int dayIndex) {
+    final sessions = _daySessions[dayIndex];
+    if (sessions.isEmpty) return null;
+
+    final normalized = sessions
+        .map((s) => (_toMinutes(s.start), _toMinutes(s.end)))
+        .toList()
+      ..sort((a, b) => a.$1.compareTo(b.$1));
+
+    for (var i = 0; i < normalized.length; i++) {
+      if (normalized[i].$1 >= normalized[i].$2) {
+        return 'A session has an invalid time range.';
+      }
+      if (i > 0 && normalized[i].$1 < normalized[i - 1].$2) {
+        return 'Sessions overlap. Please adjust time ranges.';
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _pickSessionTime(
+    int dayIndex,
+    int sessionIndex,
+    bool isOpening,
+  ) async {
+    final current = _daySessions[dayIndex][sessionIndex];
     final picked = await showTimePicker(
       context: context,
-      initialTime: isOpening ? _opensAt : _closesAt,
+      initialTime: isOpening ? current.start : current.end,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -84,13 +121,34 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
     if (picked != null) {
       setState(() {
-        if (isOpening) {
-          _opensAt = picked;
-        } else {
-          _closesAt = picked;
-        }
+        _daySessions[dayIndex][sessionIndex] =
+            _daySessions[dayIndex][sessionIndex].copyWith(
+          start: isOpening ? picked : null,
+          end: isOpening ? null : picked,
+        );
       });
     }
+  }
+
+  void _addSession(int dayIndex) {
+    final sessions = _daySessions[dayIndex];
+    final fallbackStart = sessions.isNotEmpty
+        ? sessions.last.end
+        : const TimeOfDay(hour: 9, minute: 0);
+    final fallbackEnd = TimeOfDay(
+      hour: (fallbackStart.hour + 3) % 24,
+      minute: fallbackStart.minute,
+    );
+
+    setState(() {
+      sessions.add(_OpeningSession(start: fallbackStart, end: fallbackEnd));
+    });
+  }
+
+  void _removeSession(int dayIndex, int sessionIndex) {
+    setState(() {
+      _daySessions[dayIndex].removeAt(sessionIndex);
+    });
   }
 
   @override
@@ -127,8 +185,6 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                           'Describe the atmosphere, cuisine style,\nand unique offerings...',
                       maxLines: 4,
                     ),
-                    const SizedBox(height: 24),
-                    _buildOperationalHours(),
                     const SizedBox(height: 24),
                     _buildOpenDaysSection(),
                     const SizedBox(height: 24),
@@ -469,40 +525,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
   }
 
-  // ─── Operational Hours ───────────────────────────────────────────
-  Widget _buildOperationalHours() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: SBColors.surfaceElevated,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: SBColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionLabel('OPERATIONAL HOURS'),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                    child: _timeField(
-                        'OPENS AT', _opensAt, () => _pickTime(true))),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _timeField(
-                        'CLOSES AT', _closesAt, () => _pickTime(false))),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildOpenDaysSection() {
+    final validation = _sessionValidationMessage(_selectedDayIndex);
     const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const fullDayLabels = [
       'Mon',
@@ -526,10 +550,15 @@ class _SetupShopScreenState extends State<SetupShopScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel('OPEN DAYS'),
+            Row(
+              children: [
+                _sectionLabel('OPEN DAYS & HOURS'),
+                const Spacer(),
+              ],
+            ),
             const SizedBox(height: 8),
             Text(
-              'Select the days your shop is open for customers.',
+              'Select a day and configure one or more opening sessions.',
               style: TextStyle(
                 color: SBColors.textSecondary,
                 fontSize: 12.5,
@@ -539,28 +568,33 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             const SizedBox(height: 14),
             Row(
               children: List.generate(7, (i) {
-                final selected = _openDays[i];
+                final hasSessions = _daySessions[i].isNotEmpty;
+                final isFocusedDay = _selectedDayIndex == i;
                 return Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
                     child: GestureDetector(
-                      onTap: () => setState(() => _openDays[i] = !_openDays[i]),
+                      onTap: () => setState(() => _selectedDayIndex = i),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         height: 60,
                         decoration: BoxDecoration(
-                          color: selected ? SBColors.saffron : SBColors.surface,
+                          color: SBColors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color:
-                                selected ? SBColors.saffron : SBColors.border,
+                            color: isFocusedDay
+                                ? SBColors.saffron
+                                : (hasSessions
+                                    ? SBColors.saffron.withOpacity(0.45)
+                                    : SBColors.border),
+                            width: isFocusedDay ? 1.4 : 1,
                           ),
-                          boxShadow: selected
+                          boxShadow: isFocusedDay
                               ? [
                                   BoxShadow(
-                                    color: SBColors.saffron.withOpacity(0.25),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                                    color: SBColors.saffron.withOpacity(0.14),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
                                 ]
                               : null,
@@ -573,8 +607,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                             Text(
                               dayLabels[i],
                               style: TextStyle(
-                                color: selected
-                                    ? Colors.white
+                                color: hasSessions
+                                    ? SBColors.saffron
                                     : SBColors.textSecondary,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -587,8 +621,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: selected
-                                    ? Colors.white
+                                color: hasSessions
+                                    ? SBColors.saffronLight
                                     : SBColors.textMuted,
                                 fontSize: 8.5,
                                 fontWeight: FontWeight.w600,
@@ -604,6 +638,127 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 );
               }),
             ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () => _addSession(_selectedDayIndex),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: SBColors.saffron.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border:
+                        Border.all(color: SBColors.saffron.withOpacity(0.45)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_rounded,
+                          color: SBColors.saffron, size: 13),
+                      SizedBox(width: 4),
+                      Text(
+                        'Add Session',
+                        style: TextStyle(
+                          color: SBColors.saffron,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${_fullDayLabel(_selectedDayIndex)} timings',
+              style: TextStyle(
+                color: SBColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_daySessions[_selectedDayIndex].isEmpty)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                decoration: BoxDecoration(
+                  color: SBColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: SBColors.border),
+                ),
+                child: const Text(
+                  'This day is closed. Add a session to open this day.',
+                  style: TextStyle(
+                    color: SBColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              )
+            else
+              ..._daySessions[_selectedDayIndex].asMap().entries.map((entry) {
+                final idx = entry.key;
+                final session = entry.value;
+                return Padding(
+                  padding: EdgeInsets.only(
+                      bottom: idx == _daySessions[_selectedDayIndex].length - 1
+                          ? 0
+                          : 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _timeField(
+                          'OPEN',
+                          session.start,
+                          () => _pickSessionTime(_selectedDayIndex, idx, true),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _timeField(
+                          'CLOSE',
+                          session.end,
+                          () => _pickSessionTime(_selectedDayIndex, idx, false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _removeSession(_selectedDayIndex, idx),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: SBColors.saffron.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: SBColors.saffron.withOpacity(0.35)),
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 15,
+                            color: SBColors.saffron,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            if (validation != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  validation,
+                  style: TextStyle(
+                    color: SBColors.saffronLight,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -636,7 +791,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             child: Row(
               children: [
                 Icon(
-                  label.contains('OPENS')
+                  label.contains('OPEN')
                       ? Icons.schedule_rounded
                       : Icons.nightlight_round,
                   color: SBColors.saffron,
@@ -670,7 +825,21 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           border: Border.all(color: SBColors.border),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(14, 14, 14, 0),
+              child: Text(
+                'LOCATION',
+                style: TextStyle(
+                  color: SBColors.saffron,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             // Map area
             ClipRRect(
               borderRadius:
@@ -722,7 +891,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                         '12–14 Saffron Mews, Kensington',
                         style: TextStyle(
                           color: SBColors.textPrimary,
-                          fontSize: 13.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -731,7 +900,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                         'LONDON, UNITED KINGDOM',
                         style: TextStyle(
                           color: SBColors.textSecondary,
-                          fontSize: 11,
+                          fontSize: 10,
                           letterSpacing: 0.6,
                         ),
                       ),
@@ -799,17 +968,17 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       child: GestureDetector(
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const RestaurantDashboard()),
+            MaterialPageRoute(builder: (_) => const VendorHome()),
           );
         },
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 17),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFE8622A), Color(0xFFD44A14)],
+              colors: [SBColors.saffronLight, SBColors.saffron],
             ),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
                 color: SBColors.saffron.withOpacity(0.35),
@@ -825,13 +994,13 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 'Save & Continue',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 15.5,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
+                  letterSpacing: 0.1,
                 ),
               ),
               SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
             ],
           ),
         ),
@@ -950,12 +1119,12 @@ class _MapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Dark map background
-    final bgPaint = Paint()..color = const Color(0xFF0D1B2A);
+    final bgPaint = Paint()..color = SBColors.mapDark;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
     // Grid lines (map grid)
     final gridPaint = Paint()
-      ..color = const Color(0x15FFFFFF)
+      ..color = const Color(0x20F5E6D3)
       ..strokeWidth = 0.5;
     for (double x = 0; x <= size.width; x += 30) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
@@ -965,7 +1134,7 @@ class _MapPainter extends CustomPainter {
     }
 
     // Fake continent blobs
-    final landPaint = Paint()..color = const Color(0xFF1A3A50);
+    final landPaint = Paint()..color = const Color(0xFF3A1E0A);
     _drawContinent(
         canvas, landPaint, size.width * 0.08, size.height * 0.2, 55, 55);
     _drawContinent(
@@ -980,7 +1149,7 @@ class _MapPainter extends CustomPainter {
 
     // Meridian line
     final meridianPaint = Paint()
-      ..color = const Color(0x22FFFFFF)
+      ..color = const Color(0x339A7A5F)
       ..strokeWidth = 1;
     canvas.drawLine(
       Offset(size.width * 0.5, 0),
@@ -1013,4 +1182,18 @@ class _MapPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _OpeningSession {
+  final TimeOfDay start;
+  final TimeOfDay end;
+
+  const _OpeningSession({required this.start, required this.end});
+
+  _OpeningSession copyWith({TimeOfDay? start, TimeOfDay? end}) {
+    return _OpeningSession(
+      start: start ?? this.start,
+      end: end ?? this.end,
+    );
+  }
 }
