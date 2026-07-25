@@ -1,23 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/vendor_home.dart';
-
-// ─── Color Palette ───────────────────────────────────────────────
-class SBColors {
-  static const bg = Color(0xFF130A04);
-  static const surface = Color(0xFF1F1108);
-  static const surfaceElevated = Color(0xFF261509);
-  static const saffron = Color(0xFFE8622A);
-  static const saffronLight = Color(0xFFF07840);
-  static const saffronDim = Color(0x33E8622A);
-  static const gold = Color(0xFFD4A853);
-  static const textPrimary = Color(0xFFF5E6D3);
-  static const textSecondary = Color(0xFF9A7A5F);
-  static const textMuted = Color(0xFF5C3E28);
-  static const border = Color(0xFF3A1E0A);
-  static const borderAccent = Color(0xFF5C3E28);
-  static const mapDark = Color(0xFF1F1108);
-}
+import 'package:frontend/app_colors.dart';
 
 class SetupShopScreen extends StatefulWidget {
   const SetupShopScreen({super.key});
@@ -111,9 +95,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: SBColors.saffron,
-            onSurface: SBColors.textPrimary,
-            surface: SBColors.surfaceElevated,
+            primary: AppColors.orange,
+            onSurface: AppColors.textPrimary,
+            surface: AppColors.surfaceRaised,
           ),
         ),
         child: child!,
@@ -154,7 +138,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SBColors.bg,
+      backgroundColor: AppColors.bg,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: Column(
@@ -211,9 +195,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          color: SBColors.bg,
+          color: AppColors.bg,
           border: Border(
-            bottom: BorderSide(color: SBColors.border, width: 0.5),
+            bottom: BorderSide(color: AppColors.border, width: 0.5),
           ),
         ),
         child: Row(
@@ -222,13 +206,13 @@ class _SetupShopScreenState extends State<SetupShopScreen>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: SBColors.saffronDim,
+                color: AppColors.orangeDim,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: SBColors.saffron.withOpacity(0.4)),
+                border: Border.all(color: AppColors.orange.withOpacity(0.4)),
               ),
               child: const Icon(
                 Icons.storefront_rounded,
-                color: SBColors.saffron,
+                color: AppColors.orange,
                 size: 18,
               ),
             ),
@@ -236,7 +220,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             const Text(
               'Zteel Vendor SignUp',
               style: TextStyle(
-                color: SBColors.saffron,
+                color: AppColors.orange,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.3,
@@ -249,13 +233,13 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: SBColors.surfaceElevated,
+                  color: AppColors.surfaceRaised,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: SBColors.border),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: const Icon(
                   Icons.close_rounded,
-                  color: SBColors.textSecondary,
+                  color: AppColors.textSecondary,
                   size: 18,
                 ),
               ),
@@ -275,7 +259,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           const Text(
             'Setup Your Shop',
             style: TextStyle(
-              color: SBColors.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 26,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
@@ -287,7 +271,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           Text(
             'Tell us about your culinary space. These details will be\nvisible to your customers.',
             style: TextStyle(
-              color: SBColors.textSecondary,
+              color: AppColors.textSecondary,
               fontSize: 13.5,
               height: 1.6,
             ),
@@ -327,7 +311,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: SBColors.saffron.withOpacity(0.35),
+                color: AppColors.orange.withOpacity(0.35),
                 width: 1.5,
                 strokeAlign: BorderSide.strokeAlignOutside,
               ),
@@ -335,9 +319,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF3D1F05),
-                  Color(0xFF2A1203),
-                  Color(0xFF1E0E02),
+                  AppColors.border,
+                  AppColors.surface,
+                  AppColors.bg,
                 ],
               ),
             ),
@@ -358,15 +342,15 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: SBColors.saffron.withOpacity(0.15),
+                          color: AppColors.orange.withOpacity(0.15),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: SBColors.saffron.withOpacity(0.4),
+                            color: AppColors.orange.withOpacity(0.4),
                           ),
                         ),
                         child: const Icon(
                           Icons.add_a_photo_rounded,
-                          color: SBColors.saffronLight,
+                          color: AppColors.orangeLight,
                           size: 22,
                         ),
                       ),
@@ -374,7 +358,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                       const Text(
                         'Banner Image',
                         style: TextStyle(
-                          color: SBColors.textSecondary,
+                          color: AppColors.textSecondary,
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
@@ -398,11 +382,11 @@ class _SetupShopScreenState extends State<SetupShopScreen>
               height: 56,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: SBColors.surfaceElevated,
-                border: Border.all(color: SBColors.saffron, width: 2),
+                color: AppColors.surfaceRaised,
+                border: Border.all(color: AppColors.orange, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: SBColors.saffron.withOpacity(0.25),
+                    color: AppColors.orange.withOpacity(0.25),
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),
@@ -410,7 +394,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
               ),
               child: const Icon(
                 Icons.add_a_photo_outlined,
-                color: SBColors.saffron,
+                color: AppColors.orange,
                 size: 22,
               ),
             ),
@@ -427,9 +411,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: SBColors.surfaceElevated,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: SBColors.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -438,12 +422,12 @@ class _SetupShopScreenState extends State<SetupShopScreen>
               margin: const EdgeInsets.only(top: 2),
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: SBColors.saffronDim,
+                color: AppColors.orangeDim,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.verified_rounded,
-                color: SBColors.saffron,
+                color: AppColors.orange,
                 size: 14,
               ),
             ),
@@ -455,7 +439,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                   const Text(
                     'Vendor Identity',
                     style: TextStyle(
-                      color: SBColors.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
                     ),
@@ -464,7 +448,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                   Text(
                     'A high-quality banner and clear logo increase customer trust by up to 40% in premium listings.',
                     style: TextStyle(
-                      color: SBColors.textSecondary,
+                      color: AppColors.textSecondary,
                       fontSize: 12.5,
                       height: 1.55,
                     ),
@@ -493,22 +477,22 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: SBColors.surfaceElevated,
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: SBColors.border),
+              border: Border.all(color: AppColors.border),
             ),
             child: TextField(
               maxLines: maxLines,
               style: const TextStyle(
-                color: SBColors.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 height: 1.5,
               ),
-              cursorColor: SBColors.saffron,
+              cursorColor: AppColors.orange,
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(
-                  color: SBColors.textMuted.withOpacity(0.8),
+                  color: AppColors.textMuted.withOpacity(0.8),
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -543,9 +527,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: SBColors.surfaceElevated,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: SBColors.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,7 +544,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             Text(
               'Select a day and configure one or more opening sessions.',
               style: TextStyle(
-                color: SBColors.textSecondary,
+                color: AppColors.textSecondary,
                 fontSize: 12.5,
                 height: 1.45,
               ),
@@ -579,20 +563,20 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                         duration: const Duration(milliseconds: 180),
                         height: 60,
                         decoration: BoxDecoration(
-                          color: SBColors.surface,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isFocusedDay
-                                ? SBColors.saffron
+                                ? AppColors.orange
                                 : (hasSessions
-                                    ? SBColors.saffron.withOpacity(0.45)
-                                    : SBColors.border),
+                                    ? AppColors.orange.withOpacity(0.45)
+                                    : AppColors.border),
                             width: isFocusedDay ? 1.4 : 1,
                           ),
                           boxShadow: isFocusedDay
                               ? [
                                   BoxShadow(
-                                    color: SBColors.saffron.withOpacity(0.14),
+                                    color: AppColors.orange.withOpacity(0.14),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -608,8 +592,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                               dayLabels[i],
                               style: TextStyle(
                                 color: hasSessions
-                                    ? SBColors.saffron
-                                    : SBColors.textSecondary,
+                                    ? AppColors.orange
+                                    : AppColors.textSecondary,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 height: 1,
@@ -622,8 +606,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: hasSessions
-                                    ? SBColors.saffronLight
-                                    : SBColors.textMuted,
+                                    ? AppColors.orangeLight
+                                    : AppColors.textMuted,
                                 fontSize: 8.5,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.3,
@@ -647,21 +631,21 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: SBColors.saffron.withOpacity(0.12),
+                    color: AppColors.orange.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(999),
                     border:
-                        Border.all(color: SBColors.saffron.withOpacity(0.45)),
+                        Border.all(color: AppColors.orange.withOpacity(0.45)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.add_rounded,
-                          color: SBColors.saffron, size: 13),
+                          color: AppColors.orange, size: 13),
                       SizedBox(width: 4),
                       Text(
                         'Add Session',
                         style: TextStyle(
-                          color: SBColors.saffron,
+                          color: AppColors.orange,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                         ),
@@ -675,7 +659,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             Text(
               '${_fullDayLabel(_selectedDayIndex)} timings',
               style: TextStyle(
-                color: SBColors.textSecondary,
+                color: AppColors.textSecondary,
                 fontSize: 12,
               ),
             ),
@@ -686,14 +670,14 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                 decoration: BoxDecoration(
-                  color: SBColors.surface,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: SBColors.border),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: const Text(
                   'This day is closed. Add a session to open this day.',
                   style: TextStyle(
-                    color: SBColors.textSecondary,
+                    color: AppColors.textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -731,15 +715,15 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: SBColors.saffron.withOpacity(0.1),
+                            color: AppColors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: SBColors.saffron.withOpacity(0.35)),
+                                color: AppColors.orange.withOpacity(0.35)),
                           ),
                           child: const Icon(
                             Icons.close_rounded,
                             size: 15,
-                            color: SBColors.saffron,
+                            color: AppColors.orange,
                           ),
                         ),
                       ),
@@ -753,7 +737,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 child: Text(
                   validation,
                   style: TextStyle(
-                    color: SBColors.saffronLight,
+                    color: AppColors.orangeLight,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -772,7 +756,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
         Text(
           label,
           style: const TextStyle(
-            color: SBColors.textSecondary,
+            color: AppColors.textSecondary,
             fontSize: 10.5,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.8,
@@ -784,9 +768,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             decoration: BoxDecoration(
-              color: SBColors.surface,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: SBColors.border),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               children: [
@@ -794,14 +778,14 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                   label.contains('OPEN')
                       ? Icons.schedule_rounded
                       : Icons.nightlight_round,
-                  color: SBColors.saffron,
+                  color: AppColors.orange,
                   size: 15,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   _formatTime(time),
                   style: const TextStyle(
-                    color: SBColors.textPrimary,
+                    color: AppColors.textPrimary,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -820,9 +804,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         decoration: BoxDecoration(
-          color: SBColors.surfaceElevated,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: SBColors.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -832,7 +816,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
               child: Text(
                 'LOCATION',
                 style: TextStyle(
-                  color: SBColors.saffron,
+                  color: AppColors.orange,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.2,
@@ -880,7 +864,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 children: [
                   const Icon(
                     Icons.location_on_rounded,
-                    color: SBColors.saffron,
+                    color: AppColors.orange,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -890,7 +874,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                       const Text(
                         '12–14 Saffron Mews, Kensington',
                         style: TextStyle(
-                          color: SBColors.textPrimary,
+                          color: AppColors.textPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -899,7 +883,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                       Text(
                         'LONDON, UNITED KINGDOM',
                         style: TextStyle(
-                          color: SBColors.textSecondary,
+                          color: AppColors.textSecondary,
                           fontSize: 10,
                           letterSpacing: 0.6,
                         ),
@@ -925,13 +909,13 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: filled ? SBColors.saffron : SBColors.surfaceElevated,
+          color: filled ? AppColors.orange : AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(22),
-          border: filled ? null : Border.all(color: SBColors.borderAccent),
+          border: filled ? null : Border.all(color: AppColors.borderAccent),
           boxShadow: filled
               ? [
                   BoxShadow(
-                    color: SBColors.saffron.withOpacity(0.3),
+                    color: AppColors.orange.withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -944,13 +928,13 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             Icon(
               icon,
               size: 14,
-              color: filled ? Colors.white : SBColors.textSecondary,
+              color: filled ? AppColors.textWhite : AppColors.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: filled ? Colors.white : SBColors.textSecondary,
+                color: filled ? AppColors.textWhite : AppColors.textSecondary,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -976,12 +960,12 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [SBColors.saffronLight, SBColors.saffron],
+              colors: [AppColors.orangeLight, AppColors.orange],
             ),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: SBColors.saffron.withOpacity(0.35),
+                color: AppColors.orange.withOpacity(0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 6),
               ),
@@ -993,14 +977,14 @@ class _SetupShopScreenState extends State<SetupShopScreen>
               Text(
                 'Save & Continue',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textWhite,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.1,
                 ),
               ),
               SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+              Icon(Icons.arrow_forward_rounded, color: AppColors.textWhite, size: 16),
             ],
           ),
         ),
@@ -1014,7 +998,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       child: Text(
         "By continuing, you agree to Saffron Bistro's Vendor Terms and Conditions.",
         style: TextStyle(
-          color: SBColors.textMuted,
+          color: AppColors.textMuted,
           fontSize: 11.5,
           height: 1.5,
         ),
@@ -1034,9 +1018,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: SBColors.surface,
+        color: AppColors.surface,
         border: Border(
-          top: BorderSide(color: SBColors.border, width: 0.5),
+          top: BorderSide(color: AppColors.border, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -1055,13 +1039,13 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                       Icon(
                         items[i].$1,
                         size: 22,
-                        color: active ? SBColors.saffron : SBColors.textMuted,
+                        color: active ? AppColors.orange : AppColors.textMuted,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         items[i].$2,
                         style: TextStyle(
-                          color: active ? SBColors.saffron : SBColors.textMuted,
+                          color: active ? AppColors.orange : AppColors.textMuted,
                           fontSize: 9.5,
                           fontWeight:
                               active ? FontWeight.w700 : FontWeight.w500,
@@ -1084,7 +1068,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     return Text(
       text,
       style: const TextStyle(
-        color: SBColors.saffron,
+        color: AppColors.orange,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
@@ -1099,7 +1083,7 @@ class _GridPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x0AFFC87A)
+      ..color = AppColors.gold
       ..strokeWidth = 0.5;
 
     const step = 22.0;
@@ -1119,12 +1103,12 @@ class _MapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Dark map background
-    final bgPaint = Paint()..color = SBColors.mapDark;
+    final bgPaint = Paint()..color = AppColors.surface;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
     // Grid lines (map grid)
     final gridPaint = Paint()
-      ..color = const Color(0x20F5E6D3)
+      ..color = AppColors.separator
       ..strokeWidth = 0.5;
     for (double x = 0; x <= size.width; x += 30) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
@@ -1134,7 +1118,7 @@ class _MapPainter extends CustomPainter {
     }
 
     // Fake continent blobs
-    final landPaint = Paint()..color = const Color(0xFF3A1E0A);
+    final landPaint = Paint()..color = AppColors.border;
     _drawContinent(
         canvas, landPaint, size.width * 0.08, size.height * 0.2, 55, 55);
     _drawContinent(
@@ -1149,7 +1133,7 @@ class _MapPainter extends CustomPainter {
 
     // Meridian line
     final meridianPaint = Paint()
-      ..color = const Color(0x339A7A5F)
+      ..color = AppColors.separator
       ..strokeWidth = 1;
     canvas.drawLine(
       Offset(size.width * 0.5, 0),
@@ -1169,14 +1153,14 @@ class _MapPainter extends CustomPainter {
 
   void _drawPin(Canvas canvas, Offset center) {
     final glowPaint = Paint()
-      ..color = const Color(0x33E8622A)
+      ..color = AppColors.orangeDim
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
     canvas.drawCircle(center, 10, glowPaint);
 
-    final outerPaint = Paint()..color = const Color(0xFFE8622A);
+    final outerPaint = Paint()..color = AppColors.orange;
     canvas.drawCircle(center, 6, outerPaint);
 
-    final innerPaint = Paint()..color = Colors.white;
+    final innerPaint = Paint()..color = AppColors.textWhite;
     canvas.drawCircle(center, 2.5, innerPaint);
   }
 

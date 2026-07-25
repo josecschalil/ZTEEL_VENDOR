@@ -1,22 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/app_colors.dart';
 import 'categoryItemsScreen.dart';
 part 'dashboard_all_categories.dart';
-
-// ── Design tokens ──────────────────────────────
-const _bg = Color(0xFF1A0E0A);
-const _surface = Color(0xFF251510);
-const _surfaceRaised = Color(0xFF2D1A10);
-const _orange = Color(0xFFE8622A);
-const _orangeDim = Color(0x29E8622A);
-const _orangeBorder = Color(0x40E8622A);
-const _white = Color(0xFFFFFFFF);
-const _grey1 = Color(0xFF9E7E72);
-const _grey2 = Color(0xFF3A2015);
-const _grey3 = Color(0xFF2A1810);
-const _green = Color(0xFF4ade80);
-const _greenDim = Color(0x1A4ade80);
-const _greenBorder = Color(0x404ade80);
 
 // ── Data models ────────────────────────────────
 class MenuItem {
@@ -97,7 +83,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: _bg,
+        backgroundColor: AppColors.bg,
         // ── FAB: Scaffold handles positioning above the bottom nav ──
         floatingActionButton: FadeTransition(
           opacity: _fade(4),
@@ -107,11 +93,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _orange,
+                color: AppColors.orange,
                 borderRadius: BorderRadius.circular(12),
               ),
               child:
-                  const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                  const Icon(Icons.add_rounded, color: AppColors.textWhite, size: 22),
             ),
           ),
         ),
@@ -151,9 +137,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
       decoration: const BoxDecoration(
-        color: _bg,
+        color: AppColors.bg,
         border: Border(
-          bottom: BorderSide(color: Color(0x0FFFFFFF), width: 0.5),
+          bottom: BorderSide(color: AppColors.orangeBorder, width: 0.5),
         ),
       ),
       child: Row(
@@ -162,18 +148,18 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _surface,
-              border: Border.all(color: _orangeBorder, width: 0.5),
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.orangeBorder, width: 0.5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.local_fire_department_rounded,
-                color: _orange, size: 18),
+                color: AppColors.orange, size: 18),
           ),
           const SizedBox(width: 10),
           const Text(
             'Saffron Bistro',
             style: TextStyle(
-              color: _white,
+              color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.3,
@@ -183,8 +169,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              color: _greenDim,
-              border: Border.all(color: _greenBorder, width: 0.5),
+              color: AppColors.greenDim,
+              border: Border.all(color: AppColors.greenBorder, width: 0.5),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -194,12 +180,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                      color: _green, shape: BoxShape.circle),
+                      color: AppColors.green, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 6),
                 const Text('OPEN',
                     style: TextStyle(
-                        color: _green,
+                        color: AppColors.green,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8)),
@@ -211,12 +197,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: _grey3,
-              border: Border.all(color: _grey2, width: 0.5),
+              color: AppColors.borderAccent,
+              border: Border.all(color: AppColors.border, width: 0.5),
               borderRadius: BorderRadius.circular(9),
             ),
             child: const Icon(Icons.notifications_none_rounded,
-                color: _grey1, size: 17),
+                color: AppColors.textSecondary, size: 17),
           ),
         ],
       ),
@@ -230,9 +216,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       height: 150,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: _surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _grey2, width: 0.5),
+        border: Border.all(color: AppColors.border, width: 0.5),
       ),
       child: Stack(
         children: [
@@ -245,7 +231,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: _orangeBorder, width: 0.5),
+                border: Border.all(color: AppColors.orangeBorder, width: 0.5),
               ),
             ),
           ),
@@ -257,7 +243,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: _orangeBorder, width: 0.5),
+                border: Border.all(color: AppColors.orangeBorder, width: 0.5),
               ),
             ),
           ),
@@ -269,7 +255,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               height: 50,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: _orangeBorder, width: 0.5),
+                border: Border.all(color: AppColors.orangeBorder, width: 0.5),
               ),
             ),
           ),
@@ -285,13 +271,13 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      border: Border.all(color: _orangeBorder, width: 0.5),
+                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
                       'DASHBOARD',
                       style: TextStyle(
-                          color: _orange,
+                          color: AppColors.orange,
                           fontSize: 9.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 2),
@@ -301,7 +287,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   const Text(
                     'Welcome back, Chef',
                     style: TextStyle(
-                      color: _white,
+                      color: AppColors.textPrimary,
                       fontSize: 27,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
@@ -311,7 +297,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   const SizedBox(height: 4),
                   const Text(
                     'Thursday, 10 April 2026',
-                    style: TextStyle(color: _grey1, fontSize: 12),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -329,7 +315,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       child: Text(
         label.toUpperCase(),
         style: const TextStyle(
-          color: _grey1,
+          color: AppColors.textSecondary,
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
@@ -352,8 +338,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2D1A0F),
-                  border: Border.all(color: _orangeBorder, width: 0.5),
+                  color: AppColors.surfaceRaised,
+                  border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
@@ -364,7 +350,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       children: [
                         const Text('Revenue today',
                             style: TextStyle(
-                              color: _grey1,
+                              color: AppColors.textSecondary,
                               fontSize: 11.5,
                               fontWeight: FontWeight.w500,
                             )),
@@ -372,12 +358,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _greenDim,
+                            color: AppColors.greenDim,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text('+12.4%',
                               style: TextStyle(
-                                  color: _green,
+                                  color: AppColors.green,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500)),
                         ),
@@ -386,12 +372,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     const SizedBox(height: 10),
                     const Text('\$1,482',
                         style: TextStyle(
-                            color: _orange,
+                            color: AppColors.orange,
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5)),
                     const Text('.50 collected',
-                        style: TextStyle(color: _grey1, fontSize: 11)),
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                     const Spacer(),
                     // Bar chart pinned to bottom of card
                     SizedBox(
@@ -405,7 +391,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                               margin: const EdgeInsets.symmetric(horizontal: 2),
                               height: 48 * h,
                               decoration: BoxDecoration(
-                                color: isActive ? _orange : _orangeDim,
+                                color: isActive ? AppColors.orange : AppColors.orangeDim,
                                 borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(4)),
                               ),
@@ -459,8 +445,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _surface,
-        border: Border.all(color: _grey2, width: 0.5),
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border, width: 0.5),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -470,16 +456,16 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(color: _grey1, fontSize: 11)),
+              Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
               Container(
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: _orangeDim,
+                  color: AppColors.orangeDim,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _orangeBorder, width: 0.5),
+                  border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                 ),
-                child: Icon(icon, color: _orange, size: 14),
+                child: Icon(icon, color: AppColors.orange, size: 14),
               ),
             ],
           ),
@@ -488,11 +474,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             children: [
               Text(value,
                   style: const TextStyle(
-                      color: _white,
+                      color: AppColors.textPrimary,
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5)),
-              Text(sub, style: const TextStyle(color: _grey1, fontSize: 11)),
+              Text(sub, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
             ],
           ),
         ],
@@ -515,13 +501,13 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                 children: [
                   Text('Menu categories',
                       style: TextStyle(
-                          color: _white,
+                          color: AppColors.textPrimary,
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.3)),
                   SizedBox(height: 3),
                   Text('Manage your culinary offerings',
-                      style: TextStyle(color: _grey1, fontSize: 12.5)),
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
                 ],
               ),
               const Spacer(),
@@ -531,7 +517,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   padding: EdgeInsets.symmetric(vertical: 6),
                   child: Text('VIEW ALL',
                       style: TextStyle(
-                          color: _orange,
+                          color: AppColors.orange,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.5)),
@@ -560,7 +546,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (context) {
         return Padding(
           padding: EdgeInsets.only(
@@ -570,9 +556,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: _surface,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: _grey2, width: 0.5),
+              border: Border.all(color: AppColors.border, width: 0.5),
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
@@ -585,7 +571,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       width: 42,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _grey3,
+                        color: AppColors.borderAccent,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -594,7 +580,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   const Text(
                     'Create new category',
                     style: TextStyle(
-                      color: _white,
+                      color: AppColors.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -602,27 +588,27 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   const SizedBox(height: 6),
                   const Text(
                     'Add a new category to organize your menu.',
-                    style: TextStyle(color: _grey1, fontSize: 12),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
                   const SizedBox(height: 16),
                   Container(
                     decoration: BoxDecoration(
-                      color: _surface,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: _grey2, width: 0.5),
+                      border: Border.all(color: AppColors.border, width: 0.5),
                     ),
                     child: TextField(
                       controller: _categoryNameController,
                       autofocus: true,
                       style: const TextStyle(
-                        color: _white,
+                        color: AppColors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
-                      cursorColor: _orange,
+                      cursorColor: AppColors.orange,
                       decoration: const InputDecoration(
                         hintText: 'Category name',
-                        hintStyle: TextStyle(color: _grey1, fontSize: 14),
+                        hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 14,
@@ -640,8 +626,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     child: ElevatedButton(
                       onPressed: _createCategory,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _orange,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.orange,
+                        foregroundColor: AppColors.textWhite,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -681,8 +667,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       decoration: BoxDecoration(
-        color: _surface,
-        border: Border.all(color: _grey2, width: 0.5),
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border, width: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       // ClipRRect so child backgrounds don't bleed outside rounded corners
@@ -694,26 +680,26 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
-              color: const Color(0xFF1E1208),
+              color: AppColors.surfaceRaised,
               child: Row(
                 children: [
                   Container(
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: _orangeDim,
-                      border: Border.all(color: _orangeBorder, width: 0.5),
+                      color: AppColors.orangeDim,
+                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.restaurant_menu_rounded,
-                        color: _orange, size: 17),
+                        color: AppColors.orange, size: 17),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       cat.name,
                       style: const TextStyle(
-                        color: _white,
+                        color: AppColors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -723,14 +709,14 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _orangeDim,
-                      border: Border.all(color: _orangeBorder, width: 0.5),
+                      color: AppColors.orangeDim,
+                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${cat.itemCount} items',
                       style: const TextStyle(
-                          color: _orange,
+                          color: AppColors.orange,
                           fontSize: 10,
                           fontWeight: FontWeight.w700),
                     ),
@@ -740,7 +726,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             ),
 
             // ── Hard divider between header and items ──
-            Container(height: 0.5, color: Color(0xFF3A2015)),
+            Container(height: 0.5, color: AppColors.border),
 
             // ── Item rows on surface background ──
             ...cat.items.asMap().entries.map((e) {
@@ -753,7 +739,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               width: double.infinity,
               decoration: const BoxDecoration(
                 border: Border(
-                    top: BorderSide(color: Color(0xFF3A2015), width: 0.5)),
+                    top: BorderSide(color: AppColors.border, width: 0.5)),
               ),
               child: TextButton(
                 onPressed: () {
@@ -773,7 +759,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                 child: const Text(
                   'SHOW MORE',
                   style: TextStyle(
-                    color: _grey1,
+                    color: AppColors.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
@@ -792,11 +778,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: _surface,
+        color: AppColors.surface,
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(color: Color(0xFF3A2015), width: 0.5)),
+                bottom: BorderSide(color: AppColors.border, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -804,8 +790,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: _surfaceRaised,
-              border: Border.all(color: _grey2, width: 0.5),
+              color: AppColors.surfaceRaised,
+              border: Border.all(color: AppColors.border, width: 0.5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
@@ -819,12 +805,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
               children: [
                 Text(item.name,
                     style: const TextStyle(
-                        color: _white,
+                        color: AppColors.textPrimary,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 3),
                 Text(item.price,
-                    style: const TextStyle(color: _grey1, fontSize: 12)),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ],
             ),
           ),
@@ -832,11 +818,11 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: _surfaceRaised,
-              border: Border.all(color: _grey2, width: 0.5),
+              color: AppColors.surfaceRaised,
+              border: Border.all(color: AppColors.border, width: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.edit_outlined, color: _grey1, size: 14),
+            child: const Icon(Icons.edit_outlined, color: AppColors.textSecondary, size: 14),
           ),
         ],
       ),

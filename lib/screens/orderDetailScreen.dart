@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 
 class OrderLineItem {
   final String name;
@@ -42,24 +43,17 @@ class OrderDetailScreen extends StatelessWidget {
     required this.items,
   });
 
-  static const Color bgDark = Color(0xFF1A0E0A);
-  static const Color cardBg = Color(0xFF251510);
-  static const Color orange = Color(0xFFE8622A);
-  static const Color textWhite = Color(0xFFFFFFFF);
-  static const Color textGrey = Color(0xFF9E7E72);
-  static const Color border = Color(0xFF3A2015);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgDark,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: bgDark,
+        backgroundColor: AppColors.bg,
         elevation: 0,
-        iconTheme: const IconThemeData(color: textWhite),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
         title: const Text(
           'Order Details',
-          style: TextStyle(color: textWhite, fontWeight: FontWeight.w700),
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -75,7 +69,7 @@ class OrderDetailScreen extends StatelessWidget {
                 const Text(
                   'Items',
                   style: TextStyle(
-                    color: textWhite,
+                    color: AppColors.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -98,9 +92,9 @@ class OrderDetailScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: cardBg,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -111,7 +105,7 @@ class OrderDetailScreen extends StatelessWidget {
               Text(
                 orderId,
                 style: const TextStyle(
-                  color: textGrey,
+                  color: AppColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.8,
@@ -121,7 +115,7 @@ class OrderDetailScreen extends StatelessWidget {
               const Text(
                 'Offer savings included',
                 style: TextStyle(
-                  color: textGrey,
+                  color: AppColors.textSecondary,
                   fontSize: 11.5,
                 ),
               ),
@@ -130,14 +124,14 @@ class OrderDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1F3A2E),
+              color: AppColors.green,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF2D6446)),
+              border: Border.all(color: AppColors.green),
             ),
             child: const Text(
               'Mark Complete',
               style: TextStyle(
-                color: Color(0xFF4CAF6E),
+                color: AppColors.green,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -154,9 +148,9 @@ class OrderDetailScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: cardBg,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           children: [
@@ -168,13 +162,13 @@ class OrderDetailScreen extends StatelessWidget {
                   child: Container(
                     width: 52,
                     height: 52,
-                    color: const Color(0xFF3A2015),
+                    color: AppColors.border,
                     child: Image.network(
                       item.imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => const Icon(
                         Icons.restaurant,
-                        color: orange,
+                        color: AppColors.orange,
                         size: 24,
                       ),
                     ),
@@ -190,7 +184,7 @@ class OrderDetailScreen extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: textWhite,
+                          color: AppColors.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
@@ -200,7 +194,7 @@ class OrderDetailScreen extends StatelessWidget {
                         item.note,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: textGrey, fontSize: 11),
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -208,7 +202,7 @@ class OrderDetailScreen extends StatelessWidget {
                 Text(
                   item.quantity,
                   style: const TextStyle(
-                    color: textGrey,
+                    color: AppColors.textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -222,14 +216,14 @@ class OrderDetailScreen extends StatelessWidget {
                 Text(
                   item.unitPrice,
                   style: const TextStyle(
-                    color: textGrey,
+                    color: AppColors.textSecondary,
                     fontSize: 11,
                   ),
                 ),
                 Text(
                   item.lineTotal,
                   style: const TextStyle(
-                    color: orange,
+                    color: AppColors.orange,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
@@ -243,7 +237,7 @@ class OrderDetailScreen extends StatelessWidget {
                 child: Text(
                   'Offer: ${item.appliedOffer!}',
                   style: const TextStyle(
-                    color: Color(0xFF4CAF6E),
+                    color: AppColors.green,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -261,27 +255,27 @@ class OrderDetailScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: cardBg,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Subtotal', subtotalAmount, textWhite),
+          _buildSummaryRow('Subtotal', subtotalAmount, AppColors.textPrimary),
           const SizedBox(height: 8),
-          _buildSummaryRow('Savings', savingsAmount, const Color(0xFF4CAF6E)),
+          _buildSummaryRow('Savings', savingsAmount, AppColors.green),
           const SizedBox(height: 8),
-          const Divider(color: border, height: 14),
+          const Divider(color: AppColors.border, height: 14),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A0E0A),
+              color: AppColors.bg,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: milestoneUnlocked
-                    ? const Color(0xFF2D6446)
-                    : const Color(0xFF3A2015),
+                    ? AppColors.green
+                    : AppColors.border,
               ),
             ),
             child: Row(
@@ -292,7 +286,7 @@ class OrderDetailScreen extends StatelessWidget {
                       ? Icons.emoji_events_rounded
                       : Icons.lock_clock_rounded,
                   size: 16,
-                  color: milestoneUnlocked ? const Color(0xFF4CAF6E) : textGrey,
+                  color: milestoneUnlocked ? AppColors.green : AppColors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -305,8 +299,8 @@ class OrderDetailScreen extends StatelessWidget {
                             : 'Milestone Reward Not Unlocked',
                         style: TextStyle(
                           color: milestoneUnlocked
-                              ? const Color(0xFF4CAF6E)
-                              : textGrey,
+                              ? AppColors.green
+                              : AppColors.textSecondary,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -315,7 +309,7 @@ class OrderDetailScreen extends StatelessWidget {
                       Text(
                         milestoneMessage,
                         style: const TextStyle(
-                          color: textGrey,
+                          color: AppColors.textSecondary,
                           fontSize: 10.5,
                           height: 1.35,
                         ),
@@ -331,14 +325,14 @@ class OrderDetailScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A0E0A),
+              color: AppColors.bg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: border),
+              border: Border.all(color: AppColors.border),
             ),
             child: Text(
               offersSummary,
               style: const TextStyle(
-                color: textGrey,
+                color: AppColors.textSecondary,
                 fontSize: 11,
                 height: 1.4,
               ),
@@ -349,9 +343,9 @@ class OrderDetailScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF2D180D),
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: orange.withOpacity(0.45)),
+              border: Border.all(color: AppColors.orange.withOpacity(0.45)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -359,7 +353,7 @@ class OrderDetailScreen extends StatelessWidget {
                 const Text(
                   'Total amount',
                   style: TextStyle(
-                    color: textWhite,
+                    color: AppColors.textPrimary,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -367,7 +361,7 @@ class OrderDetailScreen extends StatelessWidget {
                 Text(
                   totalAmount,
                   style: const TextStyle(
-                    color: orange,
+                    color: AppColors.orange,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
@@ -386,7 +380,7 @@ class OrderDetailScreen extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: textGrey, fontSize: 12),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
         Text(
           value,

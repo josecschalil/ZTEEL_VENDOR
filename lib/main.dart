@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 import 'package:frontend/screens/splash_screen.dart';
 
 void main() {
@@ -14,7 +15,7 @@ class ZteeelApp extends StatelessWidget {
       title: 'Zteeel',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE87722)),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.orangeWarm),
         useMaterial3: true,
       ),
       home: const SplashScreen(),

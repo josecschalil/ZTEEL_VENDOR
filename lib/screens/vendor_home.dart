@@ -4,6 +4,7 @@ import 'package:frontend/screens/offerScreen.dart';
 import 'package:frontend/screens/orderScreen.dart';
 import 'package:frontend/screens/profileEditScreen.dart';
 import 'package:frontend/widgets/app_bottom_nav.dart';
+import 'package:frontend/app_colors.dart';
 
 class VendorHome extends StatefulWidget {
   const VendorHome({super.key});
@@ -15,8 +16,6 @@ class VendorHome extends StatefulWidget {
 class _VendorHomeState extends State<VendorHome> {
   int _selectedTabIndex = 0;
 
-  static const Color bgDark = Color(0xFF1A0E0A);
-
   final List<VendorTab> _tabs = [
     VendorTab.dashboard,
     VendorTab.offers,
@@ -27,7 +26,7 @@ class _VendorHomeState extends State<VendorHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgDark,
+      backgroundColor: AppColors.bg,
       body: IndexedStack(
         index: _selectedTabIndex,
         children: const [

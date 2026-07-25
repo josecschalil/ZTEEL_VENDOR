@@ -1,15 +1,5 @@
 import 'package:flutter/material.dart';
-
-// ── Design tokens ──────────────────────────────────────────────
-const Color bgDark = Color(0xFF160C05);
-const Color cardBg = Color(0xFF231208);
-const Color fieldBg = Color(0xFF1C0E06);
-const Color accent = Color(0xFFE05E20);
-const Color accentLight = Color(0xFFFF7A38);
-const Color textPrimary = Color(0xFFF2E0CC);
-const Color textSecond = Color(0xFF8A6A50);
-const Color divider = Color(0xFF321A08);
-const Color navBg = Color(0xFF1A0D05);
+import 'package:frontend/app_colors.dart';
 
 // ── Main screen ────────────────────────────────────────────────
 class MilestoneRewardsScreen extends StatefulWidget {
@@ -54,7 +44,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgDark,
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           Expanded(
@@ -140,17 +130,17 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFF3A1A08),
+            color: AppColors.border,
             shape: BoxShape.circle,
-            border: Border.all(color: accent.withOpacity(0.5), width: 1.5),
+            border: Border.all(color: AppColors.orange.withOpacity(0.5), width: 1.5),
           ),
-          child: const Icon(Icons.person, color: accent, size: 24),
+          child: const Icon(Icons.person, color: AppColors.orange, size: 24),
         ),
         const SizedBox(width: 10),
         const Text(
           'Midnight Saffron',
           style: TextStyle(
-            color: accent,
+            color: AppColors.orange,
             fontSize: 18,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.3,
@@ -161,12 +151,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: cardBg,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: divider, width: 1),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
           child:
-              const Icon(Icons.notifications_outlined, color: accent, size: 20),
+              const Icon(Icons.notifications_outlined, color: AppColors.orange, size: 20),
         ),
       ],
     );
@@ -180,7 +170,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
         const Text(
           'Milestone Rewards',
           style: TextStyle(
-            color: textPrimary,
+            color: AppColors.textPrimary,
             fontSize: 28,
             fontWeight: FontWeight.w900,
             height: 1.1,
@@ -191,7 +181,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
         Text(
           'Configure automated rewards for your loyal\ncustomers based on their spend.',
           style: TextStyle(
-            color: textSecond,
+            color: AppColors.textSecondary,
             fontSize: 13,
             height: 1.5,
           ),
@@ -213,9 +203,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardBg,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,13 +218,13 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  border: Border.all(color: accent, width: 1.5),
+                  border: Border.all(color: AppColors.orange, width: 1.5),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   level,
                   style: const TextStyle(
-                    color: accent,
+                    color: AppColors.orange,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.0,
@@ -277,9 +267,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
         height: 28,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: value ? accent : const Color(0xFF3A1A08),
+          color: value ? AppColors.orange : AppColors.border,
           border: Border.all(
-            color: value ? accentLight : divider,
+            color: value ? AppColors.orangeLight : AppColors.border,
             width: 1,
           ),
         ),
@@ -291,7 +281,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
             width: 22,
             height: 22,
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppColors.textWhite,
               shape: BoxShape.circle,
             ),
           ),
@@ -305,7 +295,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
     return Text(
       text,
       style: const TextStyle(
-        color: textSecond,
+        color: AppColors.textSecondary,
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.3,
@@ -319,9 +309,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Align(
         alignment: Alignment.centerLeft,
@@ -331,7 +321,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               const TextSpan(
                 text: '\$ ',
                 style: TextStyle(
-                  color: textSecond,
+                  color: AppColors.textSecondary,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -339,7 +329,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               TextSpan(
                 text: amount,
                 style: const TextStyle(
-                  color: textPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                 ),
@@ -357,9 +347,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
     return Container(
       height: 42,
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         children: List.generate(labels.length, (i) {
@@ -371,14 +361,14 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                 duration: const Duration(milliseconds: 180),
                 margin: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: isSelected ? accent : Colors.transparent,
+                  color: isSelected ? AppColors.orange : AppColors.transparent,
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child: Center(
                   child: Text(
                     labels[i],
                     style: TextStyle(
-                      color: isSelected ? Colors.white : textSecond,
+                      color: isSelected ? AppColors.textWhite : AppColors.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.8,
@@ -425,9 +415,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         children: [
@@ -440,7 +430,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               child: Text(
                 '${value.toInt()}% OFF TOTAL BILL',
                 style: const TextStyle(
-                  color: textPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
@@ -464,11 +454,11 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: const Color(0xFF2B1409),
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: divider, width: 1),
+          border: Border.all(color: AppColors.border, width: 1),
         ),
-        child: Icon(icon, color: textPrimary, size: 18),
+        child: Icon(icon, color: AppColors.textPrimary, size: 18),
       ),
     );
   }
@@ -478,15 +468,15 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: const TextStyle(
-          color: textPrimary,
+          color: AppColors.textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.3,
@@ -494,12 +484,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
         decoration: const InputDecoration(
           prefixText: '\$ ',
           prefixStyle: TextStyle(
-            color: textSecond,
+            color: AppColors.textSecondary,
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
           hintText: 'Reward cash amount',
-          hintStyle: TextStyle(color: textSecond, fontSize: 13),
+          hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 13),
           border: InputBorder.none,
           isDense: true,
           contentPadding: EdgeInsets.zero,
@@ -518,9 +508,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: fieldBg,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: divider, width: 1),
+          border: Border.all(color: AppColors.border, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -529,7 +519,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               child: Text(
                 selectedItem,
                 style: const TextStyle(
-                  color: textPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -538,7 +528,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
             ),
             const SizedBox(width: 8),
             const Icon(Icons.keyboard_arrow_down_rounded,
-                color: textSecond, size: 22),
+                color: AppColors.textSecondary, size: 22),
           ],
         ),
       ),
@@ -554,7 +544,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -573,9 +563,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: cardBg,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: divider, width: 1),
+                  border: Border.all(color: AppColors.border, width: 1),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
@@ -586,7 +576,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                       const Text(
                         'Select Reward Item',
                         style: TextStyle(
-                          color: textPrimary,
+                          color: AppColors.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
@@ -595,20 +585,20 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                       Container(
                         height: 44,
                         decoration: BoxDecoration(
-                          color: fieldBg,
+                          color: AppColors.surfaceRaised,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: divider, width: 1),
+                          border: Border.all(color: AppColors.border, width: 1),
                         ),
                         child: TextField(
                           autofocus: true,
                           style: const TextStyle(
-                              color: textPrimary, fontSize: 13.5),
+                              color: AppColors.textPrimary, fontSize: 13.5),
                           decoration: const InputDecoration(
                             prefixIcon:
-                                Icon(Icons.search, color: textSecond, size: 18),
+                                Icon(Icons.search, color: AppColors.textSecondary, size: 18),
                             hintText: 'Search menu item',
                             hintStyle:
-                                TextStyle(color: textSecond, fontSize: 13),
+                                TextStyle(color: AppColors.textSecondary, fontSize: 13),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(vertical: 12),
                           ),
@@ -623,7 +613,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                                 child: Text(
                                   'No matching items',
                                   style: TextStyle(
-                                    color: textSecond,
+                                    color: AppColors.textSecondary,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -631,7 +621,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                             : ListView.separated(
                                 itemCount: filtered.length,
                                 separatorBuilder: (_, __) => Divider(
-                                  color: divider.withOpacity(0.6),
+                                  color: AppColors.border.withOpacity(0.6),
                                   height: 1,
                                 ),
                                 itemBuilder: (context, index) {
@@ -645,8 +635,8 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                                       item,
                                       style: TextStyle(
                                         color: selected
-                                            ? accentLight
-                                            : textPrimary,
+                                            ? AppColors.orangeLight
+                                            : AppColors.textPrimary,
                                         fontSize: 13.5,
                                         fontWeight: selected
                                             ? FontWeight.w700
@@ -656,7 +646,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                                     trailing: selected
                                         ? const Icon(
                                             Icons.check_circle_rounded,
-                                            color: accent,
+                                            color: AppColors.orange,
                                             size: 18,
                                           )
                                         : null,
@@ -685,9 +675,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -695,13 +685,13 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
           Text(
             text,
             style: const TextStyle(
-              color: textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
           const Icon(Icons.keyboard_arrow_down_rounded,
-              color: textSecond, size: 22),
+              color: AppColors.textSecondary, size: 22),
         ],
       ),
     );
@@ -715,14 +705,14 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: accent.withOpacity(0.5),
+          color: AppColors.orange.withOpacity(0.5),
           width: 1.5,
           // Dashed border via custom painter
         ),
       ),
       child: CustomPaint(
         painter: _DashedBorderPainter(
-          color: accent.withOpacity(0.45),
+          color: AppColors.orange.withOpacity(0.45),
           borderRadius: 12,
           dashWidth: 8,
           dashSpace: 5,
@@ -732,12 +722,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add_circle_outline, color: textSecond, size: 18),
+              Icon(Icons.add_circle_outline, color: AppColors.textSecondary, size: 18),
               SizedBox(width: 8),
               Text(
                 '+ Add Another Milestone',
                 style: TextStyle(
-                  color: textSecond,
+                  color: AppColors.textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -757,8 +747,8 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       child: ElevatedButton(
         onPressed: () {},
         style: ElevatedButton.styleFrom(
-          backgroundColor: accent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.orange,
+          foregroundColor: AppColors.textWhite,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
@@ -789,8 +779,8 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: navBg,
-        border: Border(top: BorderSide(color: divider, width: 1)),
+        color: AppColors.navBg,
+        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: SafeArea(
         top: false,
@@ -811,14 +801,14 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       children: [
         Icon(
           item.icon,
-          color: item.active ? accent : textSecond,
+          color: item.active ? AppColors.orange : AppColors.textSecondary,
           size: 22,
         ),
         const SizedBox(height: 4),
         Text(
           item.label,
           style: TextStyle(
-            color: item.active ? accent : textSecond,
+            color: item.active ? AppColors.orange : AppColors.textSecondary,
             fontSize: 9,
             fontWeight: item.active ? FontWeight.w700 : FontWeight.w500,
             letterSpacing: 0.8,

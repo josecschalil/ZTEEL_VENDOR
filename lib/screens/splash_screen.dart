@@ -1,6 +1,7 @@
 import 'PhoneAuthScreen.dart';
 import 'package:flutter/material.dart';
 import 'dashboard.dart';
+import 'package:frontend/app_colors.dart';
 
 // ─────────────────────────────────────────────
 class SplashScreen extends StatefulWidget {
@@ -79,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen>
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Scaffold(
-        backgroundColor: const Color(0xFF1A0E05),
+        backgroundColor: AppColors.bgSplash,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -99,8 +100,8 @@ class _SplashScreenState extends State<SplashScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        const Color(0xFFE87722).withOpacity(0.18),
-                        Colors.transparent,
+                        AppColors.orangeWarm.withOpacity(0.18),
+                        AppColors.transparent,
                       ],
                     ),
                   ),
@@ -183,7 +184,7 @@ class _WatermarkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFE87722)
+      ..color = AppColors.orangeWarm
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
@@ -237,11 +238,11 @@ class _AppIcon extends StatelessWidget {
       width: 110,
       height: 110,
       decoration: BoxDecoration(
-        color: const Color(0xFFE87722),
+        color: AppColors.orangeWarm,
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE87722).withOpacity(0.45),
+            color: AppColors.orangeWarm.withOpacity(0.45),
             blurRadius: 32,
             spreadRadius: 4,
           ),
@@ -272,7 +273,7 @@ class _QRIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = AppColors.textWhite
       ..style = PaintingStyle.fill;
 
     final s = size.width;
@@ -306,7 +307,7 @@ class _QRIconPainter extends CustomPainter {
   void _drawCorner(Canvas canvas, Paint paint, double x, double y, double u) {
     // Outer 3×3 frame
     final outer = Paint()
-      ..color = Colors.white
+      ..color = AppColors.textWhite
       ..style = PaintingStyle.stroke
       ..strokeWidth = u * 0.5;
     canvas.drawRect(
@@ -337,7 +338,7 @@ class _BrandName extends StatelessWidget {
               fontFamily: 'serif',
               fontSize: 42,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: AppColors.textWhite,
               letterSpacing: 1,
             ),
           ),
@@ -347,7 +348,7 @@ class _BrandName extends StatelessWidget {
               fontFamily: 'serif',
               fontSize: 42,
               fontWeight: FontWeight.w900,
-              color: Color(0xFFE87722),
+              color: AppColors.orangeWarm,
               letterSpacing: 1,
             ),
           ),
@@ -357,7 +358,7 @@ class _BrandName extends StatelessWidget {
               fontFamily: 'serif',
               fontSize: 42,
               fontWeight: FontWeight.w300,
-              color: Color(0xFFE87722),
+              color: AppColors.orangeWarm,
               letterSpacing: 1,
             ),
           ),
@@ -367,7 +368,7 @@ class _BrandName extends StatelessWidget {
               fontFamily: 'serif',
               fontSize: 42,
               fontWeight: FontWeight.w300,
-              color: Colors.white,
+              color: AppColors.textWhite,
               letterSpacing: 1,
             ),
           ),
@@ -390,7 +391,7 @@ class _Tagline extends StatelessWidget {
         Text(
           'Discover the best food deals',
           style: TextStyle(
-            color: Color(0xFFCCCCCC),
+            color: AppColors.iconGrey,
             fontSize: 13.5,
             fontWeight: FontWeight.w400,
             letterSpacing: 0.2,
@@ -399,7 +400,7 @@ class _Tagline extends StatelessWidget {
         Text(
           'near you',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.textWhite,
             fontSize: 13.5,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
@@ -433,7 +434,7 @@ class _ProgressBar extends StatelessWidget {
               // Track
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
+                  color: AppColors.textWhite.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(barHeight),
                 ),
               ),
@@ -442,7 +443,7 @@ class _ProgressBar extends StatelessWidget {
                 widthFactor: progress,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE87722),
+                    color: AppColors.orangeWarm,
                     borderRadius: BorderRadius.circular(barHeight),
                   ),
                 ),
@@ -466,18 +467,18 @@ class _OfflineBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE87722), width: 1.5),
+        border: Border.all(color: AppColors.orangeWarm, width: 1.5),
         borderRadius: BorderRadius.circular(28),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle_outline, color: Color(0xFFE87722), size: 16),
+          Icon(Icons.check_circle_outline, color: AppColors.orangeWarm, size: 16),
           SizedBox(width: 8),
           Text(
             'INSTANT OFFLINE REDEMPTION',
             style: TextStyle(
-              color: Color(0xFFE87722),
+              color: AppColors.orangeWarm,
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,

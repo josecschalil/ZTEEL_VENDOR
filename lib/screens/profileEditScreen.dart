@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -13,15 +14,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     (_) => <_OpeningSession>[],
   );
   int _selectedDayIndex = 0;
-
-  // ── Design tokens ──────────────────────────────────────────
-  static const Color bgDark = Color(0xFF130A04);
-  static const Color fieldBg = Color(0xFF261509);
-  static const Color accent = Color(0xFFE8622A);
-  static const Color accentLight = Color(0xFFF07840);
-  static const Color textPrimary = Color(0xFFF5E6D3);
-  static const Color textSecond = Color(0xFF9A7A5F);
-  static const Color divider = Color(0xFF3A1E0A);
 
   String _dayLabel(int index) => ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index];
 
@@ -79,9 +71,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: accent,
-            onSurface: textPrimary,
-            surface: fieldBg,
+            primary: AppColors.orange,
+            onSurface: AppColors.textPrimary,
+            surface: AppColors.surfaceRaised,
           ),
         ),
         child: child!,
@@ -123,7 +115,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgDark,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -200,15 +192,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: fieldBg,
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: divider, width: 1),
+              border: Border.all(color: AppColors.border, width: 1),
             ),
             child: const Center(
               child: Text(
                 'S',
                 style: TextStyle(
-                  color: accent,
+                  color: AppColors.orange,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -219,7 +211,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           const Text(
             'Zteel Vendor Panel',
             style: TextStyle(
-              color: textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
@@ -230,13 +222,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: fieldBg,
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: divider, width: 1),
+              border: Border.all(color: AppColors.border, width: 1),
             ),
             child: const Icon(
               Icons.notifications_outlined,
-              color: accent,
+              color: AppColors.orange,
               size: 20,
             ),
           ),
@@ -258,7 +250,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF3D1A05), Color(0xFF6B2E08), Color(0xFF5C2004)],
+              colors: [AppColors.border, AppColors.borderAccent, AppColors.borderAccent],
             ),
           ),
           child: Stack(
@@ -275,19 +267,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: AppColors.black.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white24, width: 0.5),
+                    border: Border.all(color: AppColors.separator, width: 0.5),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.edit_outlined, color: Colors.white, size: 12),
+                      Icon(Icons.edit_outlined, color: AppColors.textWhite, size: 12),
                       SizedBox(width: 4),
                       Text(
                         'CHANGE COVER',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textWhite,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.8,
@@ -311,17 +303,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF261509),
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: bgDark, width: 3),
+                  border: Border.all(color: AppColors.bg, width: 3),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(11),
                   child: Container(
-                    color: const Color(0xFF1F1108),
+                    color: AppColors.surface,
                     child: const Center(
                       child: Icon(Icons.person,
-                          color: Color(0xFF5C3E28), size: 40),
+                          color: AppColors.textMuted, size: 40),
                     ),
                   ),
                 ),
@@ -333,12 +325,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: accent,
+                    color: AppColors.orange,
                     shape: BoxShape.circle,
-                    border: Border.all(color: bgDark, width: 2),
+                    border: Border.all(color: AppColors.bg, width: 2),
                   ),
                   child: const Icon(Icons.camera_alt,
-                      color: Colors.white, size: 12),
+                      color: AppColors.textWhite, size: 12),
                 ),
               ),
             ],
@@ -357,7 +349,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         const Text(
           'Shop Information',
           style: TextStyle(
-            color: textPrimary,
+            color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.2,
@@ -366,13 +358,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
-            border: Border.all(color: accent, width: 1.5),
+            border: Border.all(color: AppColors.orange, width: 1.5),
             borderRadius: BorderRadius.circular(6),
           ),
           child: const Text(
             'ACTIVE VENDOR',
             style: TextStyle(
-              color: accent,
+              color: AppColors.orange,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
@@ -388,7 +380,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Text(
       text,
       style: const TextStyle(
-        color: textSecond,
+        color: AppColors.textSecondary,
         fontSize: 11,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,
@@ -402,9 +394,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         children: [
@@ -412,14 +404,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             child: Text(
               value,
               style: const TextStyle(
-                color: textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Icon(icon, color: textSecond, size: 18),
+          Icon(icon, color: AppColors.textSecondary, size: 18),
         ],
       ),
     );
@@ -429,24 +421,24 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: const TextField(
         maxLines: 4,
         style: TextStyle(
-          color: textPrimary,
+          color: AppColors.textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w500,
           height: 1.45,
         ),
-        cursorColor: accent,
+        cursorColor: AppColors.orange,
         decoration: InputDecoration(
           isDense: true,
           hintText: 'Write a short description for your shop...',
           hintStyle: TextStyle(
-            color: textSecond,
+            color: AppColors.textSecondary,
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
@@ -464,9 +456,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,14 +478,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       duration: const Duration(milliseconds: 180),
                       height: 58,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1F1108),
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isFocusedDay
-                              ? accent
+                              ? AppColors.orange
                               : (hasSessions
-                                  ? accent.withOpacity(0.45)
-                                  : divider),
+                                  ? AppColors.orange.withOpacity(0.45)
+                                  : AppColors.border),
                           width: isFocusedDay ? 1.5 : 1,
                         ),
                       ),
@@ -505,7 +497,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Text(
                             _dayLabel(i),
                             style: TextStyle(
-                              color: hasSessions ? accent : textSecond,
+                              color: hasSessions ? AppColors.orange : AppColors.textSecondary,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               height: 1,
@@ -515,7 +507,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Text(
                             fullDayLabels[i],
                             style: TextStyle(
-                              color: hasSessions ? accentLight : textSecond,
+                              color: hasSessions ? AppColors.orangeLight : AppColors.textSecondary,
                               fontSize: 8,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,
@@ -536,7 +528,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               Text(
                 '${_fullDayLabel(_selectedDayIndex)} Sessions',
                 style: const TextStyle(
-                  color: textPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -548,19 +540,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: accent.withOpacity(0.12),
+                    color: AppColors.orange.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: accent.withOpacity(0.45)),
+                    border: Border.all(color: AppColors.orange.withOpacity(0.45)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.add_rounded, size: 13, color: accent),
+                      Icon(Icons.add_rounded, size: 13, color: AppColors.orange),
                       SizedBox(width: 4),
                       Text(
                         'Add Session',
                         style: TextStyle(
-                          color: accent,
+                          color: AppColors.orange,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                         ),
@@ -577,14 +569,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               decoration: BoxDecoration(
-                color: const Color(0xFF1F1108),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: divider),
+                border: Border.all(color: AppColors.border),
               ),
               child: const Text(
                 'This day is closed. Add a session to open this day.',
                 style: TextStyle(
-                  color: textSecond,
+                  color: AppColors.textSecondary,
                   fontSize: 11,
                 ),
               ),
@@ -598,16 +590,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1F1108),
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: divider),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: Row(
                     children: [
                       Text(
                         'Session ${idx + 1}',
                         style: const TextStyle(
-                          color: textSecond,
+                          color: AppColors.textSecondary,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.5,
@@ -622,15 +614,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 7),
                             decoration: BoxDecoration(
-                              color: fieldBg,
+                              color: AppColors.surfaceRaised,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: divider),
+                              border: Border.all(color: AppColors.border),
                             ),
                             child: Text(
                               _formatTime(session.start),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -643,7 +635,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         child: Text(
                           '-',
                           style: TextStyle(
-                            color: textSecond,
+                            color: AppColors.textSecondary,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
@@ -657,15 +649,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 7),
                             decoration: BoxDecoration(
-                              color: fieldBg,
+                              color: AppColors.surfaceRaised,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: divider),
+                              border: Border.all(color: AppColors.border),
                             ),
                             child: Text(
                               _formatTime(session.end),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -680,14 +672,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           width: 26,
                           height: 26,
                           decoration: BoxDecoration(
-                            color: accent.withOpacity(0.1),
+                            color: AppColors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: accent.withOpacity(0.35)),
+                            border: Border.all(color: AppColors.orange.withOpacity(0.35)),
                           ),
                           child: const Icon(
                             Icons.close_rounded,
                             size: 15,
-                            color: accent,
+                            color: AppColors.orange,
                           ),
                         ),
                       ),
@@ -702,7 +694,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 child: Text(
                   selectedDayValidation,
                   style: const TextStyle(
-                    color: accentLight,
+                    color: AppColors.orangeLight,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -719,9 +711,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Container(
       height: 110,
       decoration: BoxDecoration(
-        color: const Color(0xFF1F1108),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(11),
@@ -739,9 +731,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -749,12 +741,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           Text(
             time,
             style: const TextStyle(
-              color: textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
-          Icon(icon, color: textSecond, size: 18),
+          Icon(icon, color: AppColors.textSecondary, size: 18),
         ],
       ),
     );
@@ -772,7 +764,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             const Text(
               'Add More',
               style: TextStyle(
-                color: accentLight,
+                color: AppColors.orangeLight,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -785,13 +777,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           child: Row(
             children: [
               _buildMenuImage(
-                  color1: const Color(0xFF8B6914),
-                  color2: const Color(0xFFD4A017),
+                  color1: AppColors.gold,
+                  color2: AppColors.gold,
                   isYellow: true),
               const SizedBox(width: 8),
               _buildMenuImage(
-                  color1: const Color(0xFF8B2014),
-                  color2: const Color(0xFFD44A20),
+                  color1: AppColors.red,
+                  color2: AppColors.orange,
                   isPizza: true),
               const SizedBox(width: 8),
               _buildUploadBox(),
@@ -821,7 +813,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         child: Center(
           child: Icon(
             isPizza ? Icons.local_pizza_outlined : Icons.rice_bowl_outlined,
-            color: Colors.white.withOpacity(0.5),
+            color: AppColors.textWhite.withOpacity(0.5),
             size: 36,
           ),
         ),
@@ -833,20 +825,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
-          color: fieldBg,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: divider, width: 1),
+          border: Border.all(color: AppColors.border, width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add_photo_alternate_outlined,
-                color: textSecond, size: 26),
+                color: AppColors.textSecondary, size: 26),
             const SizedBox(height: 4),
             const Text(
               'UPLOAD',
               style: TextStyle(
-                color: textSecond,
+                color: AppColors.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.8,
@@ -860,7 +852,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   // ── Divider ────────────────────────────────────────────────
   Widget _buildDivider() {
-    return Container(height: 1, color: divider);
+    return Container(height: 1, color: AppColors.border);
   }
 
   // ── Preference item ────────────────────────────────────────
@@ -868,9 +860,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: fieldBg,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: divider, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Row(
         children: [
@@ -878,10 +870,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: const Color(0xFF1F1108),
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(icon, color: accent, size: 16),
+            child: Icon(icon, color: AppColors.orange, size: 16),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -891,7 +883,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: textPrimary,
+                    color: AppColors.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -900,14 +892,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    color: textSecond,
+                    color: AppColors.textSecondary,
                     fontSize: 10,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: textSecond, size: 18),
+          const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 18),
         ],
       ),
     );
@@ -921,8 +913,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: ElevatedButton(
         onPressed: () {},
         style: ElevatedButton.styleFrom(
-          backgroundColor: accent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.orange,
+          foregroundColor: AppColors.textWhite,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
@@ -948,20 +940,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: OutlinedButton.icon(
         onPressed: () {},
         style: OutlinedButton.styleFrom(
-          foregroundColor: textPrimary,
-          side: const BorderSide(color: divider, width: 1.5),
+          foregroundColor: AppColors.textPrimary,
+          side: const BorderSide(color: AppColors.border, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
           ),
         ),
-        icon: const Icon(Icons.logout, size: 14, color: textPrimary),
+        icon: const Icon(Icons.logout, size: 14, color: AppColors.textPrimary),
         label: const Text(
           'LOGOUT FROM VENDOR PANEL',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.7,
-            color: textPrimary,
+            color: AppColors.textPrimary,
           ),
         ),
       ),
@@ -975,7 +967,7 @@ class _MapGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF2E1A0A)
+      ..color = AppColors.surfaceRaised
       ..strokeWidth = 0.8
       ..style = PaintingStyle.stroke;
 
@@ -990,7 +982,7 @@ class _MapGridPainter extends CustomPainter {
 
     // Road lines (thicker)
     final roadPaint = Paint()
-      ..color = const Color(0xFF3A2010)
+      ..color = AppColors.border
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
@@ -1013,7 +1005,7 @@ class _FoodPatternPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Subtle warm overlay dots pattern
     final paint = Paint()
-      ..color = const Color(0x15FF8040)
+      ..color = AppColors.orangeDim
       ..style = PaintingStyle.fill;
 
     for (double x = 20; x < size.width; x += 60) {

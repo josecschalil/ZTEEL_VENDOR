@@ -1,23 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-// ─── Color Palette (shared with SetupShopScreen) ──────────────────
-class SBColors {
-  static const bg = Color(0xFF160D00);
-  static const surface = Color(0xFF231508);
-  static const surfaceElevated = Color(0xFF2C1A08);
-  static const saffron = Color(0xFFE8622A);
-  static const saffronLight = Color(0xFFF07340);
-  static const saffronDim = Color(0x33E8622A);
-  static const gold = Color(0xFFD4A85A);
-  static const textPrimary = Color(0xFFF5EDD8);
-  static const textSecondary = Color(0xFF9B7E60);
-  static const textMuted = Color(0xFF5C3E28);
-  static const border = Color(0xFF3A2010);
-  static const borderAccent = Color(0xFF6B3A18);
-  static const vegGreen = Color(0xFF3DBE6E);
-  static const danger = Color(0xFFE84848);
-}
+import 'package:frontend/app_colors.dart';
 
 class EditFoodItemScreen extends StatefulWidget {
   const EditFoodItemScreen({super.key});
@@ -89,7 +72,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SBColors.bg,
+      backgroundColor: AppColors.bg,
       body: FadeTransition(
         opacity: _fadeAnim,
         child: Column(
@@ -138,9 +121,9 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: SBColors.bg,
+          color: AppColors.bg,
           border: Border(
-            bottom: BorderSide(color: SBColors.border, width: 0.5),
+            bottom: BorderSide(color: AppColors.border, width: 0.5),
           ),
         ),
         child: Row(
@@ -152,14 +135,14 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF4DD9C0), Color(0xFF3B8BEB)],
+                  colors: [AppColors.green, AppColors.gold],
                 ),
               ),
               child: const Center(
                 child: Text(
                   'Sto',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),
@@ -170,7 +153,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
             const Text(
               'Saffron Bistro',
               style: TextStyle(
-                color: SBColors.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
@@ -184,13 +167,13 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: SBColors.surfaceElevated,
+                    color: AppColors.surfaceRaised,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: SBColors.border),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: const Icon(
                     Icons.notifications_outlined,
-                    color: SBColors.saffron,
+                    color: AppColors.orange,
                     size: 19,
                   ),
                 ),
@@ -201,9 +184,9 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: SBColors.saffron,
+                      color: AppColors.orange,
                       shape: BoxShape.circle,
-                      border: Border.all(color: SBColors.bg, width: 1.5),
+                      border: Border.all(color: AppColors.bg, width: 1.5),
                     ),
                   ),
                 ),
@@ -229,13 +212,13 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               height: 36,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                color: SBColors.surfaceElevated,
+                color: AppColors.surfaceRaised,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: SBColors.border),
+                border: Border.all(color: AppColors.border),
               ),
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: SBColors.textSecondary,
+                color: AppColors.textSecondary,
                 size: 16,
               ),
             ),
@@ -243,7 +226,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           const Text(
             'Edit Food Item',
             style: TextStyle(
-              color: SBColors.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
@@ -265,13 +248,13 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: _isAvailable
-              ? SBColors.saffron.withOpacity(0.12)
-              : SBColors.surfaceElevated,
+              ? AppColors.orange.withOpacity(0.12)
+              : AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: _isAvailable
-                ? SBColors.saffron.withOpacity(0.5)
-                : SBColors.border,
+                ? AppColors.orange.withOpacity(0.5)
+                : AppColors.border,
           ),
         ),
         child: Row(
@@ -280,7 +263,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
             Text(
               'AVAILABLE',
               style: TextStyle(
-                color: _isAvailable ? SBColors.saffron : SBColors.textSecondary,
+                color: _isAvailable ? AppColors.orange : AppColors.textSecondary,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.8,
@@ -308,8 +291,8 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: SBColors.surfaceElevated,
-                border: Border.all(color: SBColors.border),
+                color: AppColors.surfaceRaised,
+                border: Border.all(color: AppColors.border),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -323,8 +306,8 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                           center: Alignment.center,
                           radius: 0.9,
                           colors: [
-                            Color(0xFF3A2008),
-                            Color(0xFF1A0C02),
+                            AppColors.border,
+                            AppColors.bg,
                           ],
                         ),
                       ),
@@ -338,15 +321,15 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                             width: 64,
                             height: 64,
                             decoration: BoxDecoration(
-                              color: SBColors.saffron.withOpacity(0.1),
+                              color: AppColors.orange.withOpacity(0.1),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: SBColors.saffron.withOpacity(0.25),
+                                color: AppColors.orange.withOpacity(0.25),
                               ),
                             ),
                             child: const Icon(
                               Icons.restaurant_rounded,
-                              color: SBColors.saffron,
+                              color: AppColors.orange,
                               size: 30,
                             ),
                           ),
@@ -354,7 +337,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                           Text(
                             'Tap to change main photo',
                             style: TextStyle(
-                              color: SBColors.textSecondary,
+                              color: AppColors.textSecondary,
                               fontSize: 11.5,
                             ),
                           ),
@@ -371,10 +354,10 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
+                          color: AppColors.textSecondary,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
+                            color: AppColors.textPrimary.withOpacity(0.15),
                           ),
                         ),
                         child: Row(
@@ -382,14 +365,14 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                           children: const [
                             Icon(
                               Icons.edit_rounded,
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               size: 12,
                             ),
                             SizedBox(width: 4),
                             Text(
                               'Edit',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.textPrimary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -430,21 +413,21 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: SBColors.surfaceElevated,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: SBColors.borderAccent.withOpacity(0.5),
+            color: AppColors.borderAccent.withOpacity(0.5),
             style: BorderStyle.solid,
           ),
         ),
         child: Column(
           children: [
-            Icon(icon, color: SBColors.textSecondary, size: 20),
+            Icon(icon, color: AppColors.textSecondary, size: 20),
             const SizedBox(height: 6),
             Text(
               label,
               style: const TextStyle(
-                color: SBColors.textSecondary,
+                color: AppColors.textSecondary,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
@@ -482,7 +465,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           child: Text(
             '\$',
             style: TextStyle(
-              color: SBColors.saffron,
+              color: AppColors.orange,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -498,18 +481,18 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
       label: 'CATEGORY',
       child: Container(
         decoration: BoxDecoration(
-          color: SBColors.surfaceElevated,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: SBColors.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: _selectedCategory,
-            dropdownColor: const Color(0xFF2C1A08),
-            iconEnabledColor: SBColors.saffron,
+            dropdownColor: AppColors.surfaceRaised,
+            iconEnabledColor: AppColors.orange,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
             style: const TextStyle(
-              color: SBColors.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w400,
             ),
@@ -537,14 +520,14 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         children: [
           Expanded(
               child:
-                  _dietBtn(true, Icons.eco_rounded, 'Veg', SBColors.vegGreen)),
+                  _dietBtn(true, Icons.eco_rounded, 'Veg', AppColors.green)),
           const SizedBox(width: 12),
           Expanded(
             child: _dietBtn(
               false,
               Icons.restaurant_menu_rounded,
               'Non-Veg',
-              SBColors.danger,
+              AppColors.red,
             ),
           ),
         ],
@@ -560,22 +543,22 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
-          color: active ? color.withOpacity(0.12) : SBColors.surfaceElevated,
+          color: active ? color.withOpacity(0.12) : AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: active ? color.withOpacity(0.55) : SBColors.border,
+            color: active ? color.withOpacity(0.55) : AppColors.border,
             width: active ? 1.5 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: active ? color : SBColors.textMuted, size: 16),
+            Icon(icon, color: active ? color : AppColors.textMuted, size: 16),
             const SizedBox(width: 7),
             Text(
               label,
               style: TextStyle(
-                color: active ? color : SBColors.textSecondary,
+                color: active ? color : AppColors.textSecondary,
                 fontSize: 12.5,
                 fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -593,9 +576,9 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         decoration: BoxDecoration(
-          color: SBColors.surfaceElevated,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: SBColors.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -616,15 +599,15 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                   child: TextField(
                     controller: _tagController,
                     style: const TextStyle(
-                      color: SBColors.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 12.5,
                     ),
-                    cursorColor: SBColors.saffron,
+                    cursorColor: AppColors.orange,
                     onSubmitted: _addTag,
                     decoration: InputDecoration(
                       hintText: 'Add tag...',
                       hintStyle: TextStyle(
-                        color: SBColors.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 12.5,
                       ),
                       isDense: true,
@@ -638,12 +621,12 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: SBColors.saffronDim,
+                      color: AppColors.orangeDim,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.add_rounded,
-                      color: SBColors.saffron,
+                      color: AppColors.orange,
                       size: 16,
                     ),
                   ),
@@ -661,7 +644,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
       duration: const Duration(milliseconds: 150),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: SBColors.saffron,
+        color: AppColors.orange,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -670,7 +653,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           Text(
             tag,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
             ),
@@ -682,11 +665,11 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
+                color: AppColors.textPrimary.withOpacity(0.25),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.close_rounded,
-                  size: 10, color: Colors.white),
+                  size: 10, color: AppColors.textPrimary),
             ),
           ),
         ],
@@ -717,12 +700,12 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           padding: const EdgeInsets.symmetric(vertical: 17),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFE8622A), Color(0xFFD44A14)],
+              colors: [AppColors.orange, AppColors.orange],
             ),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: SBColors.saffron.withOpacity(0.35),
+                color: AppColors.orange.withOpacity(0.35),
                 blurRadius: 20,
                 offset: const Offset(0, 6),
               ),
@@ -732,7 +715,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
             child: Text(
               'Save Item',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
@@ -755,8 +738,8 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: SBColors.surface,
-        border: Border(top: BorderSide(color: SBColors.border, width: 0.5)),
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -774,13 +757,13 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                       Icon(
                         items[i].$1,
                         size: 22,
-                        color: active ? SBColors.saffron : SBColors.textMuted,
+                        color: active ? AppColors.orange : AppColors.textMuted,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         items[i].$2,
                         style: TextStyle(
-                          color: active ? SBColors.saffron : SBColors.textMuted,
+                          color: active ? AppColors.orange : AppColors.textMuted,
                           fontSize: 9,
                           fontWeight:
                               active ? FontWeight.w700 : FontWeight.w500,
@@ -808,7 +791,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           Text(
             label,
             style: const TextStyle(
-              color: SBColors.saffron,
+              color: AppColors.orange,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
@@ -830,24 +813,24 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: SBColors.surfaceElevated,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SBColors.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: TextField(
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
         style: const TextStyle(
-          color: SBColors.textPrimary,
+          color: AppColors.textPrimary,
           fontSize: 13,
           height: 1.5,
         ),
-        cursorColor: SBColors.saffron,
+        cursorColor: AppColors.orange,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-              color: SBColors.textMuted.withOpacity(0.8), fontSize: 13),
+              color: AppColors.textMuted.withOpacity(0.8), fontSize: 13),
           prefixIcon: prefix != null
               ? Padding(
                   padding: const EdgeInsets.only(left: 16, right: 0),
@@ -880,7 +863,7 @@ class _MiniToggle extends StatelessWidget {
       height: 18,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(9),
-        color: value ? SBColors.saffron : SBColors.textMuted,
+        color: value ? AppColors.orange : AppColors.textMuted,
       ),
       child: Stack(
         children: [
@@ -894,7 +877,7 @@ class _MiniToggle extends StatelessWidget {
               height: 14,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white,
+                color: AppColors.textPrimary,
               ),
             ),
           ),

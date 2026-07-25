@@ -3,6 +3,7 @@ import 'package:frontend/screens/dashboard.dart';
 import 'package:frontend/screens/offerScreen.dart';
 import 'package:frontend/screens/orderScreen.dart';
 import 'package:frontend/screens/profileEditScreen.dart';
+import 'package:frontend/app_colors.dart';
 
 enum VendorTab { dashboard, offers, orders, profile }
 
@@ -15,10 +16,6 @@ class VendorBottomNav extends StatelessWidget {
 
   final VendorTab currentTab;
   final Function(VendorTab)? onTabChanged;
-
-  static const Color _bg = Color(0xFF1A0E0A);
-  static const Color _orange = Color(0xFFE8622A);
-  static const Color _grey = Color(0xFF9E7E72);
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +48,8 @@ class VendorBottomNav extends StatelessWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: _bg,
-        border: Border(top: BorderSide(color: Color(0x0FFFFFFF), width: 0.5)),
+        color: AppColors.navBg,
+        border: Border(top: BorderSide(color: AppColors.separator, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -70,14 +67,14 @@ class VendorBottomNav extends StatelessWidget {
                     children: [
                       Icon(
                         item.icon,
-                        color: isActive ? _orange : _grey,
+                        color: isActive ? AppColors.orange : AppColors.textSecondary,
                         size: 20,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         item.label,
                         style: TextStyle(
-                          color: isActive ? _orange : _grey,
+                          color: isActive ? AppColors.orange : AppColors.textSecondary,
                           fontSize: 9,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,

@@ -1,19 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/MilestoneScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
-
-// ─── Color Palette ───────────────────────────────────────────────────────────
-const kBg = Color(0xFF130A04);
-const kSurface = Color(0xFF1F1108);
-const kCard = Color(0xFF261509);
-const kCardBorder = Color(0xFF3A1E0A);
-const kOrange = Color(0xFFE8622A);
-const kOrangeLight = Color(0xFFF07840);
-const kGold = Color(0xFFD4A853);
-const kGreen = Color(0xFF4CAF6E);
-const kTextPrimary = Color(0xFFF5E6D3);
-const kTextSecondary = Color(0xFF9A7A5F);
-const kTextMuted = Color(0xFF5C3E28);
+import 'package:frontend/app_colors.dart';
 
 // ─── Data Models ──────────────────────────────────────────────────────────────
 enum OfferStatus { live, scheduled, draft }
@@ -40,7 +28,7 @@ class Offer {
     required this.isActive,
     this.isBestseller = false,
     this.isFeatured = false,
-    this.categoryColor = kOrange,
+    this.categoryColor = AppColors.orange,
   });
 }
 
@@ -64,7 +52,7 @@ final List<Offer> kOffers = [
     duration: '12 Days left',
     status: OfferStatus.scheduled,
     isActive: true,
-    categoryColor: kOrange,
+    categoryColor: AppColors.orange,
   ),
   Offer(
     id: '3',
@@ -74,7 +62,7 @@ final List<Offer> kOffers = [
     duration: 'Ongoing',
     status: OfferStatus.live,
     isActive: false,
-    categoryColor: kGold,
+    categoryColor: AppColors.gold,
   ),
 ];
 
@@ -131,7 +119,7 @@ class _OffersScreenState extends State<OffersScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -183,13 +171,13 @@ class _OffersScreenState extends State<OffersScreen>
             height: 34,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: kOrange,
+              color: AppColors.orange,
             ),
             child: const Center(
               child: Text(
                 'SB',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
@@ -201,7 +189,7 @@ class _OffersScreenState extends State<OffersScreen>
           const Text(
             'Zteel Offers',
             style: TextStyle(
-              color: kTextPrimary,
+              color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
@@ -216,13 +204,13 @@ class _OffersScreenState extends State<OffersScreen>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: kCard,
+                  color: AppColors.surfaceRaised,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: kCardBorder),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: const Icon(
                   Icons.notifications_outlined,
-                  color: kTextPrimary,
+                  color: AppColors.textPrimary,
                   size: 18,
                 ),
               ),
@@ -233,7 +221,7 @@ class _OffersScreenState extends State<OffersScreen>
                   width: 7,
                   height: 7,
                   decoration: const BoxDecoration(
-                    color: kOrange,
+                    color: AppColors.orange,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -258,7 +246,7 @@ class _OffersScreenState extends State<OffersScreen>
               Text(
                 'Active Offers',
                 style: TextStyle(
-                  color: kTextPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 30,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5,
@@ -270,7 +258,7 @@ class _OffersScreenState extends State<OffersScreen>
           Text(
             'Manage your seasonal promotions and exclusive member discounts from one cinematic dashboard.',
             style: TextStyle(
-              color: kTextSecondary,
+              color: AppColors.textSecondary,
               fontSize: 12,
               height: 1.45,
             ),
@@ -319,14 +307,14 @@ class _OffersScreenState extends State<OffersScreen>
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [kOrangeLight, kOrange],
+                    colors: [AppColors.orangeLight, AppColors.orange],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: kOrange.withOpacity(0.35),
+                      color: AppColors.orange.withOpacity(0.35),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -335,12 +323,12 @@ class _OffersScreenState extends State<OffersScreen>
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add_rounded, color: Colors.white, size: 15),
+                    Icon(Icons.add_rounded, color: AppColors.textWhite, size: 15),
                     SizedBox(width: 5),
                     Text(
                       'Create Offer',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.2,
@@ -359,7 +347,7 @@ class _OffersScreenState extends State<OffersScreen>
   // ── Featured Hero Card ──────────────────────────────────────────────────────
   Widget _buildFeaturedCard(Offer offer) {
     final statusLabel = offer.isActive ? 'ACTIVE' : 'NON ACTIVE';
-    final statusColor = offer.isActive ? kGreen : kTextSecondary;
+    final statusColor = offer.isActive ? AppColors.green : AppColors.textSecondary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -371,7 +359,7 @@ class _OffersScreenState extends State<OffersScreen>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: AppColors.black.withOpacity(0.5),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -387,10 +375,10 @@ class _OffersScreenState extends State<OffersScreen>
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Color(0xFF3D1A05),
-                        Color(0xFF6B2E08),
-                        Color(0xFF8B3A0A),
-                        Color(0xFF5C2004),
+                        AppColors.border,
+                        AppColors.borderAccent,
+                        AppColors.borderAccent,
+                        AppColors.borderAccent,
                       ],
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
@@ -406,7 +394,7 @@ class _OffersScreenState extends State<OffersScreen>
                     height: 160,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFFAA4510).withOpacity(0.4),
+                      color: AppColors.borderAccent.withOpacity(0.4),
                     ),
                   ),
                 ),
@@ -418,7 +406,7 @@ class _OffersScreenState extends State<OffersScreen>
                     height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF7A300A).withOpacity(0.5),
+                      color: AppColors.borderAccent.withOpacity(0.5),
                     ),
                   ),
                 ),
@@ -428,8 +416,8 @@ class _OffersScreenState extends State<OffersScreen>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.85),
+                          AppColors.transparent,
+                          AppColors.black.withOpacity(0.85),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -449,8 +437,8 @@ class _OffersScreenState extends State<OffersScreen>
                         children: [
                           _buildTag(
                             '★ BESTSELLER',
-                            kOrange,
-                            Colors.white,
+                            AppColors.orange,
+                            AppColors.textPrimary,
                           ),
                           const SizedBox(width: 8),
                           _buildStateTag(statusLabel, statusColor),
@@ -463,7 +451,7 @@ class _OffersScreenState extends State<OffersScreen>
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
@@ -476,7 +464,7 @@ class _OffersScreenState extends State<OffersScreen>
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Color(0xFFE0C5A8),
+                          color: AppColors.surfaceElevated,
                           fontSize: 12,
                           height: 1.4,
                         ),
@@ -496,14 +484,14 @@ class _OffersScreenState extends State<OffersScreen>
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: AppColors.textPrimary.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: Colors.white.withOpacity(0.2)),
+                                  color: AppColors.textPrimary.withOpacity(0.2)),
                             ),
                             child: const Icon(
                               Icons.edit_rounded,
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               size: 16,
                             ),
                           ),
@@ -543,7 +531,7 @@ class _OffersScreenState extends State<OffersScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.4),
+        color: AppColors.black.withOpacity(0.4),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withOpacity(0.5)),
       ),
@@ -554,7 +542,7 @@ class _OffersScreenState extends State<OffersScreen>
             width: 6,
             height: 6,
             decoration: const BoxDecoration(
-              color: kGreen,
+              color: AppColors.green,
               shape: BoxShape.circle,
             ),
           ),
@@ -577,19 +565,19 @@ class _OffersScreenState extends State<OffersScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.35),
+        color: AppColors.black.withOpacity(0.35),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        border: Border.all(color: AppColors.textPrimary.withOpacity(0.12)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: kGold, size: 11),
+          Icon(icon, color: AppColors.gold, size: 11),
           const SizedBox(width: 5),
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
@@ -614,14 +602,14 @@ class _OffersScreenState extends State<OffersScreen>
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: kCard,
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: kCardBorder),
+              border: Border.all(color: AppColors.border),
             ),
             child: const Text(
               'No offers in this section yet.',
               style: TextStyle(
-                color: kTextSecondary,
+                color: AppColors.textSecondary,
                 fontSize: 12.5,
               ),
             ),
@@ -660,11 +648,11 @@ class _OffersScreenState extends State<OffersScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: kCard,
+          backgroundColor: AppColors.surfaceRaised,
           title: Text(
             nextValue ? 'Activate offer?' : 'Deactivate offer?',
             style: const TextStyle(
-              color: kTextPrimary,
+              color: AppColors.textPrimary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -673,7 +661,7 @@ class _OffersScreenState extends State<OffersScreen>
                 ? 'This offer will move to the active list and be treated as active.'
                 : 'This offer will move to the non-active list and stop being treated as active.',
             style: const TextStyle(
-              color: kTextSecondary,
+              color: AppColors.textSecondary,
               height: 1.45,
             ),
           ),
@@ -683,14 +671,14 @@ class _OffersScreenState extends State<OffersScreen>
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text(
                 'Cancel',
-                style: TextStyle(color: kTextSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: kOrange,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.orange,
+                foregroundColor: AppColors.textWhite,
               ),
               child: const Text('Confirm'),
             ),
@@ -720,13 +708,13 @@ class _OffersScreenState extends State<OffersScreen>
             borderRadius: BorderRadius.circular(18),
             gradient: LinearGradient(
               colors: [
-                kOrange.withOpacity(0.12),
-                kGold.withOpacity(0.08),
+                AppColors.orange.withOpacity(0.12),
+                AppColors.gold.withOpacity(0.08),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(color: kOrange.withOpacity(0.25)),
+            border: Border.all(color: AppColors.orange.withOpacity(0.25)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -736,12 +724,12 @@ class _OffersScreenState extends State<OffersScreen>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: kOrange.withOpacity(0.15),
+                      color: AppColors.orange.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.emoji_events_rounded,
-                      color: kOrange,
+                      color: AppColors.orange,
                       size: 18,
                     ),
                   ),
@@ -754,7 +742,7 @@ class _OffersScreenState extends State<OffersScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: kOrange,
+                          color: AppColors.orange,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.2,
@@ -765,7 +753,7 @@ class _OffersScreenState extends State<OffersScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: kTextSecondary,
+                          color: AppColors.textSecondary,
                           fontSize: 11,
                         ),
                       ),
@@ -779,7 +767,7 @@ class _OffersScreenState extends State<OffersScreen>
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: kTextSecondary,
+                  color: AppColors.textSecondary,
                   fontSize: 12.5,
                   height: 1.55,
                 ),
@@ -790,12 +778,12 @@ class _OffersScreenState extends State<OffersScreen>
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [kOrangeLight, kOrange],
+                    colors: [AppColors.orangeLight, AppColors.orange],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: kOrange.withOpacity(0.3),
+                      color: AppColors.orange.withOpacity(0.3),
                       blurRadius: 14,
                       offset: const Offset(0, 4),
                     ),
@@ -805,12 +793,12 @@ class _OffersScreenState extends State<OffersScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.emoji_events_rounded,
-                        color: Colors.white, size: 18),
+                        color: AppColors.textPrimary, size: 18),
                     SizedBox(width: 8),
                     Text(
                       'Open Milestone Rewards',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.3,
@@ -852,16 +840,16 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? kOrange : kCard,
+          color: selected ? AppColors.orange : AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? kOrange : kCardBorder,
+            color: selected ? AppColors.orange : AppColors.border,
             width: 1,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: kOrange.withOpacity(0.25),
+                    color: AppColors.orange.withOpacity(0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -874,7 +862,7 @@ class _FilterChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: selected ? Colors.white : kTextSecondary,
+                color: selected ? AppColors.textWhite : AppColors.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -885,15 +873,15 @@ class _FilterChip extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 color: selected
-                    ? Colors.white.withOpacity(0.2)
-                    : kTextMuted.withOpacity(0.3),
+                    ? AppColors.textPrimary.withOpacity(0.2)
+                    : AppColors.textMuted.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    color: selected ? Colors.white : kTextSecondary,
+                    color: selected ? AppColors.textWhite : AppColors.textSecondary,
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),
@@ -919,7 +907,7 @@ class _OfferListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLive = offer.status == OfferStatus.live;
-    final statusColor = isLive ? kGreen : kGold;
+    final statusColor = isLive ? AppColors.green : AppColors.gold;
     final statusLabel = isLive ? 'LIVE' : 'SCHEDULED';
     final actionLabel = offer.isActive ? 'Mark Inactive' : 'Mark Active';
 
@@ -930,12 +918,12 @@ class _OfferListCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: kCard,
+            color: AppColors.surfaceRaised,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: kCardBorder),
+            border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: AppColors.black.withOpacity(0.2),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -974,7 +962,7 @@ class _OfferListCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: kTextPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 15.5,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.2,
@@ -1031,7 +1019,7 @@ class _OfferListCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: kTextSecondary,
+                        color: AppColors.textSecondary,
                         fontSize: 11,
                         height: 1.4,
                       ),
@@ -1073,7 +1061,7 @@ class _OfferListCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: kTextPrimary,
+                                  color: AppColors.textPrimary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -1114,10 +1102,10 @@ class _StatusActionChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color:
-              active ? kGreen.withOpacity(0.12) : kTextMuted.withOpacity(0.12),
+              active ? AppColors.green.withOpacity(0.12) : AppColors.textMuted.withOpacity(0.12),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: active ? kGreen.withOpacity(0.35) : kCardBorder,
+            color: active ? AppColors.green.withOpacity(0.35) : AppColors.border,
           ),
         ),
         child: Row(
@@ -1127,7 +1115,7 @@ class _StatusActionChip extends StatelessWidget {
               width: 7,
               height: 7,
               decoration: BoxDecoration(
-                color: active ? kGreen : kTextSecondary,
+                color: active ? AppColors.green : AppColors.textSecondary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -1135,7 +1123,7 @@ class _StatusActionChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: active ? kGreen : kTextSecondary,
+                color: active ? AppColors.green : AppColors.textSecondary,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
@@ -1145,7 +1133,7 @@ class _StatusActionChip extends StatelessWidget {
             Icon(
               Icons.swap_horiz_rounded,
               size: 12,
-              color: active ? kGreen : kTextSecondary,
+              color: active ? AppColors.green : AppColors.textSecondary,
             ),
           ],
         ),
@@ -1164,7 +1152,7 @@ class _MetaLabel extends StatelessWidget {
     return Text(
       label,
       style: const TextStyle(
-        color: kTextMuted,
+        color: AppColors.textMuted,
         fontSize: 10.5,
       ),
     );
@@ -1182,9 +1170,9 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: kOrange.withOpacity(0.1),
+        color: AppColors.orange.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kOrange.withOpacity(0.2)),
+        border: Border.all(color: AppColors.orange.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1192,7 +1180,7 @@ class _StatChip extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: kOrange,
+              color: AppColors.orange,
               fontSize: 18,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -1201,7 +1189,7 @@ class _StatChip extends StatelessWidget {
           Text(
             sublabel,
             style: const TextStyle(
-              color: kTextSecondary,
+              color: AppColors.textSecondary,
               fontSize: 10,
             ),
           ),

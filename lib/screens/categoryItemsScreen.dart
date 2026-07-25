@@ -1,20 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
-
-// Offers-aligned palette
-const kBg = Color(0xFF130A04);
-const kSurface = Color(0xFF1F1108);
-const kCard = Color(0xFF261509);
-const kCardBorder = Color(0xFF3A1E0A);
-const kOrange = Color(0xFFE8622A);
-const kOrangeLight = Color(0xFFF07840);
-const kGold = Color(0xFFD4A853);
-const kGreen = Color(0xFF4CAF6E);
-const kTextPrimary = Color(0xFFF5E6D3);
-const kTextSecondary = Color(0xFF9A7A5F);
-const kTextMuted = Color(0xFF5C3E28);
-const kRed = Color(0xFFE84242);
+import 'package:frontend/app_colors.dart';
 
 enum ItemStatus { available, notAvailable }
 
@@ -211,7 +198,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: kBg,
+        backgroundColor: AppColors.bg,
         floatingActionButton: _buildAddItemButton(),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: GestureDetector(
@@ -267,13 +254,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: kCard,
+                color: AppColors.surfaceRaised,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kCardBorder),
+                border: Border.all(color: AppColors.border),
               ),
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: kTextPrimary,
+                color: AppColors.textPrimary,
                 size: 16,
               ),
             ),
@@ -282,7 +269,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           Text(
             widget.categoryName,
             style: const TextStyle(
-              color: kTextPrimary,
+              color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.25,
@@ -293,13 +280,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: kCard,
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kCardBorder),
+              border: Border.all(color: AppColors.border),
             ),
             child: const Icon(
               Icons.notifications_outlined,
-              color: kTextPrimary,
+              color: AppColors.textPrimary,
               size: 18,
             ),
           ),
@@ -317,7 +304,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           Text(
             widget.categoryName,
             style: const TextStyle(
-              color: kTextPrimary,
+              color: AppColors.textPrimary,
               fontSize: 29,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.5,
@@ -328,7 +315,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           const Text(
             'Curate dishes, update availability, and keep the menu performance-ready.',
             style: TextStyle(
-              color: kTextSecondary,
+              color: AppColors.textSecondary,
               fontSize: 12,
               height: 1.45,
             ),
@@ -347,7 +334,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.35),
+              color: AppColors.black.withOpacity(0.35),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -362,9 +349,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Color(0xFF3D1A05),
-                      Color(0xFF6B2E08),
-                      Color(0xFF5C2004),
+                      AppColors.border,
+                      AppColors.borderAccent,
+                      AppColors.borderAccent,
                     ],
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
@@ -376,8 +363,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.75),
+                        AppColors.transparent,
+                        AppColors.black.withOpacity(0.75),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -392,13 +379,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   children: [
                     Row(
                       children: [
-                        _buildTag('MENU HEALTH', kOrange, Colors.white),
+                        _buildTag('MENU HEALTH', AppColors.orange, AppColors.textWhite),
                         const SizedBox(width: 8),
                         _buildTag(
                           '${_filtered.length} VISIBLE',
-                          Colors.black.withOpacity(0.35),
-                          kTextPrimary,
-                          borderColor: Colors.white.withOpacity(0.22),
+                          AppColors.black.withOpacity(0.35),
+                          AppColors.textPrimary,
+                          borderColor: AppColors.textWhite.withOpacity(0.22),
                         ),
                       ],
                     ),
@@ -406,7 +393,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                     const Text(
                       'Keep your best dishes in focus',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textWhite,
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.4,
@@ -437,9 +424,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: AppColors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.16)),
+        border: Border.all(color: AppColors.textWhite.withOpacity(0.16)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -447,7 +434,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           Text(
             '$label: ',
             style: const TextStyle(
-              color: Color(0xFFE0C5A8),
+              color: AppColors.surfaceElevated,
               fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
@@ -455,7 +442,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textWhite,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -506,10 +493,10 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: kCard,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: _searchFocused ? kOrange : kCardBorder,
+            color: _searchFocused ? AppColors.orange : AppColors.border,
             width: _searchFocused ? 1.2 : 1,
           ),
         ),
@@ -518,7 +505,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             const SizedBox(width: 12),
             Icon(
               Icons.search_rounded,
-              color: _searchFocused ? kOrange : kTextSecondary,
+              color: _searchFocused ? AppColors.orange : AppColors.textSecondary,
               size: 18,
             ),
             const SizedBox(width: 10),
@@ -526,16 +513,16 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               child: TextField(
                 controller: _searchCtrl,
                 focusNode: _searchFocus,
-                cursorColor: kOrange,
+                cursorColor: AppColors.orange,
                 style: const TextStyle(
-                  color: kTextPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Search in ${widget.categoryName}...',
                   hintStyle: const TextStyle(
-                    color: kTextSecondary,
+                    color: AppColors.textSecondary,
                     fontSize: 13,
                   ),
                   border: InputBorder.none,
@@ -552,7 +539,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   padding: EdgeInsets.only(right: 12),
                   child: Icon(
                     Icons.close_rounded,
-                    color: kTextSecondary,
+                    color: AppColors.textSecondary,
                     size: 16,
                   ),
                 ),
@@ -571,12 +558,12 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: kCard,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: kCardBorder),
+          border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: AppColors.black.withOpacity(0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -592,8 +579,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(
                   colors: [
-                    (isAvailable ? kOrange : kGold).withOpacity(0.6),
-                    (isAvailable ? kOrange : kGold).withOpacity(0.2),
+                    (isAvailable ? AppColors.orange : AppColors.gold).withOpacity(0.6),
+                    (isAvailable ? AppColors.orange : AppColors.gold).withOpacity(0.2),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -618,7 +605,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: kTextPrimary,
+                            color: AppColors.textPrimary,
                             fontSize: 15.5,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.2,
@@ -629,7 +616,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                       Text(
                         '\$${item.price.toStringAsFixed(2)}',
                         style: const TextStyle(
-                          color: kOrange,
+                          color: AppColors.orange,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
@@ -642,7 +629,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: kTextSecondary,
+                      color: AppColors.textSecondary,
                       fontSize: 11,
                       height: 1.4,
                     ),
@@ -652,11 +639,11 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                     children: [
                       _buildStatusPill(
                         label: isAvailable ? 'AVAILABLE' : 'NOT AVAILABLE',
-                        dotColor: isAvailable ? kGreen : kTextSecondary,
+                        dotColor: isAvailable ? AppColors.green : AppColors.textSecondary,
                         borderColor: isAvailable
-                            ? kGreen.withOpacity(0.35)
-                            : kCardBorder,
-                        textColor: isAvailable ? kGreen : kTextSecondary,
+                            ? AppColors.green.withOpacity(0.35)
+                            : AppColors.border,
+                        textColor: isAvailable ? AppColors.green : AppColors.textSecondary,
                       ),
                       if (item.tag != ItemTag.none) ...[
                         const SizedBox(width: 8),
@@ -666,13 +653,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                       _buildIconButton(
                         icon: Icons.edit_rounded,
                         onTap: () {},
-                        color: kTextSecondary,
+                        color: AppColors.textSecondary,
                       ),
                       const SizedBox(width: 7),
                       _buildIconButton(
                         icon: Icons.delete_outline_rounded,
                         onTap: () {},
-                        color: kRed,
+                        color: AppColors.red,
                       ),
                     ],
                   ),
@@ -694,7 +681,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.25),
+        color: AppColors.black.withOpacity(0.25),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: borderColor),
       ),
@@ -726,7 +713,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
 
   Widget _buildTagPill(ItemTag tag) {
     final label = tag == ItemTag.bestseller ? 'BESTSELLER' : 'VEG';
-    final color = tag == ItemTag.bestseller ? kOrange : kGold;
+    final color = tag == ItemTag.bestseller ? AppColors.orange : AppColors.gold;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -758,9 +745,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.2),
+          color: AppColors.black.withOpacity(0.2),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: kCardBorder),
+          border: Border.all(color: AppColors.border),
         ),
         child: Icon(icon, color: color, size: 14),
       ),
@@ -774,9 +761,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: kCard,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: kCardBorder),
+          border: Border.all(color: AppColors.border),
         ),
         child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -784,7 +771,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             Text(
               'No matching items found.',
               style: TextStyle(
-                color: kTextPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -793,7 +780,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             Text(
               'Try a different search query or switch filters.',
               style: TextStyle(
-                color: kTextSecondary,
+                color: AppColors.textSecondary,
                 fontSize: 11,
               ),
             ),
@@ -812,13 +799,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             MaterialPageRoute(builder: (_) => const EditFoodItemScreen()),
           );
         },
-        backgroundColor: kOrange,
+        backgroundColor: AppColors.orange,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+        icon: const Icon(Icons.add_rounded, color: AppColors.textWhite, size: 20),
         label: const Text(
           'Add Item',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.textWhite,
             fontWeight: FontWeight.w700,
             fontSize: 13,
           ),
@@ -874,15 +861,15 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? kOrange : kCard,
+          color: selected ? AppColors.orange : AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? kOrange : kCardBorder,
+            color: selected ? AppColors.orange : AppColors.border,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: kOrange.withOpacity(0.25),
+                    color: AppColors.orange.withOpacity(0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -895,7 +882,7 @@ class _FilterChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: selected ? Colors.white : kTextSecondary,
+                color: selected ? AppColors.textWhite : AppColors.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -906,15 +893,15 @@ class _FilterChip extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 color: selected
-                    ? Colors.white.withOpacity(0.2)
-                    : kTextMuted.withOpacity(0.3),
+                    ? AppColors.textWhite.withOpacity(0.2)
+                    : AppColors.textMuted.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    color: selected ? Colors.white : kTextSecondary,
+                    color: selected ? AppColors.textWhite : AppColors.textSecondary,
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),

@@ -10,7 +10,7 @@ class AllCategoriesScreen extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: _bg,
+        backgroundColor: AppColors.bg,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -18,9 +18,9 @@ class AllCategoriesScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
                 decoration: const BoxDecoration(
-                  color: _bg,
+                  color: AppColors.bg,
                   border: Border(
-                    bottom: BorderSide(color: Color(0x0FFFFFFF), width: 0.5),
+                    bottom: BorderSide(color: AppColors.separator, width: 0.5),
                   ),
                 ),
                 child: Row(
@@ -29,12 +29,12 @@ class AllCategoriesScreen extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: _surface,
-                        border: Border.all(color: _orangeBorder, width: 0.5),
+                        color: AppColors.surface,
+                        border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.restaurant_menu_rounded,
-                          color: _orange, size: 18),
+                          color: AppColors.orange, size: 18),
                     ),
                     const SizedBox(width: 10),
                     const Text(
@@ -42,21 +42,21 @@ class AllCategoriesScreen extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: _white),
+                          color: AppColors.textPrimary),
                     ),
                     const Spacer(),
                     Container(
                       width: 34,
                       height: 34,
                       decoration: BoxDecoration(
-                        color: _surface,
-                        border: Border.all(color: _grey3, width: 0.5),
+                        color: AppColors.surface,
+                        border: Border.all(color: AppColors.borderAccent, width: 0.5),
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         icon: const Icon(Icons.close_rounded,
-                            color: _grey1, size: 17),
+                            color: AppColors.textSecondary, size: 17),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
@@ -73,8 +73,8 @@ class AllCategoriesScreen extends StatelessWidget {
                         margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: _surface,
-                          border: Border.all(color: _grey3, width: 0.5),
+                          color: AppColors.surface,
+                          border: Border.all(color: AppColors.borderAccent, width: 0.5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Column(
@@ -83,7 +83,7 @@ class AllCategoriesScreen extends StatelessWidget {
                             Text(
                               'Menu categories',
                               style: TextStyle(
-                                color: _white,
+                                color: AppColors.textPrimary,
                                 fontSize: 20,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -91,7 +91,7 @@ class AllCategoriesScreen extends StatelessWidget {
                             SizedBox(height: 4),
                             Text(
                               'Browse every category in your menu system',
-                              style: TextStyle(color: _grey1, fontSize: 12),
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                             ),
                           ],
                         ),
@@ -122,8 +122,8 @@ class _AllCategoryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       decoration: BoxDecoration(
-        color: _surface,
-        border: Border.all(color: _grey3, width: 0.5),
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.borderAccent, width: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: ClipRRect(
@@ -133,26 +133,26 @@ class _AllCategoryCard extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
-              color: const Color(0xFF1E1208),
+              color: AppColors.surfaceRaised,
               child: Row(
                 children: [
                   Container(
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: _orangeDim,
-                      border: Border.all(color: _orangeBorder, width: 0.5),
+                      color: AppColors.orangeDim,
+                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.restaurant_menu_rounded,
-                        color: _orange, size: 17),
+                        color: AppColors.orange, size: 17),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       category.name,
                       style: const TextStyle(
-                        color: _white,
+                        color: AppColors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -162,14 +162,14 @@ class _AllCategoryCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _orangeDim,
-                      border: Border.all(color: _orangeBorder, width: 0.5),
+                      color: AppColors.orangeDim,
+                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${category.itemCount} items',
                       style: const TextStyle(
-                        color: _orange,
+                        color: AppColors.orange,
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
                       ),
@@ -178,16 +178,16 @@ class _AllCategoryCard extends StatelessWidget {
                 ],
               ),
             ),
-            Container(height: 0.5, color: _grey2),
+            Container(height: 0.5, color: AppColors.border),
             if (category.items.isEmpty)
               Container(
                 width: double.infinity,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-                color: _surface,
+                color: AppColors.surface,
                 child: const Text(
                   'No items added yet.',
-                  style: TextStyle(color: _grey1, fontSize: 12),
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
               )
             else
@@ -197,11 +197,11 @@ class _AllCategoryCard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                   decoration: BoxDecoration(
-                    color: _surface,
+                    color: AppColors.surface,
                     border: isLast
                         ? null
                         : const Border(
-                            bottom: BorderSide(color: _grey2, width: 0.5),
+                            bottom: BorderSide(color: AppColors.border, width: 0.5),
                           ),
                   ),
                   child: Row(
@@ -210,8 +210,8 @@ class _AllCategoryCard extends StatelessWidget {
                         width: 46,
                         height: 46,
                         decoration: BoxDecoration(
-                          color: _surfaceRaised,
-                          border: Border.all(color: _grey3, width: 0.5),
+                          color: AppColors.surfaceRaised,
+                          border: Border.all(color: AppColors.borderAccent, width: 0.5),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
@@ -226,13 +226,13 @@ class _AllCategoryCard extends StatelessWidget {
                           children: [
                             Text(entry.value.name,
                                 style: const TextStyle(
-                                    color: _white,
+                                    color: AppColors.textPrimary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500)),
                             const SizedBox(height: 3),
                             Text(entry.value.price,
                                 style: const TextStyle(
-                                    color: _grey1, fontSize: 12)),
+                                    color: AppColors.textSecondary, fontSize: 12)),
                           ],
                         ),
                       ),
@@ -240,12 +240,12 @@ class _AllCategoryCard extends StatelessWidget {
                         width: 30,
                         height: 30,
                         decoration: BoxDecoration(
-                          color: _surfaceRaised,
-                          border: Border.all(color: _grey3, width: 0.5),
+                          color: AppColors.surfaceRaised,
+                          border: Border.all(color: AppColors.borderAccent, width: 0.5),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.edit_outlined,
-                            color: _grey1, size: 14),
+                            color: AppColors.textSecondary, size: 14),
                       ),
                     ],
                   ),

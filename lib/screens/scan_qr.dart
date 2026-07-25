@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -13,10 +14,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   late Animation<double> _scanLineAnim;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
-
-  static const Color orange = Color(0xFFE8622A);
-  static const Color textWhite = Color(0xFFFFFFFF);
-  static const Color textGrey = Color(0xFF9E7E72);
 
   @override
   void initState() {
@@ -60,10 +57,10 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             child: Image.network(
               'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800',
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.55),
+              color: AppColors.black.withOpacity(0.55),
               colorBlendMode: BlendMode.darken,
               errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFF2A1205),
+                color: AppColors.surfaceRaised,
               ),
             ),
           ),
@@ -114,20 +111,20 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         children: [
           GestureDetector(
             onTap: () {},
-            child: const Icon(Icons.arrow_back, color: orange, size: 26),
+            child: const Icon(Icons.arrow_back, color: AppColors.orange, size: 26),
           ),
           const SizedBox(width: 14),
           const Text(
             'Zteel Scanner',
             style: TextStyle(
-              color: textWhite,
+              color: AppColors.textWhite,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
             ),
           ),
           const Spacer(),
-          const Icon(Icons.notifications_outlined, color: orange, size: 26),
+          const Icon(Icons.notifications_outlined, color: AppColors.orange, size: 26),
         ],
       ),
     );
@@ -153,7 +150,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
               child: Container(
                 width: boxSize,
                 height: boxSize,
-                color: Colors.transparent,
+                color: AppColors.transparent,
               ),
             ),
 
@@ -171,15 +168,15 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          orange.withOpacity(0),
-                          orange.withOpacity(0.9),
-                          orange.withOpacity(0),
+                          AppColors.orange.withOpacity(0),
+                          AppColors.orange.withOpacity(0.9),
+                          AppColors.orange.withOpacity(0),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(2),
                       boxShadow: [
                         BoxShadow(
-                          color: orange.withOpacity(0.5),
+                          color: AppColors.orange.withOpacity(0.5),
                           blurRadius: 8,
                           spreadRadius: 2,
                         ),
@@ -253,7 +250,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           tr: tr,
           bl: bl,
           br: br,
-          color: orange,
+          color: AppColors.orange,
           strokeWidth: thick,
           radius: r,
         ),
@@ -270,7 +267,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           const Text(
             'Scan QR to complete order',
             style: TextStyle(
-              color: textWhite,
+              color: AppColors.textWhite,
               fontSize: 22,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.1,
@@ -281,7 +278,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           Text(
             'Position the QR code within the frame to scan\nautomatically',
             style: TextStyle(
-              color: textGrey,
+              color: AppColors.textSecondary,
               fontSize: 14,
               height: 1.5,
             ),
@@ -310,10 +307,10 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
+          color: AppColors.textWhite.withOpacity(0.12),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: textWhite, size: 26),
+        child: Icon(icon, color: AppColors.textWhite, size: 26),
       ),
     );
   }
@@ -330,7 +327,7 @@ class _ScannerOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black.withOpacity(0.52);
+    final paint = Paint()..color = AppColors.black.withOpacity(0.52);
     final cx = size.width / 2;
     final left = cx - scanBoxSize / 2;
     final top = centerY - scanBoxSize / 2;
