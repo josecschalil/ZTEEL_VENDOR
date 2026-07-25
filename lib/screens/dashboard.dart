@@ -1186,8 +1186,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                             decoration: BoxDecoration(
                               color: AppColors.orangeTint,
                               border: Border.all(
-                                  color: AppColors.orangeBorder,
-                                  width: 0.8),
+                                  color: AppColors.orangeBorder, width: 0.8),
                               borderRadius: BorderRadius.circular(11),
                             ),
                             child: const Icon(
@@ -1215,8 +1214,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                             decoration: BoxDecoration(
                               color: AppColors.orangeDim,
                               border: Border.all(
-                                  color: AppColors.orangeBorder,
-                                  width: 0.5),
+                                  color: AppColors.orangeBorder, width: 0.5),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -1255,8 +1253,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         decoration: const BoxDecoration(
                           border: Border(
-                            top: BorderSide(
-                                color: AppColors.border, width: 0.8),
+                            top:
+                                BorderSide(color: AppColors.border, width: 0.8),
                           ),
                         ),
                         child: const Row(

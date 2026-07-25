@@ -53,7 +53,8 @@ class OrderDetailScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         title: const Text(
           'Order Details',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+          style: TextStyle(
+              color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -131,7 +132,7 @@ class OrderDetailScreen extends StatelessWidget {
             child: const Text(
               'Mark Complete',
               style: TextStyle(
-                color: AppColors.green,
+                color: Color.fromARGB(255, 255, 255, 255),
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -194,7 +195,8 @@ class OrderDetailScreen extends StatelessWidget {
                         item.note,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -273,9 +275,7 @@ class OrderDetailScreen extends StatelessWidget {
               color: AppColors.bg,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: milestoneUnlocked
-                    ? AppColors.green
-                    : AppColors.border,
+                color: milestoneUnlocked ? AppColors.green : AppColors.border,
               ),
             ),
             child: Row(
@@ -286,7 +286,9 @@ class OrderDetailScreen extends StatelessWidget {
                       ? Icons.emoji_events_rounded
                       : Icons.lock_clock_rounded,
                   size: 16,
-                  color: milestoneUnlocked ? AppColors.green : AppColors.textSecondary,
+                  color: milestoneUnlocked
+                      ? AppColors.green
+                      : AppColors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(

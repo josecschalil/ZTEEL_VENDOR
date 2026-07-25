@@ -147,8 +147,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ],
         ),
       ),
-      floatingActionButton: _buildScanQRButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -251,7 +249,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 child: Text(
                   tabs[i],
                   style: TextStyle(
-                    color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+                    color: selected
+                        ? const Color.fromARGB(255, 252, 252, 252)
+                        : AppColors.textSecondary,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 12,
                   ),
@@ -326,196 +326,208 @@ class _OrdersScreenState extends State<OrdersScreen> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border, width: 0.8),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Header row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'ORDER #SB-9021',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              GestureDetector(
-                onTap: _openOrder1Details,
-                child: const Text(
-                  'Show Details',
+            // Header row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ORDER #SB-9021',
                   style: TextStyle(
-                    color: AppColors.orange,
+                    color: AppColors.textSecondary,
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.8,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Item 1
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  color: AppColors.border,
-                  child: Image.network(
-                    'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=200',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.restaurant, color: AppColors.orange, size: 24),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Saffron Infused Risotto',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Extra spice, No onions',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                'x1',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Item 2
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  color: AppColors.border,
-                  child: Image.network(
-                    'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.local_bar, color: AppColors.orange, size: 24),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Midnight Spritz',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Standard serve',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                'x2',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Divider(color: AppColors.border, thickness: 1),
-          const SizedBox(height: 14),
-
-          // Footer
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () =>
-                    setState(() => _order1Completed = !_order1Completed),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _order1Completed
-                        ? AppColors.surfaceWarm
-                        : AppColors.green,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Text(
-                    _order1Completed ? 'Mark Pending' : 'Mark Completed',
+                GestureDetector(
+                  onTap: _openOrder1Details,
+                  child: const Text(
+                    'Show Details',
                     style: TextStyle(
-                      color:
-                          _order1Completed ? AppColors.orange : AppColors.green,
+                      color: AppColors.orange,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Total amount',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    '\$48.50',
-                    style: TextStyle(
-                      color: AppColors.orange,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Item 1
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    color: AppColors.border,
+                    child: Image.network(
+                      'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=200',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.restaurant,
+                          color: AppColors.orange, size: 24),
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Saffron Infused Risotto',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Extra spice, No onions',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  'x1',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Item 2
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    color: AppColors.border,
+                    child: Image.network(
+                      'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.local_bar,
+                          color: AppColors.orange, size: 24),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Midnight Spritz',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Standard serve',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  'x2',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Divider(color: AppColors.border, thickness: 1),
+            const SizedBox(height: 14),
+
+            // Footer
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: () =>
+                      setState(() => _order1Completed = !_order1Completed),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _order1Completed
+                          ? AppColors.surfaceWarm
+                          : AppColors.green,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Text(
+                      _order1Completed ? 'Mark Pending' : 'Mark Completed',
+                      style: TextStyle(
+                        color: _order1Completed
+                            ? AppColors.orange
+                            : const Color.fromARGB(255, 255, 255, 255),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Total amount',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      '\$48.50',
+                      style: TextStyle(
+                        color: AppColors.orange,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -530,195 +542,207 @@ class _OrdersScreenState extends State<OrdersScreen> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border, width: 0.8),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Header row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'ORDER #SB-8842',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              GestureDetector(
-                onTap: _openOrder2Details,
-                child: const Text(
-                  'Show Details',
+            // Header row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ORDER #SB-8842',
                   style: TextStyle(
-                    color: AppColors.orange,
+                    color: AppColors.textSecondary,
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.8,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Item
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  color: AppColors.border,
-                  child: Image.network(
-                    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.eco, color: AppColors.orange, size: 24),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Bistro Signature Salad',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Vegan option',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                'x3',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  color: AppColors.border,
-                  child: Image.network(
-                    'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.rice_bowl, color: AppColors.orange, size: 24),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Herbed Rice Bowl',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'No mushrooms',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                'x1',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Divider(color: AppColors.border, thickness: 1),
-          const SizedBox(height: 14),
-
-          // Footer
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () =>
-                    setState(() => _order2Completed = !_order2Completed),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _order2Completed
-                        ? AppColors.surfaceWarm
-                        : AppColors.green,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Text(
-                    _order2Completed ? 'Mark Pending' : 'Mark Completed',
+                GestureDetector(
+                  onTap: _openOrder2Details,
+                  child: const Text(
+                    'Show Details',
                     style: TextStyle(
-                      color:
-                          _order2Completed ? AppColors.orange : AppColors.green,
+                      color: AppColors.orange,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Total amount',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    '\$62.00',
-                    style: TextStyle(
-                      color: AppColors.orange,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Item
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    color: AppColors.border,
+                    child: Image.network(
+                      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.eco,
+                          color: AppColors.orange, size: 24),
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Bistro Signature Salad',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Vegan option',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  'x3',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    color: AppColors.border,
+                    child: Image.network(
+                      'https://images.unsplash.com/photo-1544025162-d76694265947?w=200',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.rice_bowl,
+                          color: AppColors.orange, size: 24),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Herbed Rice Bowl',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'No mushrooms',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const Text(
+                  'x1',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const Divider(color: AppColors.border, thickness: 1),
+            const SizedBox(height: 14),
+
+            // Footer
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: () =>
+                      setState(() => _order2Completed = !_order2Completed),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _order2Completed
+                          ? AppColors.surfaceWarm
+                          : AppColors.green,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Text(
+                      _order2Completed ? 'Mark Pending' : 'Mark Completed',
+                      style: TextStyle(
+                        color: _order2Completed
+                            ? AppColors.orange
+                            : const Color.fromARGB(255, 254, 254, 254),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Total amount',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '\$62.00',
+                      style: TextStyle(
+                        color: AppColors.orange,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -735,11 +759,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
         },
         backgroundColor: AppColors.orange,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        icon: const Icon(Icons.qr_code_scanner, color: AppColors.textPrimary, size: 20),
+        icon: const Icon(Icons.qr_code_scanner,
+            color: Color.fromARGB(255, 255, 255, 255), size: 20),
         label: const Text(
           'Scan QR',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: Color.fromARGB(255, 255, 255, 255),
             fontWeight: FontWeight.w700,
             fontSize: 13,
           ),

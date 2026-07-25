@@ -385,7 +385,8 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           // Section title
           Row(
             children: [
-              Icon(Icons.track_changes, color: AppColors.orange, size: _s(context, 20)),
+              Icon(Icons.track_changes,
+                  color: AppColors.orange, size: _s(context, 20)),
               SizedBox(width: _s(context, 9)),
               Text(
                 'Target Selection',
@@ -426,7 +427,9 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                       Text(
                         tabs[i],
                         style: TextStyle(
-                          color: selected ? AppColors.textWhite : AppColors.textSecondary,
+                          color: selected
+                              ? AppColors.textWhite
+                              : AppColors.textSecondary,
                           fontWeight: FontWeight.w600,
                           fontSize: _fs(context, 13),
                         ),
@@ -586,7 +589,8 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               color: AppColors.orange.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.menu_book_rounded, color: AppColors.orange, size: 22),
+            child: const Icon(Icons.menu_book_rounded,
+                color: AppColors.orange, size: 22),
           ),
           SizedBox(width: _s(context, 12)),
           Expanded(
@@ -673,7 +677,8 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.orange.withOpacity(0.18),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.orange.withOpacity(0.4)),
+                        border: Border.all(
+                            color: AppColors.orange.withOpacity(0.4)),
                       ),
                       child: Text(
                         '${_discountPercent.toInt()}%',
@@ -779,7 +784,8 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.access_time, color: AppColors.orange, size: _s(context, 20)),
+              Icon(Icons.access_time,
+                  color: AppColors.orange, size: _s(context, 20)),
               SizedBox(width: _s(context, 9)),
               Text(
                 'Validity',
@@ -870,7 +876,9 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                   child: Text(
                     dayLabels[i],
                     style: TextStyle(
-                      color: selected ? AppColors.textWhite : AppColors.textSecondary,
+                      color: selected
+                          ? AppColors.textWhite
+                          : AppColors.textSecondary,
                       fontSize: _fs(context, 13),
                       fontWeight: FontWeight.w700,
                     ),
@@ -949,7 +957,8 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         isExpanded: true,
         dropdownColor: AppColors.surface,
         underline: const SizedBox(),
-        icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary, size: 20),
+        icon: const Icon(Icons.keyboard_arrow_down,
+            color: AppColors.textSecondary, size: 20),
         style: const TextStyle(
           color: AppColors.textPrimary,
           fontSize: 15,
