@@ -126,148 +126,149 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Top bar ────────────────────────
-                        _reveal(
-                          0,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-                            child: Row(
-                              children: [
-                                // Back button
-                                GestureDetector(
-                                  onTap: () => Navigator.maybePop(context),
-                                  child: Container(
-                                    width: 38,
-                                    height: 38,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── Top bar ────────────────────────
+                          _reveal(
+                            0,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                              child: Row(
+                                children: [
+                                  // Back button
+                                  GestureDetector(
+                                    onTap: () => Navigator.maybePop(context),
+                                    child: Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        border:
+                                            Border.all(color: AppColors.border, width: 1.2),
+                                        borderRadius: BorderRadius.circular(9),
+                                      ),
+                                      child: const Icon(Icons.arrow_back_ios_new,
+                                          color: AppColors.textSecondary, size: 15),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Wordmark
+                                  RichText(
+                                    text: const TextSpan(
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: .4),
+                                      children: [
+                                        TextSpan(
+                                            text: 'Z',
+                                            style: TextStyle(color: AppColors.textPrimary)),
+                                        TextSpan(
+                                            text: 'tee',
+                                            style: TextStyle(color: AppColors.orange)),
+                                        TextSpan(
+                                            text: 'el',
+                                            style: TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontWeight: FontWeight.w300)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // ── Heading ────────────────────────
+                          _reveal(
+                            1,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 52, 28, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
                                       border:
-                                          Border.all(color: AppColors.border, width: 1.2),
-                                      borderRadius: BorderRadius.circular(9),
+                                          Border.all(color: AppColors.orangeDim, width: 1),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
-                                    child: const Icon(Icons.arrow_back_ios_new,
-                                        color: AppColors.textSecondary, size: 15),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Wordmark
-                                RichText(
-                                  text: const TextSpan(
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: .4),
-                                    children: [
-                                      TextSpan(
-                                          text: 'Z',
-                                          style: TextStyle(color: AppColors.textPrimary)),
-                                      TextSpan(
-                                          text: 'tee',
-                                          style: TextStyle(color: AppColors.orange)),
-                                      TextSpan(
-                                          text: 'el',
-                                          style: TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.w300)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // ── Heading ────────────────────────
-                        _reveal(
-                          1,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 52, 28, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: AppColors.orangeDim, width: 1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'VERIFICATION',
-                                    style: TextStyle(
-                                      color: AppColors.orange,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.6,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                const Text(
-                                  'Enter the\ncode',
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 44,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.08,
-                                    letterSpacing: -1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                RichText(
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 15,
-                                        height: 1.65),
-                                    children: [
-                                      const TextSpan(
-                                          text: 'A 4-digit OTP was sent to\n'),
-                                      TextSpan(
-                                        text: widget.phone,
-                                        style: const TextStyle(
-                                          color: AppColors.textPrimary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                    child: const Text(
+                                      'VERIFICATION',
+                                      style: TextStyle(
+                                        color: AppColors.orange,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.6,
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 18),
+                                  const Text(
+                                    'Enter the\ncode',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 44,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.08,
+                                      letterSpacing: -1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 15,
+                                          height: 1.65),
+                                      children: [
+                                        const TextSpan(
+                                            text: 'A 4-digit OTP was sent to\n'),
+                                        TextSpan(
+                                          text: widget.phone,
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
-                        // ── Accent line ────────────────────
-                        _reveal(
-                          2,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 40, 0, 0),
-                            child: Row(
-                              children: [
-                                Container(width: 28, height: 2, color: AppColors.orange),
-                                Container(width: 72, height: 2, color: AppColors.border),
-                              ],
+                          // ── Accent line ────────────────────
+                          _reveal(
+                            2,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 40, 0, 0),
+                              child: Row(
+                                children: [
+                                  Container(width: 28, height: 2, color: AppColors.orange),
+                                  Container(width: 72, height: 2, color: AppColors.border),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
-                        // ── OTP boxes ──────────────────────
-                        _reveal(
-                          3,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 44, 28, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          // ── OTP boxes ──────────────────────
+                          _reveal(
+                            3,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 44, 28, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
                                   'OTP CODE',
@@ -348,15 +349,16 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                           ),
                         ),
 
-                        const SizedBox(height: 48),
-                      ],
+                          const Expanded(child: SizedBox(height: 48)),
+
+                          // ── Sticky footer ──────────────────────
+                          _reveal(4, _Footer(filled: _filled, onVerify: _verify)),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-
-                // ── Sticky footer ──────────────────────
-                _reveal(4, _Footer(filled: _filled, onVerify: _verify)),
-              ],
+                );
+              },
             ),
           ),
         ),

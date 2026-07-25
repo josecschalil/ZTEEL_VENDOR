@@ -76,138 +76,138 @@ class _LoginScreenState extends State<LoginScreen>
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Scrollable body ───────────────────────
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Top bar ──────────────────────────
-                        _reveal(
-                          0,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 32, 28, 0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.orange,
-                                    borderRadius: BorderRadius.circular(9),
-                                  ),
-                                  child: const Icon(Icons.restaurant,
-                                      color: AppColors.textPrimary, size: 19),
-                                ),
-                                const SizedBox(width: 10),
-                                RichText(
-                                  text: const TextSpan(
-                                    style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: .4),
-                                    children: [
-                                      TextSpan(
-                                          text: 'Z',
-                                          style: TextStyle(color: AppColors.textPrimary)),
-                                      TextSpan(
-                                          text: 'tee',
-                                          style: TextStyle(color: AppColors.orange)),
-                                      TextSpan(
-                                          text: 'el',
-                                          style: TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.w300)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // ── Hero heading ─────────────────────
-                        _reveal(
-                          1,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 56, 28, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Pill label
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: AppColors.orangeDim, width: 1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'FOOD DEALS · NEAR YOU',
-                                    style: TextStyle(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── Top bar ──────────────────────────
+                          _reveal(
+                            0,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 32, 28, 0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
                                       color: AppColors.orange,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.6,
+                                      borderRadius: BorderRadius.circular(9),
+                                    ),
+                                    child: const Icon(Icons.restaurant,
+                                        color: AppColors.textPrimary, size: 19),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  RichText(
+                                    text: const TextSpan(
+                                      style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: .4),
+                                      children: [
+                                        TextSpan(
+                                            text: 'Z',
+                                            style: TextStyle(color: AppColors.textPrimary)),
+                                        TextSpan(
+                                            text: 'tee',
+                                            style: TextStyle(color: AppColors.orange)),
+                                        TextSpan(
+                                            text: 'el',
+                                            style: TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontWeight: FontWeight.w300)),
+                                      ],
                                     ),
                                   ),
-                                ),
-
-                                const SizedBox(height: 18),
-
-                                // Left-aligned editorial heading
-                                const Text(
-                                  'Welcome\nto ZTEEEL',
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 44,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.08,
-                                    letterSpacing: -1.5,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 16),
-
-                                const Text(
-                                  'Find the best food deals near you.\nLet\'s get started.',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 15,
-                                    height: 1.65,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
-                        // ── Accent line ───────────────────────
-                        _reveal(
-                          2,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 40, 0, 0),
-                            child: Row(
-                              children: [
-                                Container(width: 28, height: 2, color: AppColors.orange),
-                                Container(width: 72, height: 2, color: AppColors.border),
-                              ],
+                          // ── Hero heading ─────────────────────
+                          _reveal(
+                            1,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 56, 28, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Pill label
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: AppColors.orangeDim, width: 1),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      'FOOD DEALS · NEAR YOU',
+                                      style: TextStyle(
+                                        color: AppColors.orange,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.6,
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 18),
+
+                                  // Left-aligned editorial heading
+                                  const Text(
+                                    'Welcome\nto ZTEEEL',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 44,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.08,
+                                      letterSpacing: -1.5,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 16),
+
+                                  const Text(
+                                    'Find the best food deals near you.\nLet\'s get started.',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 15,
+                                      height: 1.65,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
-                        // ── Phone field ───────────────────────
-                        _reveal(
-                          3,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 38, 28, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          // ── Accent line ───────────────────────
+                          _reveal(
+                            2,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 40, 0, 0),
+                              child: Row(
+                                children: [
+                                  Container(width: 28, height: 2, color: AppColors.orange),
+                                  Container(width: 72, height: 2, color: AppColors.border),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // ── Phone field ───────────────────────
+                          _reveal(
+                            3,
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(28, 38, 28, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
                                   'PHONE NUMBER',
@@ -286,15 +286,16 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 48),
-                      ],
+                          const Expanded(child: SizedBox(height: 48)),
+
+                          // ── Footer ─────────────────────────
+                          _reveal(4, _Footer(onContinue: _onSendOtp)),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-
-                // ── Sticky footer ─────────────────────────
-                _reveal(4, _Footer(onContinue: _onSendOtp)),
-              ],
+                );
+              },
             ),
           ),
         ),

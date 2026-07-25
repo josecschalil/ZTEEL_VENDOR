@@ -1,6 +1,6 @@
-import 'PhoneAuthScreen.dart';
 import 'package:flutter/material.dart';
-import 'dashboard.dart';
+import 'package:flutter/services.dart';
+import 'PhoneAuthScreen.dart';
 import 'package:frontend/app_colors.dart';
 
 // ─────────────────────────────────────────────
@@ -13,148 +13,214 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _progressController;
-  late AnimationController _fadeController;
-  late AnimationController _logoController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _logoScaleAnimation;
-  late Animation<double> _logoFadeAnimation;
+  // We will use a staggered animation approach
+  late AnimationController _ac;
+  late Animation<double> _logoScale;
+  late Animation<double> _logoFade;
+  late Animation<Offset> _textSlide;
+  late Animation<double> _textFade;
+  
+  late AnimationController _progressAc;
 
   @override
   void initState() {
     super.initState();
 
-    // Logo entrance
-    _logoController = AnimationController(
+    _ac = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _logoScaleAnimation = CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.elasticOut,
-    );
-    _logoFadeAnimation = CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.easeIn,
+      duration: const Duration(milliseconds: 1400),
     );
 
-    // Loading bar – 3 seconds
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
+    _logoScale = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _ac,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
+      ),
     );
 
-    // Fade-out before navigation
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _ac,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+      ),
     );
 
-    // Sequence: logo in → progress bar → fade out → navigate
-    _logoController.forward().then((_) {
-      _progressController.forward().then((_) {
-        _fadeController.forward().then((_) {
-          if (mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
-          }
-        });
+    _textSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _ac,
+        curve: const Interval(0.4, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _ac,
+        curve: const Interval(0.4, 0.8, curve: Curves.easeIn),
+      ),
+    );
+
+    _progressAc = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    );
+
+    _ac.forward().then((_) {
+      _progressAc.forward().then((_) {
+        if (mounted) {
+          // Add a subtle fade transition to the next screen
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              transitionDuration: const Duration(milliseconds: 600),
+              pageBuilder: (_, __, ___) => const LoginScreen(),
+              transitionsBuilder: (_, animation, __, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+            ),
+          );
+        }
       });
     });
   }
 
   @override
   void dispose() {
-    _progressController.dispose();
-    _fadeController.dispose();
-    _logoController.dispose();
+    _ac.dispose();
+    _progressAc.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: AppColors.bgSplash,
+        backgroundColor: AppColors.orange,
         body: Stack(
-          fit: StackFit.expand,
           children: [
-            // ── Tiled QR-code watermark background ──
-            const _WatermarkBackground(),
-
-            // ── Radial glow in center-lower area ──
+            // Decorative background patterns (e.g., large faint circles)
             Positioned(
-              bottom: MediaQuery.of(context).size.height * 0.25,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  width: 260,
-                  height: 260,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.orangeWarm.withOpacity(0.18),
-                        AppColors.transparent,
-                      ],
-                    ),
-                  ),
+              top: -150,
+              right: -100,
+              child: Container(
+                width: 400,
+                height: 400,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.textInverse.withOpacity(0.03),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -200,
+              left: -150,
+              child: Container(
+                width: 500,
+                height: 500,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.textInverse.withOpacity(0.03),
                 ),
               ),
             ),
 
-            // ── Main content ──
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(flex: 3),
-
-                // Logo icon
-                ScaleTransition(
-                  scale: _logoScaleAnimation,
-                  child: FadeTransition(
-                    opacity: _logoFadeAnimation,
-                    child: const _AppIcon(),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Animated Logo
+                  ScaleTransition(
+                    scale: _logoScale,
+                    child: FadeTransition(
+                      opacity: _logoFade,
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.textInverse,
+                          borderRadius: BorderRadius.circular(32),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            )
+                          ],
+                        ),
+                        child: const _QRIcon(size: 64, color: AppColors.orange),
+                      ),
+                    ),
                   ),
+
+                  const SizedBox(height: 36),
+
+                  // Animated Text
+                  SlideTransition(
+                    position: _textSlide,
+                    child: FadeTransition(
+                      opacity: _textFade,
+                      child: Column(
+                        children: [
+                          RichText(
+                            text: const TextSpan(
+                              style: TextStyle(
+                                fontSize: 44,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -1.0,
+                                color: AppColors.textInverse,
+                              ),
+                              children: [
+                                TextSpan(text: 'Z'),
+                                TextSpan(
+                                    text: 'tee',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700)),
+                                TextSpan(
+                                    text: 'el',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w300)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'VENDOR PARTNER',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 4.0,
+                              color: AppColors.textInverse.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Progress indicator at the very bottom
+            Positioned(
+              bottom: 48,
+              left: 48,
+              right: 48,
+              child: FadeTransition(
+                opacity: _textFade,
+                child: Column(
+                  children: [
+                    _ProgressBar(progressController: _progressAc),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Setting up your workspace...',
+                      style: TextStyle(
+                        color: AppColors.textInverse.withOpacity(0.6),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 28),
-
-                // Brand name
-                FadeTransition(
-                  opacity: _logoFadeAnimation,
-                  child: const _BrandName(),
-                ),
-
-                const Spacer(flex: 4),
-
-                // Tagline
-                FadeTransition(
-                  opacity: _logoFadeAnimation,
-                  child: const _Tagline(),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Progress indicator (two-segment bar)
-                _ProgressBar(progressController: _progressController),
-
-                const SizedBox(height: 28),
-
-                // Offline redemption badge
-                FadeTransition(
-                  opacity: _logoFadeAnimation,
-                  child: const _OfflineBadge(),
-                ),
-
-                const SizedBox(height: 48),
-              ],
+              ),
             ),
           ],
         ),
@@ -164,116 +230,30 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 // ─────────────────────────────────────────────
-//  WATERMARK BACKGROUND
+//  QR ICON
 // ─────────────────────────────────────────────
-class _WatermarkBackground extends StatelessWidget {
-  const _WatermarkBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.07,
-      child: CustomPaint(
-        painter: _WatermarkPainter(),
-      ),
-    );
-  }
-}
-
-class _WatermarkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.orangeWarm
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-
-    // Draw scattered QR-like squares in a grid
-    const cellSize = 80.0;
-    final cols = (size.width / cellSize).ceil() + 1;
-    final rows = (size.height / cellSize).ceil() + 1;
-
-    for (int r = 0; r < rows; r++) {
-      for (int c = 0; c < cols; c++) {
-        final x = c * cellSize - 10;
-        final y = r * cellSize - 10;
-        _drawMiniQR(canvas, paint, Offset(x, y), 50);
-      }
-    }
-  }
-
-  void _drawMiniQR(Canvas canvas, Paint paint, Offset origin, double size) {
-    // Outer border
-    canvas.drawRect(Rect.fromLTWH(origin.dx, origin.dy, size, size), paint);
-    // Corner squares
-    final cs = size * 0.28;
-    canvas.drawRect(Rect.fromLTWH(origin.dx + 4, origin.dy + 4, cs, cs), paint);
-    canvas.drawRect(
-        Rect.fromLTWH(origin.dx + size - cs - 4, origin.dy + 4, cs, cs), paint);
-    canvas.drawRect(
-        Rect.fromLTWH(origin.dx + 4, origin.dy + size - cs - 4, cs, cs), paint);
-    // Center dots
-    final dotPaint = Paint()
-      ..color = paint.color
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(
-        Rect.fromLTWH(origin.dx + size * 0.4, origin.dy + size * 0.4,
-            size * 0.2, size * 0.2),
-        dotPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// ─────────────────────────────────────────────
-//  APP ICON
-// ─────────────────────────────────────────────
-class _AppIcon extends StatelessWidget {
-  const _AppIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 110,
-      height: 110,
-      decoration: BoxDecoration(
-        color: AppColors.orangeWarm,
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.orangeWarm.withOpacity(0.45),
-            blurRadius: 32,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: const Center(
-        child: _QRIcon(size: 64),
-      ),
-    );
-  }
-}
-
-/// Simple hand-drawn QR icon in white
 class _QRIcon extends StatelessWidget {
   final double size;
-  const _QRIcon({required this.size});
+  final Color color;
+  const _QRIcon({required this.size, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: Size(size, size),
-      painter: _QRIconPainter(),
+      painter: _QRIconPainter(color: color),
     );
   }
 }
 
 class _QRIconPainter extends CustomPainter {
+  final Color color;
+  _QRIconPainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.textWhite
+      ..color = color
       ..style = PaintingStyle.fill;
 
     final s = size.width;
@@ -294,7 +274,6 @@ class _QRIconPainter extends CustomPainter {
       Offset(6 * u, 5 * u),
       Offset(5 * u, 6 * u),
       Offset(6 * u, 6 * u),
-      // center scatter
       Offset(3 * u, 2 * u),
       Offset(2 * u, 3 * u),
       Offset(3 * u, 3 * u),
@@ -307,7 +286,7 @@ class _QRIconPainter extends CustomPainter {
   void _drawCorner(Canvas canvas, Paint paint, double x, double y, double u) {
     // Outer 3×3 frame
     final outer = Paint()
-      ..color = AppColors.textWhite
+      ..color = paint.color
       ..style = PaintingStyle.stroke
       ..strokeWidth = u * 0.5;
     canvas.drawRect(
@@ -322,104 +301,15 @@ class _QRIconPainter extends CustomPainter {
 }
 
 // ─────────────────────────────────────────────
-//  BRAND NAME
+//  PROGRESS BAR
 // ─────────────────────────────────────────────
-class _BrandName extends StatelessWidget {
-  const _BrandName();
-
-  @override
-  Widget build(BuildContext context) {
-    return RichText(
-      text: const TextSpan(
-        children: [
-          TextSpan(
-            text: 'Z',
-            style: TextStyle(
-              fontFamily: 'serif',
-              fontSize: 42,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textWhite,
-              letterSpacing: 1,
-            ),
-          ),
-          TextSpan(
-            text: 'tee',
-            style: TextStyle(
-              fontFamily: 'serif',
-              fontSize: 42,
-              fontWeight: FontWeight.w900,
-              color: AppColors.orangeWarm,
-              letterSpacing: 1,
-            ),
-          ),
-          TextSpan(
-            text: 'e',
-            style: TextStyle(
-              fontFamily: 'serif',
-              fontSize: 42,
-              fontWeight: FontWeight.w300,
-              color: AppColors.orangeWarm,
-              letterSpacing: 1,
-            ),
-          ),
-          TextSpan(
-            text: 'l',
-            style: TextStyle(
-              fontFamily: 'serif',
-              fontSize: 42,
-              fontWeight: FontWeight.w300,
-              color: AppColors.textWhite,
-              letterSpacing: 1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  TAGLINE
-// ─────────────────────────────────────────────
-class _Tagline extends StatelessWidget {
-  const _Tagline();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        Text(
-          'Discover the best food deals',
-          style: TextStyle(
-            color: AppColors.iconGrey,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 0.2,
-          ),
-        ),
-        Text(
-          'near you',
-          style: TextStyle(
-            color: AppColors.textWhite,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _ProgressBar extends StatelessWidget {
   final AnimationController progressController;
   const _ProgressBar({required this.progressController});
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final barWidth = screenWidth * 0.58;
-    const barHeight = 3.5;
+    const barHeight = 3.0;
 
     return AnimatedBuilder(
       animation: progressController,
@@ -427,24 +317,30 @@ class _ProgressBar extends StatelessWidget {
         final progress = progressController.value;
 
         return SizedBox(
-          width: barWidth,
           height: barHeight,
           child: Stack(
             children: [
               // Track
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.textWhite.withOpacity(0.12),
+                  color: AppColors.textInverse.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(barHeight),
                 ),
               ),
-              // FULL ORANGE PROGRESS
+              // FULL PROGRESS
               FractionallySizedBox(
                 widthFactor: progress,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.orangeWarm,
+                    color: AppColors.textInverse,
                     borderRadius: BorderRadius.circular(barHeight),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.textInverse.withOpacity(0.5),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      )
+                    ],
                   ),
                 ),
               ),
@@ -452,40 +348,6 @@ class _ProgressBar extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  OFFLINE BADGE
-// ─────────────────────────────────────────────
-class _OfflineBadge extends StatelessWidget {
-  const _OfflineBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.orangeWarm, width: 1.5),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle_outline, color: AppColors.orangeWarm, size: 16),
-          SizedBox(width: 8),
-          Text(
-            'INSTANT OFFLINE REDEMPTION',
-            style: TextStyle(
-              color: AppColors.orangeWarm,
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
