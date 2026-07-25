@@ -36,7 +36,7 @@ const _demoItems = [
     description:
         'Lightly battered squid rings served with zesty house-made tartare sauce and lemon wedges.',
     price: 14.50,
-    imageUrl: '🦑',
+    imageUrl: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=600',
     status: ItemStatus.available,
     tag: ItemTag.bestseller,
   ),
@@ -46,7 +46,8 @@ const _demoItems = [
     description:
         'Toasted sourdough topped with wild mushrooms, truffle oil, and fresh herbs.',
     price: 12.00,
-    imageUrl: '🍄',
+    imageUrl:
+        'https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=600',
     status: ItemStatus.notAvailable,
     tag: ItemTag.none,
   ),
@@ -56,7 +57,7 @@ const _demoItems = [
     description:
         'Velvety slow-roasted pumpkin soup with a touch of nutmeg and cream.',
     price: 10.50,
-    imageUrl: '🎃',
+    imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=600',
     status: ItemStatus.available,
     tag: ItemTag.veg,
   ),
@@ -66,7 +67,7 @@ const _demoItems = [
     description:
         '6-piece jumbo wings tossed in a sweet and spicy glaze served with ranch dip.',
     price: 12.50,
-    imageUrl: '🍗',
+    imageUrl: 'https://images.unsplash.com/photo-1562967916-eb82221dfb92?w=600',
     status: ItemStatus.available,
     tag: ItemTag.none,
   ),
@@ -76,7 +77,8 @@ const _demoItems = [
     description:
         'Golden crispy pastry filled with spiced potato and peas, served with mint chutney.',
     price: 9.00,
-    imageUrl: '🥟',
+    imageUrl:
+        'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600',
     status: ItemStatus.available,
     tag: ItemTag.veg,
   ),
@@ -86,7 +88,8 @@ const _demoItems = [
     description:
         'Marinated paneer cubes grilled in tandoor with bell peppers and onions.',
     price: 14.00,
-    imageUrl: '🍢',
+    imageUrl:
+        'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=600',
     status: ItemStatus.available,
     tag: ItemTag.veg,
   ),
@@ -196,7 +199,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.bg,
         floatingActionButton: _buildAddItemButton(),
@@ -211,26 +214,20 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.only(bottom: 80),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _reveal(1, _buildHeader()),
-                        _reveal(2, _buildFeaturedSummaryCard()),
+                        _reveal(1, _buildFeaturedSummaryCard()),
                         const SizedBox(height: 16),
-                        _reveal(3, _buildFilterBar()),
-                        const SizedBox(height: 14),
-                        _reveal(3, _buildSearchBar()),
-                        const SizedBox(height: 10),
+                        _reveal(2, _buildFilterBar()),
+                        const SizedBox(height: 12),
+                        _reveal(2, _buildSearchBar()),
+                        const SizedBox(height: 16),
                         if (_filtered.isEmpty)
-                          _reveal(4, _buildEmptyState())
+                          _reveal(3, _buildEmptyState())
                         else
-                          ..._filtered.asMap().entries.map(
-                                (entry) => _reveal(
-                                  4 + (entry.key % 3),
-                                  _buildItemCard(entry.value),
-                                ),
-                              ),
+                          _reveal(3, _buildItemGrid()),
                       ],
                     ),
                   ),
@@ -243,81 +240,68 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
+  // ── Top Bar ──────────────────────────────────────────────────────────────────
   Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        border: const Border(
+          bottom: BorderSide(color: AppColors.border, width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.maybePop(context),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: AppColors.surfaceRaised,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: AppColors.border, width: 0.8),
               ),
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary,
-                size: 16,
+                color: AppColors.textSecondary,
+                size: 15,
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          Text(
-            widget.categoryName,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.25,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              widget.categoryName,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
             ),
           ),
-          const Spacer(),
           Container(
-            width: 36,
-            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
             decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              color: AppColors.orangeDim,
+              border: Border.all(color: AppColors.orangeBorder, width: 0.6),
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
-              Icons.notifications_outlined,
-              color: AppColors.textPrimary,
-              size: 18,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.categoryName,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 29,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Curate dishes, update availability, and keep the menu performance-ready.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-              height: 1.45,
+            child: Text(
+              '${widget.totalItems} items',
+              style: const TextStyle(
+                color: AppColors.orange,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -325,17 +309,23 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
+  // ── Featured Summary Banner ───────────────────────────────────────────────
   Widget _buildFeaturedSummaryCard() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
-        height: 166,
+        height: 140,
         decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFEF5A4C), Color(0xFFD63A2C)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: AppColors.black.withOpacity(0.35),
-              blurRadius: 18,
+              color: AppColors.orange.withValues(alpha: 0.28),
+              blurRadius: 22,
               offset: const Offset(0, 8),
             ),
           ],
@@ -343,60 +333,69 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Stack(
-            fit: StackFit.expand,
             children: [
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.border,
-                      AppColors.borderAccent,
-                      AppColors.borderAccent,
-                    ],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
+              // ── Decorative rings ──
+              Positioned(
+                right: -40,
+                top: -40,
+                child: Container(
+                  width: 160,
+                  height: 160,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.transparent,
-                        AppColors.black.withOpacity(0.75),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.textWhite.withValues(alpha: 0.1),
+                      width: 1,
                     ),
                   ),
                 ),
               ),
+              Positioned(
+                right: -10,
+                top: -10,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.textWhite.withValues(alpha: 0.12),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+              // ── Content ──
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        _buildTag('MENU HEALTH', AppColors.orange, AppColors.textWhite),
+                        _buildTag(
+                          'CATEGORY',
+                          AppColors.textWhite.withValues(alpha: 0.2),
+                          AppColors.textWhite,
+                        ),
                         const SizedBox(width: 8),
                         _buildTag(
                           '${_filtered.length} VISIBLE',
-                          AppColors.black.withOpacity(0.35),
-                          AppColors.textPrimary,
-                          borderColor: AppColors.textWhite.withOpacity(0.22),
+                          AppColors.textWhite.withValues(alpha: 0.14),
+                          AppColors.textWhite,
+                          borderColor:
+                              AppColors.textWhite.withValues(alpha: 0.2),
                         ),
                       ],
                     ),
                     const Spacer(),
-                    const Text(
-                      'Keep your best dishes in focus',
-                      style: TextStyle(
+                    Text(
+                      widget.categoryName,
+                      style: const TextStyle(
                         color: AppColors.textWhite,
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
+                        letterSpacing: -0.5,
                         height: 1.1,
                       ),
                     ),
@@ -404,9 +403,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                     Row(
                       children: [
                         _buildMetaStat('Total', '${widget.totalItems}'),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         _buildMetaStat('Available', '$_availableCount'),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         _buildMetaStat('Hidden', '$_unavailableCount'),
                       ],
                     ),
@@ -422,19 +421,22 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
 
   Widget _buildMetaStat(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.black.withOpacity(0.3),
+        color: AppColors.textWhite.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.textWhite.withOpacity(0.16)),
+        border: Border.all(
+          color: AppColors.textWhite.withValues(alpha: 0.18),
+          width: 0.6,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(
-              color: AppColors.surfaceElevated,
+            style: TextStyle(
+              color: AppColors.textWhite.withValues(alpha: 0.8),
               fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
@@ -452,6 +454,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
+  // ── Filter Bar ──────────────────────────────────────────────────────────────
   Widget _buildFilterBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -465,7 +468,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               selected: _selectedFilter == ItemFilter.all,
               onTap: () => setState(() => _selectedFilter = ItemFilter.all),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             _FilterChip(
               label: 'Available',
               count: _availableCount,
@@ -473,7 +476,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               onTap: () =>
                   setState(() => _selectedFilter = ItemFilter.available),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             _FilterChip(
               label: 'Not Available',
               count: _unavailableCount,
@@ -487,17 +490,18 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
+  // ── Search Bar ──────────────────────────────────────────────────────────────
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        height: 48,
+        height: 44,
         decoration: BoxDecoration(
           color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: _searchFocused ? AppColors.orange : AppColors.border,
-            width: _searchFocused ? 1.2 : 1,
+            width: _searchFocused ? 1.2 : 0.8,
           ),
         ),
         child: Row(
@@ -505,7 +509,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             const SizedBox(width: 12),
             Icon(
               Icons.search_rounded,
-              color: _searchFocused ? AppColors.orange : AppColors.textSecondary,
+              color: _searchFocused ? AppColors.orange : AppColors.textMuted,
               size: 18,
             ),
             const SizedBox(width: 10),
@@ -519,10 +523,10 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
-                decoration: InputDecoration(
-                  hintText: 'Search in ${widget.categoryName}...',
-                  hintStyle: const TextStyle(
-                    color: AppColors.textSecondary,
+                decoration: const InputDecoration(
+                  hintText: 'Search items in category...',
+                  hintStyle: TextStyle(
+                    color: AppColors.textMuted,
                     fontSize: 13,
                   ),
                   border: InputBorder.none,
@@ -539,7 +543,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   padding: EdgeInsets.only(right: 12),
                   child: Icon(
                     Icons.close_rounded,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textMuted,
                     size: 16,
                   ),
                 ),
@@ -550,117 +554,165 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
-  Widget _buildItemCard(FoodItem item) {
+  // ── Item Grid ───────────────────────────────────────────────────────────────
+  Widget _buildItemGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          childAspectRatio: 0.88,
+        ),
+        itemCount: _filtered.length,
+        itemBuilder: (context, index) {
+          return _buildSquareItemCard(_filtered[index]);
+        },
+      ),
+    );
+  }
+
+  // ── Square Item Card ────────────────────────────────────────────────────────
+  Widget _buildSquareItemCard(FoodItem item) {
     final isAvailable = item.status == ItemStatus.available;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(19),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [
-                    (isAvailable ? AppColors.orange : AppColors.gold).withOpacity(0.6),
-                    (isAvailable ? AppColors.orange : AppColors.gold).withOpacity(0.2),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Center(
-                child:
-                    Text(item.imageUrl, style: const TextStyle(fontSize: 30)),
+            // ── Image / Emoji Top Section ──
+            Expanded(
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: AppColors.surfaceRaised,
+                    child: Image.network(
+                      item.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: AppColors.surfaceRaised,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.orange,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.surfaceRaised,
+                          child: const Center(
+                            child: Icon(
+                              Icons.restaurant_rounded,
+                              color: AppColors.orange,
+                              size: 28,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Tag pill top-left if present
+                  if (item.tag != ItemTag.none)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: _buildTagPill(item.tag),
+                    ),
+                  // Action buttons top-right
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Row(
+                      children: [
+                        _buildIconButton(
+                          icon: Icons.edit_rounded,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const EditFoodItemScreen(),
+                              ),
+                            );
+                          },
+                          color: AppColors.textSecondary,
+                          bgColor: AppColors.surface.withValues(alpha: 0.9),
+                          borderColor: AppColors.border,
+                        ),
+                        const SizedBox(width: 4),
+                        _buildIconButton(
+                          icon: Icons.delete_outline_rounded,
+                          onTap: () {},
+                          color: AppColors.red,
+                          bgColor: AppColors.surface.withValues(alpha: 0.9),
+                          borderColor: AppColors.red.withValues(alpha: 0.2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
+            // ── Divider ──
+            Container(height: 0.8, color: AppColors.border),
+            // ── Card Bottom Info ──
+            Padding(
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Text(
-                          item.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Text(
                         '\$${item.price.toStringAsFixed(2)}',
                         style: const TextStyle(
                           color: AppColors.orange,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 9),
-                  Row(
-                    children: [
-                      _buildStatusPill(
-                        label: isAvailable ? 'AVAILABLE' : 'NOT AVAILABLE',
-                        dotColor: isAvailable ? AppColors.green : AppColors.textSecondary,
-                        borderColor: isAvailable
-                            ? AppColors.green.withOpacity(0.35)
-                            : AppColors.border,
-                        textColor: isAvailable ? AppColors.green : AppColors.textSecondary,
-                      ),
-                      if (item.tag != ItemTag.none) ...[
-                        const SizedBox(width: 8),
-                        _buildTagPill(item.tag),
-                      ],
-                      const Spacer(),
-                      _buildIconButton(
-                        icon: Icons.edit_rounded,
-                        onTap: () {},
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 7),
-                      _buildIconButton(
-                        icon: Icons.delete_outline_rounded,
-                        onTap: () {},
-                        color: AppColors.red,
-                      ),
+                      _buildStatusDotPill(isAvailable),
                     ],
                   ),
                 ],
@@ -672,38 +724,36 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
-  Widget _buildStatusPill({
-    required String label,
-    required Color dotColor,
-    required Color borderColor,
-    required Color textColor,
-  }) {
+  Widget _buildStatusDotPill(bool isAvailable) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.black.withOpacity(0.25),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: borderColor),
+        color: isAvailable ? AppColors.greenDim : AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isAvailable ? AppColors.greenBorder : AppColors.border,
+          width: 0.5,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             decoration: BoxDecoration(
-              color: dotColor,
+              color: isAvailable ? AppColors.green : AppColors.textMuted,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 5),
+          const SizedBox(width: 4),
           Text(
-            label,
+            isAvailable ? 'ON' : 'OFF',
             style: TextStyle(
-              color: textColor,
-              fontSize: 8.8,
+              color: isAvailable ? AppColors.green : AppColors.textMuted,
+              fontSize: 8.5,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
+              letterSpacing: 0.4,
             ),
           ),
         ],
@@ -712,21 +762,25 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   }
 
   Widget _buildTagPill(ItemTag tag) {
-    final label = tag == ItemTag.bestseller ? 'BESTSELLER' : 'VEG';
-    final color = tag == ItemTag.bestseller ? AppColors.orange : AppColors.gold;
+    final isBestseller = tag == ItemTag.bestseller;
+    final label = isBestseller ? 'BESTSELLER' : 'VEG';
+    final textColor = isBestseller ? AppColors.orange : AppColors.green;
+    final bgColor = isBestseller ? AppColors.orangeDim : AppColors.greenDim;
+    final borderColor =
+        isBestseller ? AppColors.orangeBorder : AppColors.greenBorder;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.35)),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 0.5),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: color,
-          fontSize: 8.8,
+          color: textColor,
+          fontSize: 8,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
         ),
@@ -738,6 +792,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     required IconData icon,
     required VoidCallback onTap,
     required Color color,
+    required Color bgColor,
+    required Color borderColor,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -745,43 +801,43 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: AppColors.black.withOpacity(0.2),
+          color: bgColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: borderColor, width: 0.5),
         ),
-        child: Icon(icon, color: color, size: 14),
+        child: Icon(icon, color: color, size: 13),
       ),
     );
   }
 
   Widget _buildEmptyState() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.border, width: 0.8),
         ),
         child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'No matching items found.',
+              'No matching items found',
               style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
             ),
             SizedBox(height: 4),
             Text(
               'Try a different search query or switch filters.',
               style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 11,
+                color: AppColors.textMuted,
+                fontSize: 12,
               ),
             ),
           ],
@@ -790,25 +846,47 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
+  // ── Floating Action Button ───────────────────────────────────────────────────
   Widget _buildAddItemButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const EditFoodItemScreen()),
-          );
-        },
-        backgroundColor: AppColors.orange,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        icon: const Icon(Icons.add_rounded, color: AppColors.textWhite, size: 20),
-        label: const Text(
-          'Add Item',
-          style: TextStyle(
-            color: AppColors.textWhite,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const EditFoodItemScreen()),
+        );
+      },
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFEF5A4C), Color(0xFFF07B6F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.orange.withValues(alpha: 0.38),
+              blurRadius: 18,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_rounded, color: AppColors.textWhite, size: 20),
+            SizedBox(width: 7),
+            Text(
+              'Add Item',
+              style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -825,7 +903,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(6),
-        border: borderColor == null ? null : Border.all(color: borderColor),
+        border: borderColor == null
+            ? null
+            : Border.all(color: borderColor, width: 0.5),
       ),
       child: Text(
         label,
@@ -840,6 +920,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   }
 }
 
+// ── Filter Chip ──────────────────────────────────────────────────────────────
 class _FilterChip extends StatelessWidget {
   final String label;
   final int count;
@@ -859,18 +940,26 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.orange : AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(12),
+          gradient: selected
+              ? const LinearGradient(
+                  colors: [Color(0xFFEF5A4C), Color(0xFFF07B6F)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: selected ? null : AppColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? AppColors.orange : AppColors.border,
+            width: 0.8,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppColors.orange.withOpacity(0.25),
-                    blurRadius: 8,
+                    color: AppColors.orange.withValues(alpha: 0.3),
+                    blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
                 ]
@@ -883,28 +972,26 @@ class _FilterChip extends StatelessWidget {
               label,
               style: TextStyle(
                 color: selected ? AppColors.textWhite : AppColors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 7),
             Container(
-              width: 18,
-              height: 18,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: selected
-                    ? AppColors.textWhite.withOpacity(0.2)
-                    : AppColors.textMuted.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(6),
+                    ? AppColors.textWhite.withValues(alpha: 0.22)
+                    : AppColors.border,
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Center(
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    color: selected ? AppColors.textWhite : AppColors.textSecondary,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color:
+                      selected ? AppColors.textWhite : AppColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),

@@ -4,12 +4,12 @@ import 'package:frontend/app_colors.dart';
 import 'categoryItemsScreen.dart';
 part 'dashboard_all_categories.dart';
 
-// ── Data models ────────────────────────────────
+// ── Data models ─────────────────────────────────────────────────────────────
 class MenuItem {
-  final String emoji;
+  final String imageUrl;
   final String name;
   final String price;
-  const MenuItem(this.emoji, this.name, this.price);
+  const MenuItem(this.imageUrl, this.name, this.price);
 }
 
 class MenuCategory {
@@ -21,21 +21,46 @@ class MenuCategory {
 
 const _initialCategories = [
   MenuCategory('Signature Starters', 12, [
-    MenuItem('🥟', 'Crispy Saffron Samosas', '\$12.50'),
-    MenuItem('🍢', 'Tandoori Paneer Tikka', '\$14.00'),
+    MenuItem(
+      'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=300',
+      'Crispy Saffron Samosas',
+      '\$12.50',
+    ),
+    MenuItem(
+      'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=300',
+      'Tandoori Paneer Tikka',
+      '\$14.00',
+    ),
   ]),
   MenuCategory('Main Entrées', 18, [
-    MenuItem('🍛', 'Velvet Butter Chicken', '\$22.00'),
-    MenuItem('🍚', 'Royal Lamb Biryani', '\$26.50'),
+    MenuItem(
+      'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=300',
+      'Velvet Butter Chicken',
+      '\$22.00',
+    ),
+    MenuItem(
+      'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=300',
+      'Royal Lamb Biryani',
+      '\$26.50',
+    ),
   ]),
   MenuCategory('Desserts', 8, [
-    MenuItem('🍮', 'Saffron Crème Brûlée', '\$9.50'),
-    MenuItem('🍨', 'Kulfi Rose Sundae', '\$8.00'),
+    MenuItem(
+      'https://images.unsplash.com/photo-1470124182917-cc6e71b22ecc?w=300',
+      'Saffron Crème Brûlée',
+      '\$9.50',
+    ),
+    MenuItem(
+      'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=300',
+      'Kulfi Rose Sundae',
+      '\$8.00',
+    ),
   ]),
 ];
-
 const _bars = [0.38, 0.52, 0.44, 0.60, 0.48, 1.0];
+const _barLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// ── Widget ───────────────────────────────────────────────────────────────────
 class RestaurantDashboard extends StatefulWidget {
   const RestaurantDashboard({super.key});
 
@@ -48,21 +73,43 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   final TextEditingController _categoryNameController = TextEditingController();
   final List<MenuCategory> _categories = List.of(_initialCategories);
 
+  // ── Entry stagger ────────────────────────────────
   late final AnimationController _entryAc = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
+    duration: const Duration(milliseconds: 1100),
   )..forward();
 
+  // ── Live status pulse ────────────────────────────
+  late final AnimationController _pulseAc = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat(reverse: true);
+
+  // ── Bar chart fill ───────────────────────────────
+  late final AnimationController _barAc = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  )..forward();
+
+  // ── Helpers ──────────────────────────────────────
   Animation<double> _fade(int i) => CurvedAnimation(
         parent: _entryAc,
-        curve: Interval(i * 0.08, 0.6 + i * 0.07, curve: Curves.easeOut),
+        curve: Interval(
+          (i * 0.08).clamp(0.0, 0.9),
+          (0.55 + i * 0.08).clamp(0.0, 1.0),
+          curve: Curves.easeOut,
+        ),
       );
 
   Animation<Offset> _slide(int i) =>
-      Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(
+      Tween<Offset>(begin: const Offset(0, 0.07), end: Offset.zero).animate(
         CurvedAnimation(
           parent: _entryAc,
-          curve: Interval(i * 0.08, 0.6 + i * 0.07, curve: Curves.easeOutCubic),
+          curve: Interval(
+            (i * 0.08).clamp(0.0, 0.9),
+            (0.55 + i * 0.08).clamp(0.0, 1.0),
+            curve: Curves.easeOutCubic,
+          ),
         ),
       );
 
@@ -71,37 +118,57 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
         child: SlideTransition(position: _slide(i), child: child),
       );
 
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
+
+  String get _formattedDate {
+    final now = DateTime.now();
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+  }
+
   @override
   void dispose() {
     _categoryNameController.dispose();
     _entryAc.dispose();
+    _pulseAc.dispose();
+    _barAc.dispose();
     super.dispose();
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.bg,
-        // ── FAB: Scaffold handles positioning above the bottom nav ──
-        floatingActionButton: FadeTransition(
-          opacity: _fade(4),
-          child: GestureDetector(
-            onTap: _openCreateCategoryModal,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.orange,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child:
-                  const Icon(Icons.add_rounded, color: AppColors.textWhite, size: 22),
-            ),
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: SafeArea(
           bottom: true,
           child: Column(
@@ -114,13 +181,24 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _reveal(1, _buildHero()),
-                      const SizedBox(height: 24),
-                      _reveal(2, _buildSectionLabel('Overview')),
-                      const SizedBox(height: 12),
-                      _reveal(2, _buildStatsGrid()),
                       const SizedBox(height: 28),
-                      _reveal(3, _buildMenuSection()),
-                      const SizedBox(height: 24),
+                      _reveal(
+                          2,
+                          _buildSectionHeader(
+                            title: 'Overview',
+                            subtitle: "Today's performance snapshot",
+                            badge: 'LIVE',
+                          )),
+                      const SizedBox(height: 14),
+                      _reveal(2, _buildStatsGrid()),
+                      const SizedBox(height: 32),
+                      _reveal(3, _buildMenuSectionHeader()),
+                      const SizedBox(height: 16),
+                      ..._categories.asMap().entries.map(
+                            (e) =>
+                                _reveal(4 + e.key, _buildCategoryCard(e.value)),
+                          ),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -132,172 +210,309 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     );
   }
 
-  // ── Top bar ───────────────────────────────────
+  // ── Top bar ──────────────────────────────────────────────────────────────────
   Widget _buildTopBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      decoration: const BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+      decoration: BoxDecoration(
         color: AppColors.bg,
-        border: Border(
-          bottom: BorderSide(color: AppColors.orangeBorder, width: 0.5),
+        border: const Border(
+          bottom: BorderSide(color: AppColors.border, width: 1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
+          // ── Brand avatar ──
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.orangeBorder, width: 0.5),
-              borderRadius: BorderRadius.circular(10),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEF5A4C), Color(0xFFE87722)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.local_fire_department_rounded,
-                color: AppColors.orange, size: 18),
+                color: AppColors.textWhite, size: 22),
           ),
-          const SizedBox(width: 10),
-          const Text(
-            'Saffron Bistro',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-            ),
+          const SizedBox(width: 11),
+          // ── Brand name ──
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Zteeel Vendor',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.1,
+                ),
+              ),
+              Text(
+                'Admin Dashboard',
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.greenDim,
-              border: Border.all(color: AppColors.greenBorder, width: 0.5),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                      color: AppColors.green, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 6),
-                const Text('OPEN',
+          // ── OPEN pill with pulse ──
+          AnimatedBuilder(
+            animation: _pulseAc,
+            builder: (_, __) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.greenDim,
+                border: Border.all(color: AppColors.greenBorder, width: 0.8),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: AppColors.green
+                          .withValues(alpha: 0.5 + 0.5 * _pulseAc.value),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.green
+                              .withValues(alpha: 0.45 * _pulseAc.value),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'OPEN',
                     style: TextStyle(
-                        color: AppColors.green,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8)),
-              ],
+                      color: AppColors.green,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.9,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 10),
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: AppColors.borderAccent,
-              border: Border.all(color: AppColors.border, width: 0.5),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: const Icon(Icons.notifications_none_rounded,
-                color: AppColors.textSecondary, size: 17),
+          // ── Notification icon with badge ──
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceRaised,
+                  border: Border.all(color: AppColors.border, width: 0.8),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(Icons.notifications_none_rounded,
+                    color: AppColors.textSecondary, size: 19),
+              ),
+              Positioned(
+                right: -3,
+                top: -3,
+                child: Container(
+                  width: 15,
+                  height: 15,
+                  decoration: const BoxDecoration(
+                    color: AppColors.orange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '3',
+                      style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ── Hero banner ───────────────────────────────
+  // ── Hero banner ──────────────────────────────────────────────────────────────
   Widget _buildHero() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      height: 150,
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      height: 172,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 0.5),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1F2937), Color(0xFF111827)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Stack(
         children: [
-          // Decorative concentric circles (clipped by parent)
+          // ── Decorative ring geometry ──
           Positioned(
-            right: -30,
-            top: -30,
+            right: -55,
+            top: -55,
+            child: _ring(210, 0.09),
+          ),
+          Positioned(
+            right: -15,
+            top: -15,
+            child: _ring(135, 0.1),
+          ),
+          Positioned(
+            right: 32,
+            top: 32,
+            child: _ring(55, 0.12),
+          ),
+          // ── Soft blob ──
+          Positioned(
+            right: 20,
+            bottom: 30,
             child: Container(
-              width: 160,
-              height: 160,
+              width: 6,
+              height: 6,
               decoration: BoxDecoration(
+                color: AppColors.textWhite.withValues(alpha: 0.25),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.orangeBorder, width: 0.5),
               ),
             ),
           ),
           Positioned(
-            right: 0,
-            top: 0,
+            right: 56,
+            bottom: 18,
             child: Container(
-              width: 100,
-              height: 100,
+              width: 4,
+              height: 4,
               decoration: BoxDecoration(
+                color: AppColors.textWhite.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.orangeBorder, width: 0.5),
               ),
             ),
           ),
-          Positioned(
-            right: 25,
-            top: 25,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.orangeBorder, width: 0.5),
-              ),
-            ),
-          ),
-          // Text content pinned to bottom-left
+          // ── Content ──
           Positioned.fill(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(22),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  // Tag badge
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
-                      borderRadius: BorderRadius.circular(4),
+                      color: AppColors.textWhite.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                          color: AppColors.textWhite.withValues(alpha: 0.22),
+                          width: 0.6),
                     ),
                     child: const Text(
                       'DASHBOARD',
                       style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2),
+                        color: AppColors.textWhite,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2.4,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Greeting
+                  Text(
+                    '$_greeting, Chef',
+                    style: const TextStyle(
+                      color: AppColors.textWhite,
+                      fontSize: 27,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      height: 1.1,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Welcome back, Chef',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 27,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Thursday, 10 April 2026',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  // Date + revenue row
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded,
+                          color: AppColors.textWhite.withValues(alpha: 0.7),
+                          size: 11),
+                      const SizedBox(width: 5),
+                      Text(
+                        _formattedDate,
+                        style: TextStyle(
+                          color: AppColors.textWhite.withValues(alpha: 0.75),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Mini revenue pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 11, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.textWhite.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color:
+                                  AppColors.textWhite.withValues(alpha: 0.18),
+                              width: 0.6),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.trending_up_rounded,
+                                color:
+                                    AppColors.textWhite.withValues(alpha: 0.9),
+                                size: 13),
+                            const SizedBox(width: 5),
+                            Text(
+                              '\$1,482 today',
+                              style: TextStyle(
+                                color:
+                                    AppColors.textWhite.withValues(alpha: 0.95),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -308,146 +523,278 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     );
   }
 
-  // ── Section label ─────────────────────────────
-  Widget _buildSectionLabel(String label) {
+  Widget _ring(double size, double opacity) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+              color: AppColors.textWhite.withValues(alpha: opacity), width: 1),
+        ),
+      );
+
+  // ── Section header ────────────────────────────────────────────────────────
+  Widget _buildSectionHeader({
+    required String title,
+    required String subtitle,
+    String? badge,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(
-        label.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          if (badge != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.orangeDim,
+                border: Border.all(color: AppColors.orangeBorder, width: 0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                badge,
+                style: const TextStyle(
+                  color: AppColors.orange,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  // ── Stats grid ────────────────────────────────
+  // ── Stats grid ────────────────────────────────────────────────────────────
   Widget _buildStatsGrid() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: IntrinsicHeight(
-        // Makes both columns the same height naturally
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Revenue card ──
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  border: Border.all(color: AppColors.orangeBorder, width: 0.5),
-                  borderRadius: BorderRadius.circular(14),
+      child: Column(
+        children: [
+          _buildRevenueCard(),
+          const SizedBox(height: 12),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _buildStatChip(
+                    label: 'Active Orders',
+                    value: '14',
+                    sub: 'in progress',
+                    icon: Icons.receipt_long_rounded,
+                    accentColor: AppColors.orange,
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatChip(
+                    label: 'New Reviews',
+                    value: '8',
+                    sub: 'this week',
+                    icon: Icons.star_rounded,
+                    accentColor: AppColors.gold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRevenueCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header row ──
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.orange,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Icon(Icons.attach_money_rounded,
+                    color: AppColors.textWhite, size: 18),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Revenue today',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                            )),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.greenDim,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('+12.4%',
-                              style: TextStyle(
-                                  color: AppColors.green,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500)),
-                        ),
-                      ],
+                    Text(
+                      'Revenue Today',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    const Text('\$1,482',
-                        style: TextStyle(
-                            color: AppColors.orange,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5)),
-                    const Text('.50 collected',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                    const Spacer(),
-                    // Bar chart pinned to bottom of card
-                    SizedBox(
-                      height: 48,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: _bars.map((h) {
-                          final isActive = h == 1.0;
-                          return Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                              height: 48 * h,
-                              decoration: BoxDecoration(
-                                color: isActive ? AppColors.orange : AppColors.orangeDim,
-                                borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(4)),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                    Text(
+                      'compared to yesterday',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 10.5,
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-            // ── Active orders + Reviews stacked ──
-            Expanded(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: _buildSmallStat(
-                      label: 'Active orders',
-                      value: '14',
-                      sub: 'in progress',
-                      icon: Icons.receipt_long_rounded,
-                    ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.greenDim,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.greenBorder, width: 0.5),
+                ),
+                child: const Text(
+                  '+12.4%',
+                  style: TextStyle(
+                    color: AppColors.green,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: _buildSmallStat(
-                      label: 'New reviews',
-                      value: '8',
-                      sub: 'this week',
-                      icon: Icons.star_border_rounded,
-                    ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // ── Revenue number ──
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '\$1,482',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1.2,
+                  height: 1,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(bottom: 5, left: 3),
+                child: Text(
+                  '.50',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
+                ),
+              ),
+              Spacer(),
+              Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'collected',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // ── Animated bar chart ──
+          AnimatedBuilder(
+            animation: _barAc,
+            builder: (_, __) => SizedBox(
+              height: 44,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: _bars.asMap().entries.map((e) {
+                  final isActive = e.value == 1.0;
+                  return Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                      height: 44 * e.value * _barAc.value,
+                      decoration: BoxDecoration(
+                        color:
+                            isActive ? AppColors.orange : AppColors.orangeDim,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4)),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          // ── Day labels ──
+          Row(
+            children: _barLabels.map((d) {
+              return Expanded(
+                child: Text(
+                  d,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSmallStat({
+  Widget _buildStatChip({
     required String label,
     required String value,
     required String sub,
     required IconData icon,
+    required Color accentColor,
   }) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border.all(color: AppColors.border, width: 0.5),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,90 +803,124 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppColors.orangeDim,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.orangeBorder, width: 0.5),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
                 ),
-                child: Icon(icon, color: AppColors.orange, size: 14),
+              ),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, color: accentColor, size: 15),
               ),
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5)),
-              Text(sub, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-            ],
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.2,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            sub,
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ── Menu section ──────────────────────────────
-  Widget _buildMenuSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+  // ── Menu section header ───────────────────────────────────────────────────
+  Widget _buildMenuSectionHeader() {
+    final totalItems = _categories.fold(0, (s, c) => s + c.itemCount);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Menu categories',
-                      style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3)),
-                  SizedBox(height: 3),
-                  Text('Manage your culinary offerings',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
-                ],
+              const Text(
+                'Menu Categories',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
               ),
-              const Spacer(),
-              GestureDetector(
-                onTap: _openAllCategoriesPage,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 6),
-                  child: Text('VIEW ALL',
-                      style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5)),
+              const SizedBox(height: 2),
+              Text(
+                '${_categories.length} categories · $totalItems items',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        ..._categories.map((cat) => _buildCategoryCard(cat)),
-      ],
-    );
-  }
-
-  void _openAllCategoriesPage() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AllCategoriesScreen(categories: List.of(_categories)),
+          const Spacer(),
+          GestureDetector(
+            onTap: _openAllCategoriesPage,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.orangeDim,
+                border: Border.all(color: AppColors.orangeBorder, width: 0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                children: [
+                  Text(
+                    'View All',
+                    style: TextStyle(
+                      color: AppColors.orange,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_ios_rounded,
+                      color: AppColors.orange, size: 9.5),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  // ── Navigation ────────────────────────────────────────────────────────────
+  void _openAllCategoriesPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AllCategoriesScreen(
+          categories: List.of(_categories),
+          onAddCategory: _openCreateCategoryModal,
+        ),
+      ),
+    );
+  }
+
+  // ── Create category modal ─────────────────────────────────────────────────
   void _openCreateCategoryModal() {
     _categoryNameController.clear();
 
@@ -547,104 +928,199 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.transparent,
-      builder: (context) {
+      builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.border, width: 0.5),
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppColors.border, width: 0.8),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.black.withValues(alpha: 0.1),
+                  blurRadius: 44,
+                  offset: const Offset(0, -10),
+                ),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 42,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.borderAccent,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Gradient header ──
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.orangeTint, AppColors.bg],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(28)),
                   ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Create new category',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Add a new category to organize your menu.',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border, width: 0.5),
-                    ),
-                    child: TextField(
-                      controller: _categoryNameController,
-                      autofocus: true,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      cursorColor: AppColors.orange,
-                      decoration: const InputDecoration(
-                        hintText: 'Category name',
-                        hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
+                  child: Column(
+                    children: [
+                      // Drag handle
+                      Center(
+                        child: Container(
+                          width: 38,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                         ),
                       ),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _createCategory(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _createCategory,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.orange,
-                        foregroundColor: AppColors.textWhite,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFEF5A4C), Color(0xFFF07B6F)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.category_rounded,
+                                color: AppColors.textWhite, size: 21),
+                          ),
+                          const SizedBox(width: 14),
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'New Category',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Organize your menu offerings',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        'Create new category',
+                    ],
+                  ),
+                ),
+                // ── Input + CTA ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 26),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Category Name',
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.4,
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceRaised,
+                          borderRadius: BorderRadius.circular(14),
+                          border:
+                              Border.all(color: AppColors.border, width: 0.8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(left: 14),
+                              child: Icon(Icons.label_outline_rounded,
+                                  color: AppColors.orange, size: 18),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _categoryNameController,
+                                autofocus: true,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                cursorColor: AppColors.orange,
+                                decoration: const InputDecoration(
+                                  hintText: 'e.g. Signature Starters',
+                                  hintStyle: TextStyle(
+                                      color: AppColors.textMuted, fontSize: 14),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 16),
+                                ),
+                                textInputAction: TextInputAction.done,
+                                onSubmitted: (_) => _createCategory(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Gradient CTA button
+                      GestureDetector(
+                        onTap: _createCategory,
+                        child: Container(
+                          width: double.infinity,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFEF5A4C), Color(0xFFF07B6F)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.orange.withValues(alpha: 0.35),
+                                blurRadius: 18,
+                                offset: const Offset(0, 7),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_circle_outline_rounded,
+                                  color: AppColors.textWhite, size: 18),
+                              SizedBox(width: 8),
+                              Text(
+                                'Create Category',
+                                style: TextStyle(
+                                  color: AppColors.textWhite,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -653,149 +1129,201 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   }
 
   void _createCategory() {
-    final categoryName = _categoryNameController.text.trim();
-    if (categoryName.isEmpty) return;
-
+    final name = _categoryNameController.text.trim();
+    if (name.isEmpty) return;
     setState(() {
-      _categories.insert(0, MenuCategory(categoryName, 0, const []));
+      _categories.insert(0, MenuCategory(name, 0, const []));
     });
-
     Navigator.of(context).pop();
   }
 
+// ── Category card ─────────────────────────────────────────────────────────
   Widget _buildCategoryCard(MenuCategory cat) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border.all(color: AppColors.border, width: 0.5),
-        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 0.8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      // ClipRRect so child backgrounds don't bleed outside rounded corners
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Column(
-          children: [
-            // ── Category header — warmer, darker background ──
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              color: AppColors.surfaceRaised,
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppColors.orangeDim,
-                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.restaurant_menu_rounded,
-                        color: AppColors.orange, size: 17),
+        borderRadius: BorderRadius.circular(19),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Left gradient accent strip ──
+              Container(
+                width: 4,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFEF5A4C), Color(0xFFF07B6F)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      cat.name,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    // ── Category header (Prominent 16px Bold) ──
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 14, 14),
+                      color: AppColors.surfaceRaised,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: AppColors.orangeTint,
+                              border: Border.all(
+                                  color: AppColors.orangeBorder,
+                                  width: 0.8),
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: const Icon(
+                              Icons.restaurant_menu_rounded,
+                              color: AppColors.orange,
+                              size: 17,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              cat.name,
+                              style: const TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.orangeDim,
+                              border: Border.all(
+                                  color: AppColors.orangeBorder,
+                                  width: 0.5),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${cat.itemCount} items',
+                              style: const TextStyle(
+                                color: AppColors.orange,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.orangeDim,
-                      border: Border.all(color: AppColors.orangeBorder, width: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${cat.itemCount} items',
-                      style: const TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Hard divider between header and items ──
-            Container(height: 0.5, color: AppColors.border),
-
-            // ── Item rows on surface background ──
-            ...cat.items.asMap().entries.map((e) {
-              final isLast = e.key == cat.items.length - 1;
-              return _buildItemRow(e.value, isLast: isLast);
-            }),
-
-            // ── Show more ──
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                border: Border(
-                    top: BorderSide(color: AppColors.border, width: 0.5)),
-              ),
-              child: TextButton(
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CategoryItemsScreen(
-                          categoryName: 'Signature Starters',
-                          totalItems: 12,
+                    // ── Divider ──
+                    Container(height: 0.8, color: AppColors.border),
+                    // ── Item rows ──
+                    ...cat.items.asMap().entries.map((e) {
+                      final isLast = e.key == cat.items.length - 1;
+                      return _buildItemRow(e.value, isLast: isLast);
+                    }),
+                    // ── Show more footer ──
+                    InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CategoryItemsScreen(
+                            categoryName: cat.name,
+                            totalItems: cat.itemCount,
+                          ),
                         ),
-                      ));
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: const RoundedRectangleBorder(),
-                ),
-                child: const Text(
-                  'SHOW MORE',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                                color: AppColors.border, width: 0.8),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Show All Items',
+                              style: TextStyle(
+                                color: AppColors.orange,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                            SizedBox(width: 4),
+                            Icon(Icons.keyboard_arrow_down_rounded,
+                                color: AppColors.orange, size: 17),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // ── Item row (Clean secondary hierarchy: 13.5px Medium item name, 12.5px Bold orange price) ──
   Widget _buildItemRow(MenuItem item, {required bool isLast}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(color: AppColors.border, width: 0.5)),
+                bottom: BorderSide(color: AppColors.border, width: 0.6)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 44,
+              height: 44,
               color: AppColors.surfaceRaised,
-              border: Border.all(color: AppColors.border, width: 0.5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Text(item.emoji, style: const TextStyle(fontSize: 22)),
+              child: Image.network(
+                item.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: AppColors.surfaceRaised,
+                    child: const Center(
+                      child: Icon(
+                        Icons.restaurant_rounded,
+                        color: AppColors.orange,
+                        size: 18,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -803,31 +1331,39 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    color: Color(0xFF475569),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.1,
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text(item.price,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(
+                  item.price,
+                  style: const TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
-              border: Border.all(color: AppColors.border, width: 0.5),
-              borderRadius: BorderRadius.circular(8),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {},
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.edit_outlined,
+                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                  size: 16),
             ),
-            child: const Icon(Icons.edit_outlined, color: AppColors.textSecondary, size: 14),
           ),
         ],
       ),
     );
   }
-
-  // ── Bottom nav ────────────────────────────────
 }

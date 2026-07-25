@@ -22,12 +22,15 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
   int _selectedNavIndex = 3;
 
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 400),
     );
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
@@ -40,6 +43,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   void dispose() {
     _fadeController.dispose();
     _scrollController.dispose();
+    _nameController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
@@ -94,10 +99,11 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       initialTime: isOpening ? current.start : current.end,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
+          colorScheme: const ColorScheme.light(
             primary: AppColors.orange,
+            onPrimary: AppColors.textWhite,
             onSurface: AppColors.textPrimary,
-            surface: AppColors.surfaceRaised,
+            surface: AppColors.surface,
           ),
         ),
         child: child!,
@@ -137,111 +143,253 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Column(
-          children: [
-            _buildTopBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 28),
-                    _buildStoreBrandingSection(),
-                    const SizedBox(height: 20),
-                    _buildVendorIdentityTip(),
-                    const SizedBox(height: 28),
-                    _buildTextField(
-                      label: 'SHOP NAME',
-                      hint: 'e.g. Amber & Spice Atelier',
-                      maxLines: 1,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextField(
-                      label: 'DESCRIPTION',
-                      hint:
-                          'Describe the atmosphere, cuisine style,\nand unique offerings...',
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildOpenDaysSection(),
-                    const SizedBox(height: 24),
-                    _buildLocationSection(),
-                    const SizedBox(height: 32),
-                    _buildSaveButton(),
-                    const SizedBox(height: 12),
-                    _buildTermsText(),
-                    const SizedBox(height: 16),
-                  ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        bottomNavigationBar: _buildBottomNav(),
+        body: SafeArea(
+          bottom: false,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeroBranding(), // 280px tall banner + overlapping logo
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHeader(),
+                            const SizedBox(height: 24),
+                            _buildVendorIdentityTip(),
+                            const SizedBox(height: 24),
+                            _buildTextField(
+                              label: 'Shop Name',
+                              hint: 'e.g. Amber & Spice Atelier',
+                              controller: _nameController,
+                            ),
+                            const SizedBox(height: 20),
+                            _buildTextField(
+                              label: 'Description',
+                              hint: 'Describe your cuisine and offerings...',
+                              controller: _descController,
+                              maxLines: 4,
+                            ),
+                            const SizedBox(height: 28),
+                            _buildOpenDaysSection(),
+                            const SizedBox(height: 28),
+                            _buildLocationSection(),
+                            const SizedBox(height: 32),
+                            _buildSaveButton(),
+                            const SizedBox(height: 16),
+                            _buildTermsText(),
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                _buildFloatingTopBar(),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // ─── Top Bar ─────────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return SafeArea(
-      bottom: false,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.bg,
-          border: Border(
-            bottom: BorderSide(color: AppColors.border, width: 0.5),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
+  // ─── Floating Top Bar ────────────────────────────────────────────
+  Widget _buildFloatingTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {
+              if (Navigator.canPop(context)) Navigator.pop(context);
+            },
+            child: Container(
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: AppColors.orangeDim,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.orange.withOpacity(0.4)),
+                color: Colors.white.withOpacity(0.85),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
               ),
               child: const Icon(
-                Icons.storefront_rounded,
-                color: AppColors.orange,
-                size: 18,
+                Icons.arrow_back_rounded,
+                color: AppColors.textPrimary,
+                size: 22,
               ),
             ),
-            const SizedBox(width: 10),
-            const Text(
-              'Zteel Vendor SignUp',
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: const Text(
+              'STEP 2 OF 2',
               style: TextStyle(
                 color: AppColors.orange,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
               ),
             ),
-            const Spacer(),
-            GestureDetector(
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Hero Branding ───────────────────────────────────────────────
+  Widget _buildHeroBranding() {
+    return SizedBox(
+      height: 280,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Banner Background
+          Container(
+            height: 220,
+            width: double.infinity,
+            color: AppColors.surfaceElevated,
+            // Using a simple grid pattern to keep it clean
+            child: CustomPaint(painter: _SimpleBannerPainter()),
+          ),
+          // Edit Banner Button
+          Positioned(
+            top: 160,
+            right: 16,
+            child: _glassButton(
+              icon: Icons.camera_alt_outlined,
+              label: 'Add Cover',
               onTap: () {},
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
+            ),
+          ),
+          // Avatar overlapping
+          Positioned(
+            bottom: 0,
+            left: 24,
+            child: Stack(
+              children: [
+                Container(
+                  width: 104,
+                  height: 104,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.bg, width: 4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.storefront_rounded,
+                      size: 40,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.close_rounded,
-                  color: AppColors.textSecondary,
-                  size: 18,
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.orange,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.bg, width: 3),
+                      ),
+                      child: const Icon(
+                        Icons.edit_rounded,
+                        color: AppColors.textWhite,
+                        size: 14,
+                      ),
+                    ),
+                  ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glassButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isDark = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.black.withOpacity(0.7)
+              : Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.15) : Colors.white,
+          ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+              )
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isDark ? Colors.white : AppColors.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -252,152 +400,24 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
   // ─── Header ──────────────────────────────────────────────────────
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-      child: Column(
-        children: [
-          const Text(
-            'Setup Your Shop',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              height: 1.2,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Tell us about your culinary space. These details will be\nvisible to your customers.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13.5,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Store Branding ──────────────────────────────────────────────
-  Widget _buildStoreBrandingSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionLabel('STORE BRANDING'),
-          const SizedBox(height: 12),
-          // Banner
-          _buildBannerPicker(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBannerPicker() {
-    return Stack(
-      clipBehavior: Clip.none,
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Banner container
-        GestureDetector(
-          onTap: () {},
-          child: Container(
-            height: 130,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.orange.withOpacity(0.35),
-                width: 1.5,
-                strokeAlign: BorderSide.strokeAlignOutside,
-              ),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.border,
-                  AppColors.surface,
-                  AppColors.bg,
-                ],
-              ),
-            ),
-            child: Stack(
-              children: [
-                // Subtle pattern overlay
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: CustomPaint(painter: _GridPatternPainter()),
-                  ),
-                ),
-                // Center content
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.orange.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.orange.withOpacity(0.4),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.add_a_photo_rounded,
-                          color: AppColors.orangeLight,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Banner Image',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        Text(
+          'Shop Details',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        // Logo avatar
-        Positioned(
-          bottom: -18,
-          left: 16,
-          child: GestureDetector(
-            onTap: () {},
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.surfaceRaised,
-                border: Border.all(color: AppColors.orange, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.orange.withOpacity(0.25),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.add_a_photo_outlined,
-                color: AppColors.orange,
-                size: 22,
-              ),
-            ),
+        SizedBox(height: 8),
+        Text(
+          'Enter your store details. This information will be visible to your customers.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            height: 1.4,
           ),
         ),
       ],
@@ -406,101 +426,25 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
   // ─── Vendor Identity Tip ─────────────────────────────────────────
   Widget _buildVendorIdentityTip() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 2),
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.orangeDim,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.verified_rounded,
-                color: AppColors.orange,
-                size: 14,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Vendor Identity',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'A high-quality banner and clear logo increase customer trust by up to 40% in premium listings.',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12.5,
-                      height: 1.55,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(8),
       ),
-    );
-  }
-
-  // ─── Text Fields ─────────────────────────────────────────────────
-  Widget _buildTextField({
-    required String label,
-    required String hint,
-    int maxLines = 1,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel(label),
-          const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              maxLines: maxLines,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-                height: 1.5,
-              ),
-              cursorColor: AppColors.orange,
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(
-                  color: AppColors.textMuted.withOpacity(0.8),
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                border: InputBorder.none,
+          Icon(Icons.info_outline_rounded,
+              color: AppColors.textSecondary, size: 18),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'A clear logo and cover photo can significantly improve customer trust.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 1.4,
               ),
             ),
           ),
@@ -509,288 +453,53 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
   }
 
-  Widget _buildOpenDaysSection() {
-    final validation = _sessionValidationMessage(_selectedDayIndex);
-    const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    const fullDayLabels = [
-      'Mon',
-      'Tue',
-      'Wed',
-      'Thu',
-      'Fri',
-      'Sat',
-      'Sun',
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _sectionLabel('OPEN DAYS & HOURS'),
-                const Spacer(),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Select a day and configure one or more opening sessions.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12.5,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: List.generate(7, (i) {
-                final hasSessions = _daySessions[i].isNotEmpty;
-                final isFocusedDay = _selectedDayIndex == i;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedDayIndex = i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isFocusedDay
-                                ? AppColors.orange
-                                : (hasSessions
-                                    ? AppColors.orange.withOpacity(0.45)
-                                    : AppColors.border),
-                            width: isFocusedDay ? 1.4 : 1,
-                          ),
-                          boxShadow: isFocusedDay
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.orange.withOpacity(0.14),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              dayLabels[i],
-                              style: TextStyle(
-                                color: hasSessions
-                                    ? AppColors.orange
-                                    : AppColors.textSecondary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                height: 1,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              fullDayLabels[i],
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: hasSessions
-                                    ? AppColors.orangeLight
-                                    : AppColors.textMuted,
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.3,
-                                height: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: () => _addSession(_selectedDayIndex),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.orange.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(999),
-                    border:
-                        Border.all(color: AppColors.orange.withOpacity(0.45)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add_rounded,
-                          color: AppColors.orange, size: 13),
-                      SizedBox(width: 4),
-                      Text(
-                        'Add Session',
-                        style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '${_fullDayLabel(_selectedDayIndex)} timings',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (_daySessions[_selectedDayIndex].isEmpty)
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: const Text(
-                  'This day is closed. Add a session to open this day.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-              )
-            else
-              ..._daySessions[_selectedDayIndex].asMap().entries.map((entry) {
-                final idx = entry.key;
-                final session = entry.value;
-                return Padding(
-                  padding: EdgeInsets.only(
-                      bottom: idx == _daySessions[_selectedDayIndex].length - 1
-                          ? 0
-                          : 10),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _timeField(
-                          'OPEN',
-                          session.start,
-                          () => _pickSessionTime(_selectedDayIndex, idx, true),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _timeField(
-                          'CLOSE',
-                          session.end,
-                          () => _pickSessionTime(_selectedDayIndex, idx, false),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _removeSession(_selectedDayIndex, idx),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: AppColors.orange.withOpacity(0.35)),
-                          ),
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: 15,
-                            color: AppColors.orange,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            if (validation != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  validation,
-                  style: TextStyle(
-                    color: AppColors.orangeLight,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _timeField(String label, TimeOfDay time, VoidCallback onTap) {
+  // ─── Text Fields ─────────────────────────────────────────────────
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    int maxLines = 1,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 10.5,
+            color: AppColors.textPrimary,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
           ),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+          ),
+          cursorColor: AppColors.orange,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 15,
             ),
-            child: Row(
-              children: [
-                Icon(
-                  label.contains('OPEN')
-                      ? Icons.schedule_rounded
-                      : Icons.nightlight_round,
-                  color: AppColors.orange,
-                  size: 15,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _formatTime(time),
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            filled: true,
+            fillColor: AppColors.surfaceRaised,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.orange, width: 1.5),
             ),
           ),
         ),
@@ -798,210 +507,280 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
   }
 
-  // ─── Location Section ────────────────────────────────────────────
-  Widget _buildLocationSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(14, 14, 14, 0),
-              child: Text(
-                'LOCATION',
-                style: TextStyle(
-                  color: AppColors.orange,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
+  // ─── Open Days Section ──────────────────────────────────────────
+  Widget _buildOpenDaysSection() {
+    const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final validation = _sessionValidationMessage(_selectedDayIndex);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel('BUSINESS HOURS'),
+        const SizedBox(height: 12),
+        // Day selector row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(7, (i) {
+            final hasSessions = _daySessions[i].isNotEmpty;
+            final isFocused = _selectedDayIndex == i;
+            return GestureDetector(
+              onTap: () => setState(() => _selectedDayIndex = i),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isFocused
+                      ? AppColors.orange
+                      : (hasSessions
+                          ? AppColors.orangeDim
+                          : AppColors.surfaceRaised),
+                  shape: BoxShape.circle,
+                  border: isFocused
+                      ? null
+                      : Border.all(
+                          color: hasSessions
+                              ? AppColors.orange.withOpacity(0.3)
+                              : AppColors.border),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Map area
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
-              child: SizedBox(
-                height: 150,
-                width: double.infinity,
-                child: CustomPaint(painter: _MapPainter()),
-              ),
-            ),
-            // Location buttons
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-              child: Transform.translate(
-                offset: const Offset(0, -20),
-                child: Row(
-                  children: [
-                    _locationBtn(
-                      icon: Icons.my_location_rounded,
-                      label: 'Use Current',
-                      filled: true,
-                    ),
-                    const SizedBox(width: 10),
-                    _locationBtn(
-                      icon: Icons.map_outlined,
-                      label: 'Pick Location',
-                      filled: false,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Address
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    color: AppColors.orange,
-                    size: 18,
+                alignment: Alignment.center,
+                child: Text(
+                  dayLabels[i],
+                  style: TextStyle(
+                    color: isFocused
+                        ? AppColors.textWhite
+                        : (hasSessions
+                            ? AppColors.orange
+                            : AppColors.textSecondary),
+                    fontSize: 14,
+                    fontWeight: isFocused || hasSessions
+                        ? FontWeight.w500
+                        : FontWeight.w400,
                   ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '12–14 Saffron Mews, Kensington',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'LONDON, UNITED KINGDOM',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 10,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                    ],
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceRaised,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _fullDayLabel(_selectedDayIndex),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _addSession(_selectedDayIndex),
+                    child: const Text(
+                      '+ Add Time',
+                      style: TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              if (_daySessions[_selectedDayIndex].isEmpty)
+                const Text(
+                  'Closed on this day.',
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                )
+              else
+                ..._daySessions[_selectedDayIndex].asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final session = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildTimePickerField(
+                            time: session.start,
+                            onTap: () =>
+                                _pickSessionTime(_selectedDayIndex, idx, true),
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('-',
+                              style: TextStyle(color: AppColors.textSecondary)),
+                        ),
+                        Expanded(
+                          child: _buildTimePickerField(
+                            time: session.end,
+                            onTap: () =>
+                                _pickSessionTime(_selectedDayIndex, idx, false),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: () => _removeSession(_selectedDayIndex, idx),
+                          child: const Icon(Icons.close_rounded,
+                              color: AppColors.textSecondary, size: 20),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              if (validation != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(validation,
+                      style:
+                          const TextStyle(color: AppColors.red, fontSize: 12)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimePickerField(
+      {required TimeOfDay time, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.border),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          _formatTime(time),
+          style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500),
         ),
       ),
     );
   }
 
-  Widget _locationBtn({
-    required IconData icon,
-    required String label,
-    required bool filled,
-  }) {
-    return GestureDetector(
-      onTap: () {},
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: filled ? AppColors.orange : AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(22),
-          border: filled ? null : Border.all(color: AppColors.borderAccent),
-          boxShadow: filled
-              ? [
-                  BoxShadow(
-                    color: AppColors.orange.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+  // ─── Location Section ────────────────────────────────────────────
+  Widget _buildLocationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(
-              icon,
-              size: 14,
-              color: filled ? AppColors.textWhite : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: filled ? AppColors.textWhite : AppColors.textSecondary,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-              ),
+            _sectionLabel('LOCATION'),
+            GestureDetector(
+              onTap: () {},
+              child: const Text('Edit',
+                  style: TextStyle(
+                      color: AppColors.orange,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500)),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        Container(
+          height: 90, // Compact and clean
+          decoration: BoxDecoration(
+            color: AppColors.bg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              // Small map square on the left
+              SizedBox(
+                width: 90,
+                height: 90,
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.horizontal(left: Radius.circular(8)),
+                  child: CustomPaint(painter: _MapPainter()),
+                ),
+              ),
+              // Address details on the right
+              const Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '12–14 Saffron Mews',
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Kensington, London, UK',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   // ─── Save Button ─────────────────────────────────────────────────
   Widget _buildSaveButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GestureDetector(
-        onTap: () {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const VendorHome()),
           );
         },
-        child: Container(
-          width: double.infinity,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.orange,
+          foregroundColor: AppColors.textWhite,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.orangeLight, AppColors.orange],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.orange.withOpacity(0.35),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Save & Continue',
-                style: TextStyle(
-                  color: AppColors.textWhite,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.1,
-                ),
-              ),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, color: AppColors.textWhite, size: 16),
-            ],
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: const Text(
+          'Save & Continue',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 
   Widget _buildTermsText() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24),
+    return const Center(
       child: Text(
         "By continuing, you agree to Saffron Bistro's Vendor Terms and Conditions.",
-        style: TextStyle(
-          color: AppColors.textMuted,
-          fontSize: 11.5,
-          height: 1.5,
-        ),
+        style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.5),
         textAlign: TextAlign.center,
       ),
     );
@@ -1017,11 +796,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     ];
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: AppColors.border, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: SafeArea(
         top: false,
@@ -1045,11 +822,11 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                       Text(
                         items[i].$2,
                         style: TextStyle(
-                          color: active ? AppColors.orange : AppColors.textMuted,
-                          fontSize: 9.5,
+                          color:
+                              active ? AppColors.orange : AppColors.textMuted,
+                          fontSize: 10,
                           fontWeight:
-                              active ? FontWeight.w700 : FontWeight.w500,
-                          letterSpacing: 0.5,
+                              active ? FontWeight.w600 : FontWeight.w500,
                         ),
                       ),
                     ],
@@ -1068,10 +845,10 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     return Text(
       text,
       style: const TextStyle(
-        color: AppColors.orange,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
+        color: AppColors.textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
       ),
     );
   }
@@ -1079,18 +856,18 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
 // ─── Custom Painters ─────────────────────────────────────────────────────────
 
-class _GridPatternPainter extends CustomPainter {
+class _SimpleBannerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.gold
-      ..strokeWidth = 0.5;
+      ..color = AppColors.border.withOpacity(0.5)
+      ..strokeWidth = 1.0;
 
-    const step = 22.0;
-    for (double x = 0; x <= size.width; x += step) {
+    // Simple subtle grid pattern for the placeholder
+    for (double x = 0; x <= size.width; x += 20) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
-    for (double y = 0; y <= size.height; y += step) {
+    for (double y = 0; y <= size.height; y += 20) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
@@ -1102,14 +879,14 @@ class _GridPatternPainter extends CustomPainter {
 class _MapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Dark map background
-    final bgPaint = Paint()..color = AppColors.surface;
+    // Light map background
+    final bgPaint = Paint()..color = const Color(0xFFF6F3EE);
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
-    // Grid lines (map grid)
+    // Map road / block grid lines
     final gridPaint = Paint()
-      ..color = AppColors.separator
-      ..strokeWidth = 0.5;
+      ..color = AppColors.border
+      ..strokeWidth = 1.0;
     for (double x = 0; x <= size.width; x += 30) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
@@ -1117,46 +894,27 @@ class _MapPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Fake continent blobs
-    final landPaint = Paint()..color = AppColors.border;
+    // Land blocks
+    final landPaint = Paint()..color = const Color(0xFFEBE6DD);
     _drawContinent(
-        canvas, landPaint, size.width * 0.08, size.height * 0.2, 55, 55);
+        canvas, landPaint, size.width * 0.1, size.height * 0.1, 40, 40);
     _drawContinent(
-        canvas, landPaint, size.width * 0.35, size.height * 0.25, 45, 60);
+        canvas, landPaint, size.width * 0.5, size.height * 0.2, 30, 40);
     _drawContinent(
-        canvas, landPaint, size.width * 0.55, size.height * 0.3, 80, 55);
+        canvas, landPaint, size.width * 0.7, size.height * 0.1, 50, 40);
 
-    // Location pins
-    _drawPin(canvas, Offset(size.width * 0.45, size.height * 0.3));
-    _drawPin(canvas, Offset(size.width * 0.72, size.height * 0.5));
-    _drawPin(canvas, Offset(size.width * 0.85, size.height * 0.68));
-
-    // Meridian line
-    final meridianPaint = Paint()
-      ..color = AppColors.separator
-      ..strokeWidth = 1;
-    canvas.drawLine(
-      Offset(size.width * 0.5, 0),
-      Offset(size.width * 0.55, size.height),
-      meridianPaint,
-    );
+    // Location pin
+    _drawPin(canvas, Offset(size.width * 0.50, size.height * 0.50));
   }
 
   void _drawContinent(
       Canvas canvas, Paint paint, double x, double y, double w, double h) {
     final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(x, y, w, h),
-      const Radius.circular(10),
-    );
+        Rect.fromLTWH(x, y, w, h), const Radius.circular(4));
     canvas.drawRRect(rect, paint);
   }
 
   void _drawPin(Canvas canvas, Offset center) {
-    final glowPaint = Paint()
-      ..color = AppColors.orangeDim
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-    canvas.drawCircle(center, 10, glowPaint);
-
     final outerPaint = Paint()..color = AppColors.orange;
     canvas.drawCircle(center, 6, outerPaint);
 
