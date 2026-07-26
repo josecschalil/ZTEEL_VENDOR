@@ -27,14 +27,9 @@ class _VendorHomeState extends State<VendorHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: IndexedStack(
-        index: _selectedTabIndex,
-        children: const [
-          RestaurantDashboard(),
-          OffersScreen(),
-          OrdersScreen(),
-          ProfileEditScreen(),
-        ],
+      body: KeyedSubtree(
+        key: ValueKey(_selectedTabIndex),
+        child: _buildCurrentScreen(),
       ),
       bottomNavigationBar: VendorBottomNav(
         currentTab: _tabs[_selectedTabIndex],
@@ -45,5 +40,18 @@ class _VendorHomeState extends State<VendorHome> {
         },
       ),
     );
+  }
+
+  Widget _buildCurrentScreen() {
+    switch (_tabs[_selectedTabIndex]) {
+      case VendorTab.dashboard:
+        return const RestaurantDashboard();
+      case VendorTab.offers:
+        return const OffersScreen();
+      case VendorTab.orders:
+        return const OrdersScreen();
+      case VendorTab.profile:
+        return const ProfileEditScreen();
+    }
   }
 }

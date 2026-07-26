@@ -242,22 +242,39 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Cover image placeholder
+        // Cover image
         Container(
           height: 180,
           width: double.infinity,
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.border, AppColors.borderAccent, AppColors.borderAccent],
-            ),
+            color: AppColors.surfaceRaised,
           ),
           child: Stack(
             children: [
-              // Food items illustration grid
               Positioned.fill(
-                child: CustomPaint(painter: _FoodPatternPainter()),
+                child: Image.network(
+                  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: AppColors.surfaceRaised,
+                    child: CustomPaint(painter: _FoodPatternPainter()),
+                  ),
+                ),
+              ),
+              // Subtle dark gradient overlay for text readability
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.5),
+                      ],
+                    ),
+                  ),
+                ),
               ),
               // Change cover button
               Positioned(
@@ -267,14 +284,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.black.withOpacity(0.6),
+                    color: AppColors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.separator, width: 0.5),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.edit_outlined, color: AppColors.textWhite, size: 12),
+                      Icon(Icons.edit_outlined,
+                          color: AppColors.textWhite, size: 12),
                       SizedBox(width: 4),
                       Text(
                         'CHANGE COVER',
@@ -292,7 +310,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             ],
           ),
         ),
-        // Chef avatar
+        // Chef avatar image
         Positioned(
           bottom: -10,
           left: 16,
@@ -306,14 +324,25 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: AppColors.bg, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(11),
-                  child: Container(
-                    color: AppColors.surface,
-                    child: const Center(
-                      child: Icon(Icons.person,
-                          color: AppColors.textMuted, size: 40),
+                  child: Image.network(
+                    'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&q=80',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.surfaceRaised,
+                      child: const Center(
+                        child: Icon(Icons.person,
+                            color: AppColors.textMuted, size: 40),
+                      ),
                     ),
                   ),
                 ),
@@ -497,7 +526,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Text(
                             _dayLabel(i),
                             style: TextStyle(
-                              color: hasSessions ? AppColors.orange : AppColors.textSecondary,
+                              color: hasSessions
+                                  ? AppColors.orange
+                                  : AppColors.textSecondary,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               height: 1,
@@ -507,7 +538,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Text(
                             fullDayLabels[i],
                             style: TextStyle(
-                              color: hasSessions ? AppColors.orangeLight : AppColors.textSecondary,
+                              color: hasSessions
+                                  ? AppColors.orangeLight
+                                  : AppColors.textSecondary,
                               fontSize: 8,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,
@@ -542,12 +575,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.orange.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.orange.withOpacity(0.45)),
+                    border:
+                        Border.all(color: AppColors.orange.withOpacity(0.45)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.add_rounded, size: 13, color: AppColors.orange),
+                      Icon(Icons.add_rounded,
+                          size: 13, color: AppColors.orange),
                       SizedBox(width: 4),
                       Text(
                         'Add Session',
@@ -674,7 +709,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.orange.withOpacity(0.35)),
+                            border: Border.all(
+                                color: AppColors.orange.withOpacity(0.35)),
                           ),
                           child: const Icon(
                             Icons.close_rounded,
@@ -899,7 +935,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 18),
+          const Icon(Icons.chevron_right,
+              color: AppColors.textSecondary, size: 18),
         ],
       ),
     );

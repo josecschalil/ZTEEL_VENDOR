@@ -106,7 +106,7 @@ class VendorBottomNav extends StatelessWidget {
                   width: _qrButtonSize + 8,
                   height: _qrButtonSize + 8,
                   padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.bg,
                   ),
@@ -134,7 +134,7 @@ class VendorBottomNav extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                const Text(
                   'SCAN QR',
                   style: TextStyle(
                     color: AppColors.textSecondary,

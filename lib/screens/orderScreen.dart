@@ -10,10 +10,36 @@ class OrdersScreen extends StatefulWidget {
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> {
-  int _selectedTab = 0; // 0=Pending, 1=Completed, 2=Expired
+class _OrdersScreenState extends State<OrdersScreen>
+    with TickerProviderStateMixin {
+  late final TabController _tabController;
+  late final PageController _pageController;
+  int _selectedTab = 0;
   bool _order1Completed = false;
   bool _order2Completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _pageController = PageController();
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) return;
+      _pageController.animateToPage(
+        _tabController.index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      setState(() => _selectedTab = _tabController.index);
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   static const List<OrderLineItem> _order1Items = [
     OrderLineItem(
@@ -123,25 +149,36 @@ class _OrdersScreenState extends State<OrdersScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // ── Sticky header (top bar + title + tab bar) ──────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  _buildTopBar(),
+                  const SizedBox(height: 28),
+                  _buildPageHeader(),
+                  const SizedBox(height: 24),
+                  _buildTabBar(),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+            // ── Swipeable tab pages ────────────────────────────────
             Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16),
-                      _buildTopBar(),
-                      const SizedBox(height: 28),
-                      _buildPageHeader(),
-                      const SizedBox(height: 24),
-                      _buildTabBar(),
-                      const SizedBox(height: 24),
-                      ..._buildOrderCardsForSelectedTab(),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
+              child: PageView(
+                controller: _pageController,
+                physics: const ClampingScrollPhysics(),
+                onPageChanged: (index) {
+                  setState(() => _selectedTab = index);
+                  _tabController.animateTo(index);
+                },
+                children: [
+                  _buildTabPage(_pendingPageContent()),
+                  _buildTabPage(_completedPageContent()),
+                  _buildTabPage(_expiredPageContent()),
+                ],
               ),
             ),
           ],
@@ -149,6 +186,57 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
     );
   }
+
+  // Wraps a list of widgets in a scrollable page
+  Widget _buildTabPage(List<Widget> children) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  // ── Tab content builders ───────────────────────────────────
+  List<Widget> _pendingPageContent() {
+    final cards = <Widget>[];
+    if (!_order1Completed) {
+      cards.add(_buildOrderCard1());
+      cards.add(const SizedBox(height: 16));
+    }
+    if (!_order2Completed) {
+      cards.add(_buildOrderCard2());
+      cards.add(const SizedBox(height: 16));
+    }
+    if (cards.isEmpty) {
+      return [_buildEmptyState('No pending orders at the moment.')];
+    }
+    if (cards.last is SizedBox) cards.removeLast();
+    return cards;
+  }
+
+  List<Widget> _completedPageContent() {
+    final cards = <Widget>[];
+    if (_order1Completed) {
+      cards.add(_buildOrderCard1());
+      cards.add(const SizedBox(height: 16));
+    }
+    if (_order2Completed) {
+      cards.add(_buildOrderCard2());
+      cards.add(const SizedBox(height: 16));
+    }
+    if (cards.isEmpty) {
+      return [_buildEmptyState('No completed orders yet.')];
+    }
+    if (cards.last is SizedBox) cards.removeLast();
+    return cards;
+  }
+
+  List<Widget> _expiredPageContent() {
+    return [_buildEmptyState('No expired orders right now.')];
+  }
+
 
   Widget _buildTopBar() {
     return Row(
@@ -238,7 +326,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
           final selected = _selectedTab == i;
           return Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = i),
+              onTap: () {
+                _pageController.animateToPage(
+                  i,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+                setState(() => _selectedTab = i);
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
@@ -264,39 +359,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  List<Widget> _buildOrderCardsForSelectedTab() {
-    if (_selectedTab == 2) {
-      return [
-        _buildEmptyState('No expired orders right now.'),
-      ];
-    }
-
-    final showCompleted = _selectedTab == 1;
-    final cards = <Widget>[];
-
-    if (_order1Completed == showCompleted) {
-      cards.add(_buildOrderCard1());
-      cards.add(const SizedBox(height: 16));
-    }
-
-    if (_order2Completed == showCompleted) {
-      cards.add(_buildOrderCard2());
-      cards.add(const SizedBox(height: 16));
-    }
-
-    if (cards.isEmpty) {
-      return [
-        _buildEmptyState(
-          showCompleted
-              ? 'No completed orders yet.'
-              : 'No pending orders at the moment.',
-        )
-      ];
-    }
-
-    cards.removeLast();
-    return cards;
-  }
 
   Widget _buildEmptyState(String message) {
     return Container(
@@ -744,30 +806,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScanQRButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 48),
-      child: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const QRScannerScreen()));
-        },
-        backgroundColor: AppColors.orange,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        icon: const Icon(Icons.qr_code_scanner,
-            color: Color.fromARGB(255, 255, 255, 255), size: 20),
-        label: const Text(
-          'Scan QR',
-          style: TextStyle(
-            color: Color.fromARGB(255, 255, 255, 255),
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-          ),
         ),
       ),
     );
