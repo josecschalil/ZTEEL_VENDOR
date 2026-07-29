@@ -19,8 +19,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   final List<List<_OpeningSession>> _daySessions =
       List.generate(7, (_) => <_OpeningSession>[]);
   int _selectedDayIndex = 0;
-
-  int _selectedNavIndex = 3;
+  int _currentStep = 0;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
@@ -141,13 +140,45 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     });
   }
 
+  Future<void> _showOperationsStep() async {
+    setState(() => _currentStep = 1);
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _completeSetup() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const VendorHome()),
+    );
+  }
+
+  void _handleBack() {
+    if (_currentStep == 1) {
+      setState(() => _currentStep = 0);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: AppColors.bg,
-        bottomNavigationBar: _buildBottomNav(),
+        backgroundColor: const Color(0xFFFFFCFA),
         body: SafeArea(
           bottom: false,
           child: FadeTransition(
@@ -157,48 +188,17 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 SingleChildScrollView(
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 132),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeroBranding(), // 280px tall banner + overlapping logo
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildHeader(),
-                            const SizedBox(height: 24),
-                            _buildVendorIdentityTip(),
-                            const SizedBox(height: 24),
-                            _buildTextField(
-                              label: 'Shop Name',
-                              hint: 'e.g. Amber & Spice Atelier',
-                              controller: _nameController,
-                            ),
-                            const SizedBox(height: 20),
-                            _buildTextField(
-                              label: 'Description',
-                              hint: 'Describe your cuisine and offerings...',
-                              controller: _descController,
-                              maxLines: 4,
-                            ),
-                            const SizedBox(height: 28),
-                            _buildOpenDaysSection(),
-                            const SizedBox(height: 28),
-                            _buildLocationSection(),
-                            const SizedBox(height: 32),
-                            _buildSaveButton(),
-                            const SizedBox(height: 16),
-                            _buildTermsText(),
-                            const SizedBox(height: 40),
-                          ],
-                        ),
-                      ),
+                      _buildTopBar(),
+                      const SizedBox(height: 34),
+                      _buildStepContent(),
                     ],
                   ),
                 ),
-                _buildFloatingTopBar(),
+                _buildFloatingSaveButton(),
               ],
             ),
           ),
@@ -208,62 +208,112 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   }
 
   // ─── Floating Top Bar ────────────────────────────────────────────
-  Widget _buildFloatingTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              if (Navigator.canPop(context)) Navigator.pop(context);
-            },
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              child: const Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.textPrimary,
-                size: 22,
-              ),
+  Widget _buildTopBar() {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: _handleBack,
+          icon: const Icon(Icons.arrow_back_rounded),
+          color: AppColors.textPrimary,
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surfaceRaised,
+            fixedSize: const Size(44, 44),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            'SHOP SETUP',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
             ),
           ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.85),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: const Text(
-              'STEP 2 OF 2',
-              style: TextStyle(
-                color: AppColors.orange,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
-              ),
-            ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '${_currentStep + 1}/2',
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          child: KeyedSubtree(
+            key: ValueKey(_currentStep),
+            child: _buildHeader(),
+          ),
+        ),
+        const SizedBox(height: 24),
+        AnimatedCrossFade(
+          firstChild: _buildStorefrontBody(),
+          secondChild: _buildOperationsBody(),
+          crossFadeState: _currentStep == 0
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          duration: const Duration(milliseconds: 420),
+          firstCurve: Curves.easeOutCubic,
+          secondCurve: Curves.easeOutCubic,
+          sizeCurve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStorefrontBody() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildVisualIdentitySection(),
+        const SizedBox(height: 32),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: _buildTextField(
+            label: 'Shop name',
+            hint: 'e.g. Amber & Spice Atelier',
+            controller: _nameController,
+          ),
+        ),
+        const SizedBox(height: 30),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: _buildTextField(
+            label: 'Short description',
+            hint: 'What do you serve and what makes it special?',
+            controller: _descController,
+            maxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 28),
+        _buildPrivacyNote(),
+      ],
+    );
+  }
+
+  Widget _buildOperationsBody() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        _buildOpenDaysSection(),
+        const SizedBox(height: 32),
+        _buildLocationSection(),
+        const SizedBox(height: 24),
+        _buildTermsText(),
+      ],
     );
   }
 
@@ -400,24 +450,73 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
   // ─── Header ──────────────────────────────────────────────────────
   Widget _buildHeader() {
-    return const Column(
+    final title = _currentStep == 0
+        ? 'Set your storefront'
+        : 'Set up daily operations';
+    final subtitle = _currentStep == 0
+        ? 'Make your shop easy to recognise.'
+        : 'Choose your hours and confirm your location.';
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Shop Details',
-          style: TextStyle(
+          title,
+          style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
-          'Enter your store details. This information will be visible to your customers.',
-          style: TextStyle(
+          subtitle,
+          style: const TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 14,
-            height: 1.4,
+            fontSize: 15,
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 22),
+        Row(
+          children: [
+            Text(
+              'STEP ${_currentStep + 1} OF 2',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.9,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              _currentStep == 0 ? 'Storefront' : 'Operations',
+              style: const TextStyle(
+                color: AppColors.orange,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(
+            begin: 0.5,
+            end: (_currentStep + 1) / 2,
+          ),
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeInOutCubic,
+          builder: (context, value, child) => ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 5,
+              backgroundColor: AppColors.border,
+              color: AppColors.orange,
+            ),
           ),
         ),
       ],
@@ -425,22 +524,22 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   }
 
   // ─── Vendor Identity Tip ─────────────────────────────────────────
-  Widget _buildVendorIdentityTip() {
+  Widget _buildPrivacyNote() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.orangeDim,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.orangeBorder),
       ),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded,
-              color: AppColors.textSecondary, size: 18),
+          Icon(Icons.visibility_outlined, color: AppColors.orange, size: 19),
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'A clear logo and cover photo can significantly improve customer trust.',
+              'You can edit these details anytime.',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
@@ -450,6 +549,202 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVisualIdentitySection() {
+    return SizedBox(
+      height: 214,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: 156,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF342C27), Color(0xFF7D4238)],
+              ),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -30,
+                  right: -10,
+                  child: Container(
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      color: AppColors.orange.withOpacity(0.35),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  left: 18,
+                  top: 18,
+                  child: Text(
+                    'YOUR STOREFRONT',
+                    style: TextStyle(
+                      color: AppColors.textWhite,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 12,
+                  bottom: 12,
+                  child: TextButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.add_photo_alternate_outlined, size: 17),
+                    label: const Text('Cover photo'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.textWhite,
+                      backgroundColor: Colors.black.withOpacity(0.20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.white.withOpacity(0.22)),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 18,
+            bottom: 0,
+            child: Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 86,
+                      height: 86,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFFFFCFA),
+                          width: 4,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.13),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.storefront_rounded,
+                        color: AppColors.orange,
+                        size: 34,
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Material(
+                        color: AppColors.orange,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          onTap: () {},
+                          customBorder: const CircleBorder(),
+                          child: const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.camera_alt_outlined,
+                              color: AppColors.textWhite,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                const Padding(
+                  padding: EdgeInsets.only(top: 27),
+                  child: Text(
+                    'Add profile photo',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShopIdentityMarker() {
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: const BoxDecoration(
+            color: AppColors.orange,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.storefront_outlined,
+            color: AppColors.textWhite,
+            size: 23,
+          ),
+        ),
+        const SizedBox(width: 14),
+        const Expanded(
+          child: Text(
+            'Start with the details your customers will see first.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 
@@ -468,37 +763,39 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 14,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.1,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           maxLines: maxLines,
+          minLines: maxLines == 1 ? 1 : 4,
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w400,
+            letterSpacing: 0.1,
           ),
           cursorColor: AppColors.orange,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
               color: AppColors.textMuted,
-              fontSize: 15,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0.1,
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
+            contentPadding: const EdgeInsets.only(bottom: 13, top: 6),
+            filled: false,
+            border: const UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.border),
             ),
-            filled: true,
-            fillColor: AppColors.surfaceRaised,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
+            enabledBorder: const UnderlineInputBorder(
+              borderSide: const BorderSide(color: AppColors.border),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+            focusedBorder: const UnderlineInputBorder(
               borderSide: const BorderSide(color: AppColors.orange, width: 1.5),
             ),
           ),
@@ -516,7 +813,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('BUSINESS HOURS'),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         // Day selector row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -526,8 +823,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             return GestureDetector(
               onTap: () => setState(() => _selectedDayIndex = i),
               child: Container(
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: isFocused
                       ? AppColors.orange
@@ -563,11 +860,18 @@ class _SetupShopScreenState extends State<SetupShopScreen>
         ),
         const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surfaceRaised,
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.025),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -583,14 +887,17 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => _addSession(_selectedDayIndex),
-                    child: const Text(
-                      '+ Add Time',
-                      style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500),
+                  TextButton.icon(
+                    onPressed: () => _addSession(_selectedDayIndex),
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('Add hours'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.orange,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -598,9 +905,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
               const SizedBox(height: 16),
               if (_daySessions[_selectedDayIndex].isEmpty)
                 const Text(
-                  'Closed on this day.',
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  'No hours added. This day will show as closed.',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 )
               else
                 ..._daySessions[_selectedDayIndex].asMap().entries.map((entry) {
@@ -658,10 +964,10 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
         decoration: BoxDecoration(
-          color: AppColors.bg,
-          borderRadius: BorderRadius.circular(6),
+          color: AppColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.border),
         ),
         alignment: Alignment.center,
@@ -687,31 +993,38 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             _sectionLabel('LOCATION'),
             GestureDetector(
               onTap: () {},
-              child: const Text('Edit',
+              child: const Text('Edit address',
                   style: TextStyle(
                       color: AppColors.orange,
                       fontSize: 13,
-                      fontWeight: FontWeight.w500)),
+                      fontWeight: FontWeight.w700)),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Container(
-          height: 90, // Compact and clean
+          height: 96,
           decoration: BoxDecoration(
-            color: AppColors.bg,
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.025),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Row(
             children: [
               // Small map square on the left
               SizedBox(
-                width: 90,
-                height: 90,
+                width: 96,
+                height: 96,
                 child: ClipRRect(
                   borderRadius:
-                      const BorderRadius.horizontal(left: Radius.circular(8)),
+                      const BorderRadius.horizontal(left: Radius.circular(18)),
                   child: CustomPaint(painter: _MapPainter()),
                 ),
               ),
@@ -753,94 +1066,97 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
   // ─── Save Button ─────────────────────────────────────────────────
   Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const VendorHome()),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.orange,
-          foregroundColor: AppColors.textWhite,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        child: const Text(
-          'Save & Continue',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
+    return Container(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 54,
+            child: ElevatedButton(
+              onPressed:
+                  _currentStep == 0 ? _showOperationsStep : _completeSetup,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.orange,
+                foregroundColor: AppColors.textWhite,
+                disabledBackgroundColor: AppColors.border,
+                disabledForegroundColor: AppColors.textSecondary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _currentStep == 0 ? 'Continue' : 'Finish setup',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _currentStep == 0
+                        ? Icons.arrow_forward_rounded
+                        : Icons.check_rounded,
+                    size: 19,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTermsText() {
-    return const Center(
-      child: Text(
-        "By continuing, you agree to Saffron Bistro's Vendor Terms and Conditions.",
-        style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.5),
-        textAlign: TextAlign.center,
+  Widget _buildFloatingSaveButton() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          border: const Border(
+            top: BorderSide(color: AppColors.border, width: 1),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: _buildSaveButton(),
+        ),
       ),
     );
   }
 
   // ─── Bottom Nav ───────────────────────────────────────────────────
-  Widget _buildBottomNav() {
-    final items = [
-      (Icons.grid_view_rounded, 'DASHBOARD'),
-      (Icons.local_offer_outlined, 'OFFERS'),
-      (Icons.receipt_long_outlined, 'ORDERS'),
-      (Icons.person_rounded, 'PROFILE'),
-    ];
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            children: List.generate(items.length, (i) {
-              final active = _selectedNavIndex == i;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedNavIndex = i),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        items[i].$1,
-                        size: 22,
-                        color: active ? AppColors.orange : AppColors.textMuted,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        items[i].$2,
-                        style: TextStyle(
-                          color:
-                              active ? AppColors.orange : AppColors.textMuted,
-                          fontSize: 10,
-                          fontWeight:
-                              active ? FontWeight.w600 : FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
+  // ─── Helpers ─────────────────────────────────────────────────────
+  Widget _buildTermsText() {
+    return const Center(
+      child: Text(
+        "By continuing, you agree to Saffron Bistro's Vendor Terms and Conditions.",
+        style: TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 12,
+          height: 1.5,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────────
   Widget _sectionLabel(String text) {
     return Text(
       text,

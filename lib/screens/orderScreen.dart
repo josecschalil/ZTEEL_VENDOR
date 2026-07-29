@@ -237,7 +237,6 @@ class _OrdersScreenState extends State<OrdersScreen>
     return [_buildEmptyState('No expired orders right now.')];
   }
 
-
   Widget _buildTopBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -358,7 +357,6 @@ class _OrdersScreenState extends State<OrdersScreen>
       ),
     );
   }
-
 
   Widget _buildEmptyState(String message) {
     return Container(
@@ -552,7 +550,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: _order1Completed
-                          ? AppColors.surfaceWarm
+                          ? const Color.fromARGB(255, 255, 255, 255)
                           : AppColors.green,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.border),

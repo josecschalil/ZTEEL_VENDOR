@@ -93,9 +93,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                     const SizedBox(height: 26),
                     _buildItemNameField(),
                     const SizedBox(height: 20),
-                    _buildPriceField(),
-                    const SizedBox(height: 20),
-                    _buildCategoryDropdown(),
+                    _buildPriceAndCategoryRow(),
                     const SizedBox(height: 20),
                     _buildDietaryToggle(),
                     const SizedBox(height: 20),
@@ -248,12 +246,12 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: _isAvailable
-              ? AppColors.orange.withOpacity(0.12)
+              ? AppColors.textWhite
               : AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: _isAvailable
-                ? AppColors.orange.withOpacity(0.5)
+                ? AppColors.border
                 : AppColors.border,
           ),
         ),
@@ -263,7 +261,8 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
             Text(
               'AVAILABLE',
               style: TextStyle(
-                color: _isAvailable ? AppColors.orange : AppColors.textSecondary,
+                color:
+                    _isAvailable ? AppColors.orange : AppColors.textSecondary,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.8,
@@ -354,15 +353,15 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.textSecondary,
+                          color: const Color.fromARGB(255, 227, 226, 225),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: AppColors.textPrimary.withOpacity(0.15),
                           ),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.edit_rounded,
                               color: AppColors.textPrimary,
@@ -453,6 +452,10 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
 
   // ─── Price ───────────────────────────────────────────────────────
   Widget _buildPriceField() {
+    return _buildPriceFieldContent(padded: true);
+  }
+
+  Widget _buildPriceFieldContent({required bool padded}) {
     return _labeledField(
       label: 'PRICE (\$)',
       child: _styledInput(
@@ -472,14 +475,34 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           ),
         ),
       ),
+      padded: padded,
+    );
+  }
+
+  Widget _buildPriceAndCategoryRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _buildPriceFieldContent(padded: false)),
+          const SizedBox(width: 12),
+          Expanded(child: _buildCategoryDropdownContent(padded: false)),
+        ],
+      ),
     );
   }
 
   // ─── Category Dropdown ───────────────────────────────────────────
   Widget _buildCategoryDropdown() {
+    return _buildCategoryDropdownContent(padded: true);
+  }
+
+  Widget _buildCategoryDropdownContent({required bool padded}) {
     return _labeledField(
       label: 'CATEGORY',
       child: Container(
+        height: 50,
         decoration: BoxDecoration(
           color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(12),
@@ -488,9 +511,10 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: _selectedCategory,
+            isExpanded: true,
             dropdownColor: AppColors.surfaceRaised,
             iconEnabledColor: AppColors.orange,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 14,
@@ -501,7 +525,10 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                 .map(
                   (c) => DropdownMenuItem(
                     value: c,
-                    child: Text(c),
+                    child: Text(
+                      c,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 )
                 .toList(),
@@ -509,6 +536,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           ),
         ),
       ),
+      padded: padded,
     );
   }
 
@@ -519,8 +547,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
       child: Row(
         children: [
           Expanded(
-              child:
-                  _dietBtn(true, Icons.eco_rounded, 'Veg', AppColors.green)),
+              child: _dietBtn(true, Icons.eco_rounded, 'Veg', AppColors.green)),
           const SizedBox(width: 12),
           Expanded(
             child: _dietBtn(
@@ -653,7 +680,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           Text(
             tag,
             style: const TextStyle(
-              color: AppColors.textPrimary,
+              color: Color.fromARGB(255, 255, 255, 255),
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
             ),
@@ -665,11 +692,12 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: AppColors.textPrimary.withOpacity(0.25),
+                color:
+                    const Color.fromARGB(255, 255, 255, 255).withOpacity(0.25),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.close_rounded,
-                  size: 10, color: AppColors.textPrimary),
+                  size: 10, color: Color.fromARGB(255, 255, 255, 255)),
             ),
           ),
         ],
@@ -715,7 +743,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
             child: Text(
               'Save Item',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: Color.fromARGB(255, 255, 255, 255),
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
@@ -763,7 +791,8 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                       Text(
                         items[i].$2,
                         style: TextStyle(
-                          color: active ? AppColors.orange : AppColors.textMuted,
+                          color:
+                              active ? AppColors.orange : AppColors.textMuted,
                           fontSize: 9,
                           fontWeight:
                               active ? FontWeight.w700 : FontWeight.w500,
@@ -782,9 +811,14 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
   }
 
   // ─── Shared Helpers ───────────────────────────────────────────────
-  Widget _labeledField({required String label, required Widget child}) {
+  Widget _labeledField({
+    required String label,
+    required Widget child,
+    bool padded = true,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding:
+          padded ? const EdgeInsets.symmetric(horizontal: 20) : EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -863,7 +897,8 @@ class _MiniToggle extends StatelessWidget {
       height: 18,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(9),
-        color: value ? AppColors.orange : AppColors.textMuted,
+        color: value ? AppColors.textWhite : AppColors.textMuted,
+        border: value ? Border.all(color: AppColors.border) : null,
       ),
       child: Stack(
         children: [
@@ -875,9 +910,9 @@ class _MiniToggle extends StatelessWidget {
             child: Container(
               width: 14,
               height: 14,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.textPrimary,
+                color: value ? AppColors.orange : AppColors.textPrimary,
               ),
             ),
           ),

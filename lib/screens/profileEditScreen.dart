@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -9,11 +11,23 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
+  final _shopNameController = TextEditingController(text: 'Saffron Bistro');
+  final _addressController =
+      TextEditingController(text: '42 Culinary Blvd, Spice District, NY');
+  final _descriptionController = TextEditingController();
   final List<List<_OpeningSession>> _daySessions = List.generate(
     7,
     (_) => <_OpeningSession>[],
   );
   int _selectedDayIndex = 0;
+
+  @override
+  void dispose() {
+    _shopNameController.dispose();
+    _addressController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   String _dayLabel(int index) => ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index];
 
@@ -132,9 +146,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     _buildShopInfoHeader(),
                     const SizedBox(height: 20),
                     _buildLabel('SHOP NAME'),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
                     _buildTextField(
-                        'Saffron Bistro', Icons.storefront_outlined),
+                      controller: _shopNameController,
+                      icon: Icons.storefront_outlined,
+                      hint: 'Enter your shop name',
+                    ),
                     const SizedBox(height: 16),
                     _buildLabel('DESCRIPTION'),
                     const SizedBox(height: 6),
@@ -142,10 +159,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     const SizedBox(height: 16),
                     _buildLabel('LOCATION / ADDRESS'),
                     const SizedBox(height: 6),
-                    _buildTextField('42 Culinary Blvd, Spice District, NY',
-                        Icons.location_on_outlined),
+                    _buildTextField(
+                      controller: _addressController,
+                      icon: Icons.location_on_outlined,
+                      hint: 'Enter your shop address',
+                    ),
                     const SizedBox(height: 10),
-                    _buildMapPlaceholder(),
+                    _buildLocationMap(),
                     const SizedBox(height: 20),
                     _buildOpenDaysSection(),
                     const SizedBox(height: 20),
@@ -254,6 +274,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               Positioned.fill(
                 child: Image.network(
                   'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80',
+                  width: double.infinity,
+                  height: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
                     color: AppColors.surfaceRaised,
@@ -336,6 +358,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   borderRadius: BorderRadius.circular(11),
                   child: Image.network(
                     'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&q=80',
+                    width: double.infinity,
+                    height: double.infinity,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: AppColors.surfaceRaised,
@@ -418,26 +442,41 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   // ── Text field ─────────────────────────────────────────────
-  Widget _buildTextField(String value, IconData icon) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+  }) {
     return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.fromLTRB(8, 7, 8, 15),
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: const Border(
+          bottom: BorderSide(color: AppColors.border),
+        ),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              value,
+            child: TextField(
+              controller: controller,
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w400,
+                letterSpacing: 0.1,
               ),
-              overflow: TextOverflow.ellipsis,
+              cursorColor: AppColors.orange,
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.all(0),
+              ),
             ),
           ),
           Icon(icon, color: AppColors.textSecondary, size: 18),
@@ -447,32 +486,33 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   Widget _buildDescriptionField() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: const TextField(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: TextField(
+        controller: _descriptionController,
         maxLines: 4,
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.textPrimary,
           fontSize: 14,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
           height: 1.45,
+          letterSpacing: 0.1,
         ),
         cursorColor: AppColors.orange,
-        decoration: InputDecoration(
-          isDense: true,
+        decoration: const InputDecoration(
           hintText: 'Write a short description for your shop...',
           hintStyle: TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w400,
           ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
+          contentPadding: EdgeInsets.only(top: 10, bottom: 18),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: AppColors.border),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: AppColors.orange, width: 1.5),
+          ),
         ),
       ),
     );
@@ -743,19 +783,45 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   // ── Map placeholder ────────────────────────────────────────
-  Widget _buildMapPlaceholder() {
+  Widget _buildLocationMap() {
+    const shopLocation = LatLng(40.7128, -74.0060);
     return Container(
-      height: 110,
+      height: 180,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 1),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(11),
-        child: CustomPaint(
-          painter: _MapGridPainter(),
-          child: Container(),
+        borderRadius: BorderRadius.circular(15),
+        child: FlutterMap(
+          options: const MapOptions(
+            initialCenter: shopLocation,
+            initialZoom: 14,
+            interactionOptions: InteractionOptions(
+              flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+            ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.frontend',
+            ),
+            MarkerLayer(
+              markers: const [
+                Marker(
+                  point: shopLocation,
+                  width: 44,
+                  height: 44,
+                  child: Icon(
+                    Icons.location_on_rounded,
+                    color: AppColors.orange,
+                    size: 40,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -813,14 +879,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           child: Row(
             children: [
               _buildMenuImage(
-                  color1: AppColors.gold,
-                  color2: AppColors.gold,
-                  isYellow: true),
+                'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80',
+              ),
               const SizedBox(width: 8),
               _buildMenuImage(
-                  color1: AppColors.red,
-                  color2: AppColors.orange,
-                  isPizza: true),
+                'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=600&q=80',
+              ),
               const SizedBox(width: 8),
               _buildUploadBox(),
             ],
@@ -830,27 +894,24 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  Widget _buildMenuImage({
-    required Color color1,
-    required Color color2,
-    bool isYellow = false,
-    bool isPizza = false,
-  }) {
+  Widget _buildMenuImage(String imageUrl) {
     return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color1, color2],
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            isPizza ? Icons.local_pizza_outlined : Icons.rice_bowl_outlined,
-            color: AppColors.textWhite.withOpacity(0.5),
-            size: 36,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          imageUrl,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: AppColors.orangeDim,
+            child: const Center(
+              child: Icon(
+                Icons.image_outlined,
+                color: AppColors.orange,
+                size: 28,
+              ),
+            ),
           ),
         ),
       ),

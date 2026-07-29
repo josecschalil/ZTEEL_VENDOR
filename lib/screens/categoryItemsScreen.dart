@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
+import 'package:frontend/screens/foodItemDetailScreen.dart';
 import 'package:frontend/app_colors.dart';
 
 enum ItemStatus { available, notAvailable }
@@ -311,16 +312,14 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
 
   // ── Featured Summary Banner ───────────────────────────────────────────────
   Widget _buildFeaturedSummaryCard() {
+    final heroImageUrl = _filtered.isNotEmpty
+        ? _filtered.first.imageUrl
+        : _demoItems.first.imageUrl;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
         height: 140,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFEF5A4C), Color(0xFFD63A2C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -334,6 +333,28 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
+              Positioned.fill(
+                child: Image.network(
+                  heroImageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: AppColors.orange),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.black.withValues(alpha: 0.18),
+                        AppColors.black.withValues(alpha: 0.58),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
               // ── Decorative rings ──
               Positioned(
                 right: -40,
@@ -579,24 +600,41 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   Widget _buildSquareItemCard(FoodItem item) {
     final isAvailable = item.status == ItemStatus.available;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border, width: 0.8),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => FoodItemDetailScreen(
+              itemName: item.name,
+              description: item.description,
+              price: item.price,
+              imageUrl: item.imageUrl,
+              categoryName: widget.categoryName,
+              isAvailable: isAvailable,
+              isVeg: item.tag == ItemTag.veg,
+              isBestseller: item.tag == ItemTag.bestseller,
+            ),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(19),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border, width: 0.8),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(19),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // ── Image / Emoji Top Section ──
             Expanded(
               child: Stack(
@@ -720,6 +758,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             ),
           ],
         ),
+      ),
       ),
     );
   }
