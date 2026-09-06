@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'PhoneAuthScreen.dart';
+import 'package:frontend/screens/setupShopScreen.dart';
+import 'package:frontend/screens/vendor_home.dart';
+import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/app_colors.dart';
 
-// ─────────────────────────────────────────────
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -19,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _logoFade;
   late Animation<Offset> _textSlide;
   late Animation<double> _textFade;
-  
+
   late AnimationController _progressAc;
 
   @override
@@ -45,7 +48,8 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+    _textSlide =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
       CurvedAnimation(
         parent: _ac,
         curve: const Interval(0.4, 0.8, curve: Curves.easeOutCubic),
@@ -65,13 +69,23 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _ac.forward().then((_) {
-      _progressAc.forward().then((_) {
+      _progressAc.forward().then((_) async {
+        if (!mounted) return;
+        final loggedIn = await AuthService.isLoggedIn();
+
+        Widget targetScreen;
+        if (loggedIn) {
+          final hasShop = await VendorService.hasExistingShopData();
+          targetScreen = hasShop ? const VendorHome() : const SetupShopScreen();
+        } else {
+          targetScreen = const LoginScreen();
+        }
+
         if (mounted) {
-          // Add a subtle fade transition to the next screen
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
               transitionDuration: const Duration(milliseconds: 600),
-              pageBuilder: (_, __, ___) => const LoginScreen(),
+              pageBuilder: (_, __, ___) => targetScreen,
               transitionsBuilder: (_, animation, __, child) {
                 return FadeTransition(opacity: animation, child: child);
               },
@@ -171,12 +185,12 @@ class _SplashScreenState extends State<SplashScreen>
                                 TextSpan(text: 'Z'),
                                 TextSpan(
                                     text: 'tee',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w700)),
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w700)),
                                 TextSpan(
                                     text: 'el',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w300)),
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w300)),
                               ],
                             ),
                           ),
@@ -327,7 +341,7 @@ class _ProgressBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(barHeight),
                 ),
               ),
-              // FULL PROGRESS
+
               FractionallySizedBox(
                 widthFactor: progress,
                 child: Container(

@@ -144,6 +144,10 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   Widget _buildItemCard(OrderLineItem item) {
+    final isImgMissing = item.imageUrl.isEmpty;
+    final isNameMissing = item.name.startsWith('[');
+    final isNoteMissing = item.note.startsWith('[');
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
@@ -151,7 +155,11 @@ class OrderDetailScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(
+            color: (isImgMissing || isNameMissing || isNoteMissing)
+                ? AppColors.red.withOpacity(0.5)
+                : AppColors.border,
+          ),
         ),
         child: Column(
           children: [
@@ -163,16 +171,25 @@ class OrderDetailScreen extends StatelessWidget {
                   child: Container(
                     width: 52,
                     height: 52,
-                    color: AppColors.border,
-                    child: Image.network(
-                      item.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.restaurant,
-                        color: AppColors.orange,
-                        size: 24,
-                      ),
+                    decoration: BoxDecoration(
+                      color: isImgMissing ? AppColors.red.withOpacity(0.12) : AppColors.border,
+                      borderRadius: BorderRadius.circular(10),
+                      border: isImgMissing ? Border.all(color: AppColors.red, width: 1.2) : null,
                     ),
+                    child: isImgMissing
+                        ? const Icon(Icons.restaurant, color: AppColors.red, size: 24)
+                        : Image.network(
+                            item.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: AppColors.red.withOpacity(0.12),
+                              child: const Icon(
+                                Icons.restaurant,
+                                color: AppColors.red,
+                                size: 24,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -184,8 +201,8 @@ class OrderDetailScreen extends StatelessWidget {
                         item.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: isNameMissing ? AppColors.red : AppColors.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
@@ -195,8 +212,10 @@ class OrderDetailScreen extends StatelessWidget {
                         item.note,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                          color: isNoteMissing ? AppColors.red : AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -238,8 +257,8 @@ class OrderDetailScreen extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Offer: ${item.appliedOffer!}',
-                  style: const TextStyle(
-                    color: AppColors.green,
+                  style: TextStyle(
+                    color: item.appliedOffer!.startsWith('[') ? AppColors.red : AppColors.green,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -329,12 +348,14 @@ class OrderDetailScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.bg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(
+                color: offersSummary.startsWith('[') ? AppColors.red : AppColors.border,
+              ),
             ),
             child: Text(
               offersSummary,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: offersSummary.startsWith('[') ? AppColors.red : AppColors.textSecondary,
                 fontSize: 11,
                 height: 1.4,
               ),

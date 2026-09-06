@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:frontend/app_colors.dart';
 
 class QRScannerScreen extends StatefulWidget {
@@ -14,6 +17,15 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   late Animation<double> _scanLineAnim;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
+
+  final MobileScannerController _scannerController = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    facing: CameraFacing.back,
+  );
+
+  bool _isTorchOn = false;
+  bool _isProcessing = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -42,7 +54,195 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   void dispose() {
     _scanLineController.dispose();
     _pulseController.dispose();
+    _scannerController.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleTorch() async {
+    try {
+      await _scannerController.toggleTorch();
+      setState(() {
+        _isTorchOn = !_isTorchOn;
+      });
+    } catch (e) {
+      _showErrorSnackBar('Flashlight is unavailable on this device.');
+    }
+  }
+
+  Future<void> _switchCamera() async {
+    try {
+      await _scannerController.switchCamera();
+    } catch (e) {
+      _showErrorSnackBar('Camera switch unavailable.');
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        final BarcodeCapture? capture = await _scannerController.analyzeImage(image.path);
+        if (capture != null && capture.barcodes.isNotEmpty) {
+          final code = capture.barcodes.first.rawValue;
+          if (code != null && code.isNotEmpty) {
+            _handleScannedCode(code);
+          } else {
+            _showErrorSnackBar('No valid QR code found in selected image.');
+          }
+        } else {
+          _showErrorSnackBar('No QR code detected in the selected image.');
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar('Failed to scan image: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.orangeDim,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _handleScannedCode(String rawCode) {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    HapticFeedback.mediumImpact();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: const BoxDecoration(
+                color: AppColors.orangeDim,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.qr_code_2_rounded, color: AppColors.orange, size: 38),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'QR Code Scanned!',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      rawCode,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, size: 20, color: AppColors.orange),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: rawCode));
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                          content: Text('Copied to clipboard'),
+                          behavior: SnackBarBehavior.floating,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Scan Again', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Order verified: $rawCode'),
+                          backgroundColor: AppColors.orange,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          margin: const EdgeInsets.all(16),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: AppColors.orange,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Verify Order', style: TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    ).then((_) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    });
   }
 
   @override
@@ -52,16 +252,47 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // ── Full-screen blurred restaurant background ──
+          // ── Live Camera Scanner View ──
           Positioned.fill(
-            child: Image.network(
-              'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800',
-              fit: BoxFit.cover,
-              color: AppColors.black.withOpacity(0.55),
-              colorBlendMode: BlendMode.darken,
-              errorBuilder: (_, __, ___) => Container(
-                color: AppColors.surfaceRaised,
-              ),
+            child: MobileScanner(
+              controller: _scannerController,
+              onDetect: (capture) {
+                if (_isProcessing) return;
+                final barcodes = capture.barcodes;
+                for (final barcode in barcodes) {
+                  if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
+                    _handleScannedCode(barcode.rawValue!);
+                    break;
+                  }
+                }
+              },
+              errorBuilder: (context, error) {
+                return Container(
+                  color: const Color(0xFF1A1A1A),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.camera_alt_outlined, color: AppColors.orange, size: 54),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Camera Access Error',
+                            style: TextStyle(color: AppColors.textWhite, fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Please grant camera permission to scan QR codes.\n${error.errorCode.name}',
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
@@ -82,12 +313,11 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                 // Top bar
                 _buildTopBar(),
 
-                // Scanner area (expands to fill)
+                // Scanner area
                 Expanded(
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Scanner frame + animated scan line
                       _buildScannerFrame(),
                     ],
                   ),
@@ -110,8 +340,19 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       child: Row(
         children: [
           GestureDetector(
-            onTap: () {},
-            child: const Icon(Icons.arrow_back, color: AppColors.orange, size: 26),
+            onTap: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.35),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_back, color: AppColors.textWhite, size: 22),
+            ),
           ),
           const SizedBox(width: 14),
           const Text(
@@ -124,7 +365,17 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             ),
           ),
           const Spacer(),
-          const Icon(Icons.notifications_outlined, color: AppColors.orange, size: 26),
+          GestureDetector(
+            onTap: _switchCamera,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.35),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cameraswitch_outlined, color: AppColors.textWhite, size: 22),
+            ),
+          ),
         ],
       ),
     );
@@ -144,7 +395,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         height: boxSize,
         child: Stack(
           children: [
-            // Camera preview placeholder (blurred bg shows through)
+            // Scanner Viewport
             ClipRRect(
               borderRadius: BorderRadius.circular(cornerRadius),
               child: Container(
@@ -261,7 +512,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   // ── Bottom Instructions + Controls ───────────────────────────
   Widget _buildBottomContent() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
       child: Column(
         children: [
           const Text(
@@ -274,25 +525,32 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 10),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'Position the QR code within the frame to scan\nautomatically',
             style: TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 14,
-              height: 1.5,
+              fontSize: 13.5,
+              height: 1.45,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Torch + Gallery buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _iconButton(Icons.flashlight_on_outlined),
-              const SizedBox(width: 20),
-              _iconButton(Icons.image_outlined),
+              _iconButton(
+                icon: _isTorchOn ? Icons.flashlight_on_rounded : Icons.flashlight_off_outlined,
+                isActive: _isTorchOn,
+                onTap: _toggleTorch,
+              ),
+              const SizedBox(width: 24),
+              _iconButton(
+                icon: Icons.image_outlined,
+                onTap: _pickFromGallery,
+              ),
             ],
           ),
         ],
@@ -300,22 +558,38 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     );
   }
 
-  Widget _iconButton(IconData icon) {
+  Widget _iconButton({
+    required IconData icon,
+    bool isActive = false,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () {},
-      child: Container(
-        width: 56,
-        height: 56,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 58,
+        height: 58,
         decoration: BoxDecoration(
-          color: AppColors.textWhite.withOpacity(0.12),
+          color: isActive ? AppColors.orange : AppColors.textWhite.withOpacity(0.16),
           shape: BoxShape.circle,
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: AppColors.orange.withOpacity(0.5),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
         ),
-        child: Icon(icon, color: AppColors.textWhite, size: 26),
+        child: Icon(
+          icon,
+          color: AppColors.textWhite,
+          size: 26,
+        ),
       ),
     );
   }
-
-  // ── Bottom Navigation ────────────────────────────────────────
 }
 
 // ── Dark overlay with transparent scanner cutout ─────────────
@@ -327,7 +601,7 @@ class _ScannerOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.black.withOpacity(0.52);
+    final paint = Paint()..color = AppColors.black.withOpacity(0.62);
     final cx = size.width / 2;
     final left = cx - scanBoxSize / 2;
     final top = centerY - scanBoxSize / 2;
@@ -401,10 +675,6 @@ class _CornerPainter extends CustomPainter {
           radius: Radius.circular(r), clockwise: true);
       path.lineTo(s, s);
     } else if (br) {
-      path.moveTo(s, h - s);
-      path.lineTo(w - s, h - s);
-      path.lineTo(w - s, s);
-      // Redraw as correct br corner:
       final p2 = Path();
       p2.moveTo(s, h - s);
       p2.lineTo(w - r - s, h - s);

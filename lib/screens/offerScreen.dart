@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/screens/MilestoneScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
+import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/app_colors.dart';
 
 // ─── Data Models ──────────────────────────────────────────────────────────────
@@ -16,7 +18,7 @@ class Offer {
   final OfferStatus status;
   bool isActive;
   final bool isBestseller;
-  final bool isFeatured;
+  bool isFeatured;
   final Color categoryColor;
 
   Offer({
@@ -78,29 +80,15 @@ class OffersScreen extends StatefulWidget {
 class _OffersScreenState extends State<OffersScreen>
     with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
-  late final List<Offer> _offers;
+  List<Offer> _offers = [];
+  bool _isLoading = true;
+
   late AnimationController _heroController;
   late Animation<double> _heroFade;
 
   @override
   void initState() {
     super.initState();
-    _offers = kOffers
-        .map(
-          (offer) => Offer(
-            id: offer.id,
-            title: offer.title,
-            subtitle: offer.subtitle,
-            category: offer.category,
-            duration: offer.duration,
-            status: offer.status,
-            isActive: offer.isActive,
-            isBestseller: offer.isBestseller,
-            isFeatured: offer.isFeatured,
-            categoryColor: offer.categoryColor,
-          ),
-        )
-        .toList();
     _heroController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -108,6 +96,108 @@ class _OffersScreenState extends State<OffersScreen>
     _heroFade = CurvedAnimation(
       parent: _heroController,
       curve: Curves.easeOut,
+    );
+    _fetchOffers();
+  }
+
+  Future<void> _fetchOffers() async {
+    setState(() => _isLoading = true);
+    final res = await VendorService.getOffers();
+    if (!mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final savedFeaturedId = prefs.getString('featured_offer_id') ?? '';
+
+    if (res['success'] == true && res['data'] != null) {
+      final rawList = res['data'] as List<dynamic>;
+      List<Offer> fetched = [];
+
+      bool hasFeaturedMatch = false;
+      if (savedFeaturedId.isNotEmpty) {
+        hasFeaturedMatch = rawList.any((item) => item['id']?.toString() == savedFeaturedId);
+      }
+
+      for (int i = 0; i < rawList.length; i++) {
+        final item = rawList[i];
+        if (item is Map<String, dynamic>) {
+          final id = item['id']?.toString() ?? '';
+          final title = item['title']?.toString() ?? 'Special Offer';
+          final desc = item['description']?.toString() ?? '';
+          final discountStr = item['discount_percentage']?.toString() ?? '0';
+          final discount = double.tryParse(discountStr)?.toInt() ?? 0;
+          final scope = item['scope_type']?.toString() ?? 'all_menu';
+          final isActive = item['is_active'] as bool? ?? true;
+          final isAvail = item['is_available'] as bool? ?? true;
+
+          String subtitle = desc.isNotEmpty ? desc : '$discount% OFF promo discount';
+          String category = 'All Menu';
+          if (scope == 'item_set') {
+            final targets = item['targets'] as Map<String, dynamic>?;
+            final count = (targets?['item_ids'] as List?)?.length ?? 0;
+            category = count > 0 ? '$count Selected Items' : 'Item Set';
+          } else if (scope == 'category_set') {
+            final targets = item['targets'] as Map<String, dynamic>?;
+            final count = (targets?['category_ids'] as List?)?.length ?? 0;
+            category = count > 0 ? '$count Categories' : 'Category Set';
+          }
+
+          String duration = 'Ongoing';
+          if (item['starts_at'] != null && item['ends_at'] != null) {
+            try {
+              final start = DateTime.parse(item['starts_at'].toString());
+              final end = DateTime.parse(item['ends_at'].toString());
+              const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              duration = '${months[start.month - 1]} ${start.day} – ${months[end.month - 1]} ${end.day}';
+            } catch (_) {}
+          }
+
+          final isFeatured = hasFeaturedMatch ? (id == savedFeaturedId) : (i == 0);
+
+          fetched.add(Offer(
+            id: id,
+            title: title,
+            subtitle: subtitle,
+            category: category,
+            duration: duration,
+            status: (isActive && isAvail) ? OfferStatus.live : OfferStatus.draft,
+            isActive: isActive,
+            isBestseller: i == 0,
+            isFeatured: isFeatured,
+            categoryColor: AppColors.orange,
+          ));
+        }
+      }
+      setState(() {
+        _offers = fetched;
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _setAsFeatured(Offer offer) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('featured_offer_id', offer.id);
+
+    setState(() {
+      for (final o in _offers) {
+        o.isFeatured = (o.id == offer.id);
+      }
+    });
+
+    _heroController.reset();
+    _heroController.forward();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${offer.title}" set as Featured Promo!'),
+        backgroundColor: AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
@@ -128,27 +218,39 @@ class _OffersScreenState extends State<OffersScreen>
             children: [
               _buildTopBar(),
               Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 20),
-                      _buildFilterBar(),
-                      const SizedBox(height: 24),
-                      FadeTransition(
-                        opacity: _heroFade,
-                        child: _buildFeaturedCard(_featuredOffer),
-                      ),
-                      const SizedBox(height: 28),
-                      _buildSectionHeader(),
-                      const SizedBox(height: 14),
-                      ..._buildOfferList(),
-                      const SizedBox(height: 28),
-                      _buildBoostBanner(),
-                    ],
+                child: RefreshIndicator(
+                  onRefresh: _fetchOffers,
+                  color: AppColors.orange,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 20),
+                        _buildFilterBar(),
+                        const SizedBox(height: 24),
+                        if (_isLoading)
+                          const Padding(
+                            padding: EdgeInsets.all(32.0),
+                            child: Center(child: CircularProgressIndicator(color: AppColors.orange)),
+                          )
+                        else ...[
+                          if (_featuredOffer != null)
+                            FadeTransition(
+                              opacity: _heroFade,
+                              child: _buildFeaturedCard(_featuredOffer!),
+                            ),
+                          const SizedBox(height: 28),
+                          _buildSectionHeader(),
+                          const SizedBox(height: 14),
+                          ..._buildOfferList(),
+                        ],
+                        const SizedBox(height: 28),
+                        _buildBoostBanner(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -159,7 +261,8 @@ class _OffersScreenState extends State<OffersScreen>
     );
   }
 
-  Offer get _featuredOffer {
+  Offer? get _featuredOffer {
+    if (_offers.isEmpty) return null;
     return _offers.firstWhere(
       (offer) => offer.isFeatured,
       orElse: () => _offers.first,
@@ -353,13 +456,16 @@ class _OffersScreenState extends State<OffersScreen>
           const SizedBox(width: 8),
           // ── Compact Create Offer Action Button ──
           GestureDetector(
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              final created = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => const CreateOfferScreen(),
                 ),
               );
+              if (created == true && mounted) {
+                _fetchOffers();
+              }
             },
             child: Container(
               height: 36,
@@ -423,8 +529,10 @@ class _OffersScreenState extends State<OffersScreen>
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 200,
+      child: GestureDetector(
+        onTap: () => _showOfferDetailsModal(offer),
+        child: Container(
+          height: 200,
         decoration: BoxDecoration(
           color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(22),
@@ -553,13 +661,13 @@ class _OffersScreenState extends State<OffersScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ── H2 Section Header ────────────────────────────────────────────────────────
   Widget _buildSectionHeader() {
     final count = _offers
-        .where((offer) => offer.isFeatured == false)
         .where((offer) => _selectedTab == 0 ? offer.isActive : !offer.isActive)
         .length;
 
@@ -690,7 +798,6 @@ class _OffersScreenState extends State<OffersScreen>
   // ── Offer List ──────────────────────────────────────────────────────────────
   List<Widget> _buildOfferList() {
     final filteredOffers = _offers
-        .where((offer) => offer.isFeatured == false)
         .where((offer) => _selectedTab == 0 ? offer.isActive : !offer.isActive)
         .toList();
 
@@ -736,6 +843,8 @@ class _OffersScreenState extends State<OffersScreen>
         .map(
           (offer) => _OfferListCard(
             offer: offer,
+            onTapCard: () => _showOfferDetailsModal(offer),
+            onSetFeaturedRequested: () => _setAsFeatured(offer),
             onStatusRequested: () async {
               final nextValue = !offer.isActive;
               final confirmed = await _confirmOfferStatusChange(
@@ -752,6 +861,193 @@ class _OffersScreenState extends State<OffersScreen>
           ),
         )
         .toList();
+  }
+
+  void _showOfferDetailsModal(Offer offer) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: AppColors.orangeDim,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.local_offer_rounded, color: AppColors.orange, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        offer.title,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Status: ${offer.isActive ? "ACTIVE" : "INACTIVE"}',
+                        style: TextStyle(
+                          color: offer.isActive ? AppColors.green : AppColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              offer.subtitle,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Scope / Category:', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(offer.category, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Validity Duration:', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(offer.duration, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(ctx);
+                if (!offer.isFeatured) {
+                  _setAsFeatured(offer);
+                }
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: offer.isFeatured ? AppColors.gold.withValues(alpha: 0.15) : AppColors.surfaceRaised,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: offer.isFeatured ? AppColors.gold : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      offer.isFeatured ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: offer.isFeatured ? AppColors.gold : AppColors.orange,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      offer.isFeatured ? 'Current Featured Promo' : 'Set as Featured Promo',
+                      style: TextStyle(
+                        color: offer.isFeatured ? AppColors.gold : AppColors.orange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Close', style: TextStyle(color: AppColors.textPrimary)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      final nextValue = !offer.isActive;
+                      final confirmed = await _confirmOfferStatusChange(
+                        offer: offer,
+                        nextValue: nextValue,
+                      );
+                      if (confirmed) {
+                        setState(() => offer.isActive = nextValue);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: offer.isActive ? AppColors.red : AppColors.orange,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      offer.isActive ? 'Deactivate' : 'Activate',
+                      style: const TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<bool> _confirmOfferStatusChange({
@@ -817,7 +1113,22 @@ class _OffersScreenState extends State<OffersScreen>
       },
     );
 
-    return confirmed ?? false;
+    if (confirmed == true) {
+      final res = await VendorService.updateOffer(id: offer.id, data: {'is_active': nextValue});
+      if (res['success'] == true) {
+        _fetchOffers();
+        return true;
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(res['error'] ?? 'Failed to update offer status'),
+            backgroundColor: AppColors.orangeDim,
+          ));
+        }
+        return false;
+      }
+    }
+    return false;
   }
 
   // ── Boost / Milestone Banner ────────────────────────────────────────────────
@@ -1031,10 +1342,14 @@ class _SegmentTab extends StatelessWidget {
 class _OfferListCard extends StatelessWidget {
   final Offer offer;
   final VoidCallback onStatusRequested;
+  final VoidCallback onTapCard;
+  final VoidCallback onSetFeaturedRequested;
 
   const _OfferListCard({
     required this.offer,
     required this.onStatusRequested,
+    required this.onTapCard,
+    required this.onSetFeaturedRequested,
   });
 
   @override
@@ -1056,9 +1371,11 @@ class _OfferListCard extends StatelessWidget {
             end: Alignment.bottomCenter,
           );
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: onTapCard,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border, width: 0.8),
@@ -1177,12 +1494,34 @@ class _OfferListCard extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                const Spacer(),
-                                _StatusActionChip(
-                                  label: actionLabel,
-                                  active: offer.isActive,
-                                  onTap: onStatusRequested,
-                                ),
+                                 const Spacer(),
+                                 GestureDetector(
+                                   onTap: onSetFeaturedRequested,
+                                   child: Container(
+                                     padding: const EdgeInsets.all(6),
+                                     decoration: BoxDecoration(
+                                       color: offer.isFeatured
+                                           ? AppColors.gold.withValues(alpha: 0.18)
+                                           : AppColors.surfaceRaised,
+                                       shape: BoxShape.circle,
+                                       border: Border.all(
+                                         color: offer.isFeatured ? AppColors.gold : AppColors.border,
+                                         width: 0.8,
+                                       ),
+                                     ),
+                                     child: Icon(
+                                       offer.isFeatured ? Icons.star_rounded : Icons.star_outline_rounded,
+                                       size: 14,
+                                       color: offer.isFeatured ? AppColors.gold : AppColors.textSecondary,
+                                     ),
+                                   ),
+                                 ),
+                                 const SizedBox(width: 8),
+                                 _StatusActionChip(
+                                   label: actionLabel,
+                                   active: offer.isActive,
+                                   onTap: onStatusRequested,
+                                 ),
                               ],
                             ),
                           ],
@@ -1222,8 +1561,9 @@ class _OfferListCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMetaTag(IconData icon, String text) {
     return Container(

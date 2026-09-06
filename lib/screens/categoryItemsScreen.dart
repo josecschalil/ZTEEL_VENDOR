@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/app_colors.dart';
+import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
 import 'package:frontend/screens/foodItemDetailScreen.dart';
-import 'package:frontend/app_colors.dart';
+import 'package:frontend/services/vendor_service.dart';
 
 enum ItemStatus { available, notAvailable }
 
@@ -30,80 +32,16 @@ class FoodItem {
   });
 }
 
-const _demoItems = [
-  FoodItem(
-    id: '1',
-    name: 'Crispy Calamari',
-    description:
-        'Lightly battered squid rings served with zesty house-made tartare sauce and lemon wedges.',
-    price: 14.50,
-    imageUrl: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=600',
-    status: ItemStatus.available,
-    tag: ItemTag.bestseller,
-  ),
-  FoodItem(
-    id: '2',
-    name: 'Truffle Bruschetta',
-    description:
-        'Toasted sourdough topped with wild mushrooms, truffle oil, and fresh herbs.',
-    price: 12.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=600',
-    status: ItemStatus.notAvailable,
-    tag: ItemTag.none,
-  ),
-  FoodItem(
-    id: '3',
-    name: 'Roasted Pumpkin Soup',
-    description:
-        'Velvety slow-roasted pumpkin soup with a touch of nutmeg and cream.',
-    price: 10.50,
-    imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=600',
-    status: ItemStatus.available,
-    tag: ItemTag.veg,
-  ),
-  FoodItem(
-    id: '4',
-    name: 'Honey-Glazed Wings',
-    description:
-        '6-piece jumbo wings tossed in a sweet and spicy glaze served with ranch dip.',
-    price: 12.50,
-    imageUrl: 'https://images.unsplash.com/photo-1562967916-eb82221dfb92?w=600',
-    status: ItemStatus.available,
-    tag: ItemTag.none,
-  ),
-  FoodItem(
-    id: '5',
-    name: 'Saffron Samosas',
-    description:
-        'Golden crispy pastry filled with spiced potato and peas, served with mint chutney.',
-    price: 9.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600',
-    status: ItemStatus.available,
-    tag: ItemTag.veg,
-  ),
-  FoodItem(
-    id: '6',
-    name: 'Tandoori Paneer Tikka',
-    description:
-        'Marinated paneer cubes grilled in tandoor with bell peppers and onions.',
-    price: 14.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=600',
-    status: ItemStatus.available,
-    tag: ItemTag.veg,
-  ),
-];
-
 class CategoryItemsScreen extends StatefulWidget {
+  final String categoryId;
   final String categoryName;
   final int totalItems;
 
   const CategoryItemsScreen({
     super.key,
-    this.categoryName = 'Signature Starters',
-    this.totalItems = 8,
+    this.categoryId = '',
+    this.categoryName = 'Category Items',
+    this.totalItems = 0,
   });
 
   @override
@@ -118,6 +56,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   bool _searchFocused = false;
   String _query = '';
   ItemFilter _selectedFilter = ItemFilter.all;
+
+  List<FoodItem> _items = [];
+  bool _isLoading = true;
 
   late final AnimationController _entryAc = AnimationController(
     vsync: this,
@@ -153,13 +94,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
       );
 
   int get _availableCount =>
-      _demoItems.where((i) => i.status == ItemStatus.available).length;
+      _items.where((i) => i.status == ItemStatus.available).length;
 
   int get _unavailableCount =>
-      _demoItems.where((i) => i.status == ItemStatus.notAvailable).length;
+      _items.where((i) => i.status == ItemStatus.notAvailable).length;
 
   List<FoodItem> get _filtered {
-    Iterable<FoodItem> items = _demoItems;
+    Iterable<FoodItem> items = _items;
 
     if (_selectedFilter == ItemFilter.available) {
       items = items.where((item) => item.status == ItemStatus.available);
@@ -187,6 +128,114 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     _searchCtrl.addListener(
       () => setState(() => _query = _searchCtrl.text),
     );
+    _fetchItems();
+  }
+
+  Future<void> _fetchItems() async {
+    setState(() => _isLoading = true);
+    final res = await VendorService.getMenuItems(
+      categoryId: widget.categoryId.isNotEmpty ? widget.categoryId : null,
+    );
+    if (!mounted) return;
+
+    if (res['success'] == true && res['data'] != null) {
+      final rawList = res['data'] as List<dynamic>;
+      List<FoodItem> fetched = [];
+      for (final item in rawList) {
+        if (item is Map<String, dynamic>) {
+          final isAvail = item['is_available'] as bool? ?? true;
+          final isVeg = VendorService.parseIsVegetarian(item);
+          final desc = VendorService.cleanDescription(item['description']?.toString());
+          final p = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+          fetched.add(FoodItem(
+            id: item['id']?.toString() ?? '',
+            name: item['name']?.toString() ?? '',
+            description: desc,
+            price: p,
+            imageUrl: ApiConfig.getImageUrl(item['image']?.toString()) ?? '',
+            status: isAvail ? ItemStatus.available : ItemStatus.notAvailable,
+            tag: isVeg ? ItemTag.veg : ItemTag.none,
+          ));
+        }
+      }
+      setState(() {
+        _items = fetched;
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleItemAvailability(FoodItem item) async {
+    final newStatus = item.status != ItemStatus.available;
+    final res = await VendorService.updateMenuItem(
+      id: item.id,
+      isAvailable: newStatus,
+    );
+
+    if (!mounted) return;
+
+    if (res['success'] == true) {
+      _fetchItems();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(newStatus ? '"${item.name}" is now available!' : '"${item.name}" is now hidden.'),
+        backgroundColor: AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res['error'] ?? 'Failed to update availability.'),
+        backgroundColor: AppColors.orangeDim,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  Future<void> _deleteItem(FoodItem item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Delete Item', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete "${item.name}"?',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+            child: const Text('Delete', style: TextStyle(color: AppColors.textWhite)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final res = await VendorService.deleteMenuItem(item.id);
+      if (!mounted) return;
+
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('"${item.name}" deleted.'),
+          backgroundColor: AppColors.orange,
+          behavior: SnackBarBehavior.floating,
+        ));
+        _fetchItems();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(res['error'] ?? 'Failed to delete item'),
+          backgroundColor: AppColors.orangeDim,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
   }
 
   @override
@@ -213,23 +262,34 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               children: [
                 _reveal(0, _buildTopBar()),
                 Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 80),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _reveal(1, _buildFeaturedSummaryCard()),
-                        const SizedBox(height: 16),
-                        _reveal(2, _buildFilterBar()),
-                        const SizedBox(height: 12),
-                        _reveal(2, _buildSearchBar()),
-                        const SizedBox(height: 16),
-                        if (_filtered.isEmpty)
-                          _reveal(3, _buildEmptyState())
-                        else
-                          _reveal(3, _buildItemGrid()),
-                      ],
+                  child: RefreshIndicator(
+                    onRefresh: _fetchItems,
+                    color: AppColors.orange,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      padding: const EdgeInsets.only(bottom: 80),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _reveal(1, _buildFeaturedSummaryCard()),
+                          const SizedBox(height: 16),
+                          _reveal(2, _buildFilterBar()),
+                          const SizedBox(height: 12),
+                          _reveal(2, _buildSearchBar()),
+                          const SizedBox(height: 16),
+                          if (_isLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 40),
+                                child: CircularProgressIndicator(color: AppColors.orange),
+                              ),
+                            )
+                          else if (_filtered.isEmpty)
+                            _reveal(3, _buildEmptyState())
+                          else
+                            _reveal(3, _buildItemGrid()),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -261,20 +321,17 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.maybePop(context),
+            onTap: () => Navigator.of(context).pop(),
             child: Container(
               width: 38,
               height: 38,
               decoration: BoxDecoration(
                 color: AppColors.surfaceRaised,
-                borderRadius: BorderRadius.circular(11),
                 border: Border.all(color: AppColors.border, width: 0.8),
+                borderRadius: BorderRadius.circular(11),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textSecondary,
-                size: 15,
-              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: AppColors.textSecondary, size: 15),
             ),
           ),
           const SizedBox(width: 12),
@@ -297,7 +354,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '${widget.totalItems} items',
+              '${_items.length} items',
               style: const TextStyle(
                 color: AppColors.orange,
                 fontSize: 10.5,
@@ -310,124 +367,354 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
-  // ── Featured Summary Banner ───────────────────────────────────────────────
+  // ── Featured Summary Card ─────────────────────────────────────────────────────
   Widget _buildFeaturedSummaryCard() {
-    final heroImageUrl = _filtered.isNotEmpty
-        ? _filtered.first.imageUrl
-        : _demoItems.first.imageUrl;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Container(
-        height: 140,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.orange.withValues(alpha: 0.28),
-              blurRadius: 22,
-              offset: const Offset(0, 8),
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEF5A4C), Color(0xFFD63A2C)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.orange.withValues(alpha: 0.28),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.textWhite.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.restaurant_rounded,
+                color: AppColors.textWhite, size: 23),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.categoryName,
+                  style: const TextStyle(
+                    color: AppColors.textWhite,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_items.length} items · $_availableCount available',
+                  style: TextStyle(
+                    color: AppColors.textWhite.withValues(alpha: 0.75),
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Filter Bar ────────────────────────────────────────────────────────────────
+  Widget _buildFilterBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          _buildFilterChip('All (${_items.length})', ItemFilter.all),
+          const SizedBox(width: 8),
+          _buildFilterChip('Available ($_availableCount)', ItemFilter.available),
+          const SizedBox(width: 8),
+          _buildFilterChip('Hidden ($_unavailableCount)', ItemFilter.unavailable),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, ItemFilter filter) {
+    final isSelected = _selectedFilter == filter;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedFilter = filter),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.orange : AppColors.surfaceRaised,
+          border: Border.all(
+            color: isSelected ? AppColors.orange : AppColors.border,
+            width: 0.8,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppColors.textWhite : AppColors.textPrimary,
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Search Bar ────────────────────────────────────────────────────────────────
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _searchFocused ? AppColors.orange : AppColors.border,
+            width: _searchFocused ? 1.5 : 0.8,
+          ),
+        ),
+        child: TextField(
+          controller: _searchCtrl,
+          focusNode: _searchFocus,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13.5,
+          ),
+          cursorColor: AppColors.orange,
+          decoration: InputDecoration(
+            hintText: 'Search food items...',
+            hintStyle: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 13.5,
+            ),
+            prefixIcon: const Icon(Icons.search_rounded,
+                color: AppColors.textMuted, size: 19),
+            suffixIcon: _query.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded,
+                        color: AppColors.textMuted, size: 17),
+                    onPressed: () => _searchCtrl.clear(),
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Item Grid ─────────────────────────────────────────────────────────────────
+  Widget _buildItemGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: _filtered.map((item) => _buildFoodItemCard(item)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildFoodItemCard(FoodItem item) {
+    final isAvail = item.status == ItemStatus.available;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () async {
+          final updated = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FoodItemDetailScreen(
+                itemId: item.id,
+                itemName: item.name,
+                description: item.description,
+                price: item.price,
+                imageUrl: item.imageUrl,
+                categoryId: widget.categoryId,
+                categoryName: widget.categoryName,
+                isAvailable: isAvail,
+                isVeg: item.tag == ItemTag.veg,
+                isBestseller: item.tag == ItemTag.bestseller,
+              ),
+            ),
+          );
+          if (updated == true && mounted) {
+            _fetchItems();
+          }
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Positioned.fill(
-                child: Image.network(
-                  heroImageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(color: AppColors.orange),
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.black.withValues(alpha: 0.18),
-                        AppColors.black.withValues(alpha: 0.58),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                ),
-              ),
-              // ── Decorative rings ──
-              Positioned(
-                right: -40,
-                top: -40,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
-                  width: 160,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.textWhite.withValues(alpha: 0.1),
-                      width: 1,
+                  width: 76,
+                  height: 76,
+                  color: AppColors.surfaceRaised,
+                  child: Image.network(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.restaurant_rounded,
+                          color: AppColors.orange, size: 28),
                     ),
                   ),
                 ),
               ),
-              Positioned(
-                right: -10,
-                top: -10,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.textWhite.withValues(alpha: 0.12),
-                      width: 1,
-                    ),
-                  ),
-                ),
-              ),
-              // ── Content ──
-              Padding(
-                padding: const EdgeInsets.all(18),
+              const SizedBox(width: 14),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        _buildTag(
-                          'CATEGORY',
-                          AppColors.textWhite.withValues(alpha: 0.2),
-                          AppColors.textWhite,
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        _buildTag(
-                          '${_filtered.length} VISIBLE',
-                          AppColors.textWhite.withValues(alpha: 0.14),
-                          AppColors.textWhite,
-                          borderColor:
-                              AppColors.textWhite.withValues(alpha: 0.2),
-                        ),
+                        if (item.tag == ItemTag.veg)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.greenDim,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                  color: AppColors.greenBorder, width: 0.5),
+                            ),
+                            child: const Text(
+                              'VEG',
+                              style: TextStyle(
+                                color: AppColors.green,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 4),
                     Text(
-                      widget.categoryName,
+                      item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                        height: 1.1,
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        height: 1.35,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        _buildMetaStat('Total', '${widget.totalItems}'),
-                        const SizedBox(width: 8),
-                        _buildMetaStat('Available', '$_availableCount'),
-                        const SizedBox(width: 8),
-                        _buildMetaStat('Hidden', '$_unavailableCount'),
+                        Text(
+                          '\$${item.price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: AppColors.orange,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => _toggleItemAvailability(item),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isAvail ? AppColors.greenDim : AppColors.surfaceRaised,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: isAvail ? AppColors.greenBorder : AppColors.border, width: 0.8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isAvail ? Icons.check_circle_rounded : Icons.do_not_disturb_on_rounded,
+                                  size: 12,
+                                  color: isAvail ? AppColors.green : AppColors.textMuted,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isAvail ? 'Available' : 'Hidden',
+                                  style: TextStyle(
+                                    color: isAvail ? AppColors.green : AppColors.textMuted,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary, size: 18),
+                          onPressed: () async {
+                            final updated = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditFoodItemScreen(
+                                  itemId: item.id,
+                                  initialCategoryId: widget.categoryId,
+                                  initialName: item.name,
+                                  initialPrice: item.price,
+                                  initialDescription: item.description,
+                                  initialIsVeg: item.tag == ItemTag.veg,
+                                  initialIsAvailable: isAvail,
+                                  initialImageUrl: item.imageUrl,
+                                ),
+                              ),
+                            );
+                            if (updated == true && mounted) {
+                              _fetchItems();
+                            }
+                          },
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          padding: EdgeInsets.zero,
+                          tooltip: 'Edit Item',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.red, size: 18),
+                          onPressed: () => _deleteItem(item),
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          padding: EdgeInsets.zero,
+                          tooltip: 'Delete Item',
+                        ),
                       ],
                     ),
                   ],
@@ -440,444 +727,35 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
-  Widget _buildMetaStat(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.textWhite.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.textWhite.withValues(alpha: 0.18),
-          width: 0.6,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$label: ',
-            style: TextStyle(
-              color: AppColors.textWhite.withValues(alpha: 0.8),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.textWhite,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Filter Bar ──────────────────────────────────────────────────────────────
-  Widget _buildFilterBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _FilterChip(
-              label: 'All Items',
-              count: _demoItems.length,
-              selected: _selectedFilter == ItemFilter.all,
-              onTap: () => setState(() => _selectedFilter = ItemFilter.all),
-            ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: 'Available',
-              count: _availableCount,
-              selected: _selectedFilter == ItemFilter.available,
-              onTap: () =>
-                  setState(() => _selectedFilter = ItemFilter.available),
-            ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: 'Not Available',
-              count: _unavailableCount,
-              selected: _selectedFilter == ItemFilter.unavailable,
-              onTap: () =>
-                  setState(() => _selectedFilter = ItemFilter.unavailable),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Search Bar ──────────────────────────────────────────────────────────────
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: _searchFocused ? AppColors.orange : AppColors.border,
-            width: _searchFocused ? 1.2 : 0.8,
-          ),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 12),
-            Icon(
-              Icons.search_rounded,
-              color: _searchFocused ? AppColors.orange : AppColors.textMuted,
-              size: 18,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: _searchCtrl,
-                focusNode: _searchFocus,
-                cursorColor: AppColors.orange,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'Search items in category...',
-                  hintStyle: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 13,
-                  ),
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            if (_query.isNotEmpty)
-              GestureDetector(
-                onTap: () {
-                  _searchCtrl.clear();
-                  _searchFocus.unfocus();
-                },
-                child: const Padding(
-                  padding: EdgeInsets.only(right: 12),
-                  child: Icon(
-                    Icons.close_rounded,
-                    color: AppColors.textMuted,
-                    size: 16,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Item Grid ───────────────────────────────────────────────────────────────
-  Widget _buildItemGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: 0.88,
-        ),
-        itemCount: _filtered.length,
-        itemBuilder: (context, index) {
-          return _buildSquareItemCard(_filtered[index]);
-        },
-      ),
-    );
-  }
-
-  // ── Square Item Card ────────────────────────────────────────────────────────
-  Widget _buildSquareItemCard(FoodItem item) {
-    final isAvailable = item.status == ItemStatus.available;
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => FoodItemDetailScreen(
-              itemName: item.name,
-              description: item.description,
-              price: item.price,
-              imageUrl: item.imageUrl,
-              categoryName: widget.categoryName,
-              isAvailable: isAvailable,
-              isVeg: item.tag == ItemTag.veg,
-              isBestseller: item.tag == ItemTag.bestseller,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border, width: 0.8),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(19),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-            // ── Image / Emoji Top Section ──
-            Expanded(
-              child: Stack(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: AppColors.surfaceRaised,
-                    child: Image.network(
-                      item.imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: AppColors.surfaceRaised,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.orange,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppColors.surfaceRaised,
-                          child: const Center(
-                            child: Icon(
-                              Icons.restaurant_rounded,
-                              color: AppColors.orange,
-                              size: 28,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  // Tag pill top-left if present
-                  if (item.tag != ItemTag.none)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: _buildTagPill(item.tag),
-                    ),
-                  // Action buttons top-right
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Row(
-                      children: [
-                        _buildIconButton(
-                          icon: Icons.edit_rounded,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const EditFoodItemScreen(),
-                              ),
-                            );
-                          },
-                          color: AppColors.textSecondary,
-                          bgColor: AppColors.surface.withValues(alpha: 0.9),
-                          borderColor: AppColors.border,
-                        ),
-                        const SizedBox(width: 4),
-                        _buildIconButton(
-                          icon: Icons.delete_outline_rounded,
-                          onTap: () {},
-                          color: AppColors.red,
-                          bgColor: AppColors.surface.withValues(alpha: 0.9),
-                          borderColor: AppColors.red.withValues(alpha: 0.2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // ── Divider ──
-            Container(height: 0.8, color: AppColors.border),
-            // ── Card Bottom Info ──
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '\$${item.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      _buildStatusDotPill(isAvailable),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      ),
-    );
-  }
-
-  Widget _buildStatusDotPill(bool isAvailable) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: isAvailable ? AppColors.greenDim : AppColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isAvailable ? AppColors.greenBorder : AppColors.border,
-          width: 0.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(
-              color: isAvailable ? AppColors.green : AppColors.textMuted,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            isAvailable ? 'ON' : 'OFF',
-            style: TextStyle(
-              color: isAvailable ? AppColors.green : AppColors.textMuted,
-              fontSize: 8.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTagPill(ItemTag tag) {
-    final isBestseller = tag == ItemTag.bestseller;
-    final label = isBestseller ? 'BESTSELLER' : 'VEG';
-    final textColor = isBestseller ? AppColors.orange : AppColors.green;
-    final bgColor = isBestseller ? AppColors.orangeDim : AppColors.greenDim;
-    final borderColor =
-        isBestseller ? AppColors.orangeBorder : AppColors.greenBorder;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: 0.5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 8,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIconButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    required Color color,
-    required Color bgColor,
-    required Color borderColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor, width: 0.5),
-        ),
-        child: Icon(icon, color: color, size: 13),
-      ),
-    );
-  }
-
+  // ── Empty State ───────────────────────────────────────────────────────────────
   Widget _buildEmptyState() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border, width: 0.8),
-        ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Center(
+        child: Column(
           children: [
-            Text(
-              'No matching items found',
+            const Icon(Icons.restaurant_menu_outlined,
+                color: AppColors.textMuted, size: 40),
+            const SizedBox(height: 12),
+            const Text(
+              'No food items found',
               style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            SizedBox(height: 4),
-            Text(
-              'Try a different search query or switch filters.',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 12,
-              ),
+            const SizedBox(height: 4),
+            const Text(
+              'Tap "Add Item" below to add a new dish to this category.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12.5),
             ),
           ],
         ),
@@ -888,10 +766,18 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
   // ── Floating Action Button ───────────────────────────────────────────────────
   Widget _buildAddItemButton() {
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const EditFoodItemScreen()),
+      onTap: () async {
+        final created = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EditFoodItemScreen(
+              initialCategoryId: widget.categoryId,
+            ),
+          ),
         );
+        if (created == true && mounted) {
+          _fetchItems();
+        }
       },
       child: Container(
         height: 48,
@@ -923,115 +809,6 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTag(
-    String label,
-    Color bg,
-    Color text, {
-    Color? borderColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: borderColor == null
-            ? null
-            : Border.all(color: borderColor, width: 0.5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: text,
-          fontSize: 9.5,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Filter Chip ──────────────────────────────────────────────────────────────
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: selected
-              ? const LinearGradient(
-                  colors: [Color(0xFFEF5A4C), Color(0xFFF07B6F)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: selected ? null : AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? AppColors.orange : AppColors.border,
-            width: 0.8,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: AppColors.orange.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppColors.textWhite : AppColors.textSecondary,
-                fontSize: 12.5,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 7),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: selected
-                    ? AppColors.textWhite.withValues(alpha: 0.22)
-                    : AppColors.border,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  color:
-                      selected ? AppColors.textWhite : AppColors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
               ),
             ),
           ],

@@ -1,19 +1,5 @@
 import 'package:flutter/material.dart';
 
-// ════════════════════════════════════════════════════════════════════
-//  Zteeel Vendor — "Fresh Coral" Light Palette (v2.1 — font colors fixed)
-//
-//  WHAT CHANGED FROM v2: only textSecondary, textMuted, and iconGrey
-//  were darkened. Everything else (backgrounds, orange, gold, green,
-//  red, borders, splash/warm surfaces) is untouched.
-//
-//  WHY: textMuted (#A8A39D) and iconGrey (#CCCCCC) were too pale
-//  against white/light surfaces — under ~2.5:1 contrast, which reads
-//  as "barely visible" rather than intentionally subtle. Darkened
-//  both so they're clearly readable while still lower-emphasis than
-//  textPrimary/textSecondary.
-// ════════════════════════════════════════════════════════════════════
-
 abstract final class AppColors {
   // ── Backgrounds ────────────────────────────────────────────────────
   static const Color bg = Color(0xFFFFFFFF);

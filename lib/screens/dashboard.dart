@@ -1,62 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:frontend/config/api_config.dart';
+import 'package:frontend/services/vendor_service.dart';
 import 'categoryItemsScreen.dart';
+import 'editFoodItemScreen.dart';
 part 'dashboard_all_categories.dart';
 
 // ── Data models ─────────────────────────────────────────────────────────────
 class MenuItem {
+  final String id;
   final String imageUrl;
   final String name;
   final String price;
-  const MenuItem(this.imageUrl, this.name, this.price);
+  final double rawPrice;
+  final String description;
+  final bool isVegetarian;
+  final bool isAvailable;
+
+  const MenuItem({
+    this.id = '',
+    required this.imageUrl,
+    required this.name,
+    required this.price,
+    this.rawPrice = 0.0,
+    this.description = '',
+    this.isVegetarian = false,
+    this.isAvailable = true,
+  });
 }
 
 class MenuCategory {
+  final String id;
   final String name;
   final int itemCount;
   final List<MenuItem> items;
-  const MenuCategory(this.name, this.itemCount, this.items);
+
+  const MenuCategory({
+    this.id = '',
+    required this.name,
+    required this.itemCount,
+    required this.items,
+  });
 }
 
-const _initialCategories = [
-  MenuCategory('Signature Starters', 12, [
-    MenuItem(
-      'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=300',
-      'Crispy Saffron Samosas',
-      '\$12.50',
-    ),
-    MenuItem(
-      'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=300',
-      'Tandoori Paneer Tikka',
-      '\$14.00',
-    ),
-  ]),
-  MenuCategory('Main Entrées', 18, [
-    MenuItem(
-      'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=300',
-      'Velvet Butter Chicken',
-      '\$22.00',
-    ),
-    MenuItem(
-      'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=300',
-      'Royal Lamb Biryani',
-      '\$26.50',
-    ),
-  ]),
-  MenuCategory('Desserts', 8, [
-    MenuItem(
-      'https://images.unsplash.com/photo-1470124182917-cc6e71b22ecc?w=300',
-      'Saffron Crème Brûlée',
-      '\$9.50',
-    ),
-    MenuItem(
-      'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=300',
-      'Kulfi Rose Sundae',
-      '\$8.00',
-    ),
-  ]),
-];
 const _bars = [0.38, 0.52, 0.44, 0.60, 0.48, 1.0];
 const _barLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -71,7 +58,68 @@ class RestaurantDashboard extends StatefulWidget {
 class _RestaurantDashboardState extends State<RestaurantDashboard>
     with TickerProviderStateMixin {
   final TextEditingController _categoryNameController = TextEditingController();
-  final List<MenuCategory> _categories = List.of(_initialCategories);
+  List<MenuCategory> _categories = [];
+  bool _isLoadingMenu = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() => _isLoadingMenu = true);
+    final catRes = await VendorService.getMenuCategories();
+    if (!mounted) return;
+
+    if (catRes['success'] == true && catRes['data'] != null) {
+      final rawList = catRes['data'] as List<dynamic>;
+      List<MenuCategory> categoryList = [];
+
+      for (final cat in rawList) {
+        if (cat is Map<String, dynamic>) {
+          final catId = cat['id']?.toString() ?? '';
+          final catName = cat['name']?.toString() ?? 'Category';
+
+          final itemRes = await VendorService.getMenuItems(categoryId: catId);
+          List<MenuItem> itemList = [];
+
+          if (itemRes['success'] == true && itemRes['data'] != null) {
+            final rawItems = itemRes['data'] as List<dynamic>;
+            for (final it in rawItems) {
+              if (it is Map<String, dynamic>) {
+                final p = double.tryParse(it['price']?.toString() ?? '0') ?? 0.0;
+                itemList.add(MenuItem(
+                  id: it['id']?.toString() ?? '',
+                  imageUrl: ApiConfig.getImageUrl(it['image']?.toString()) ?? '',
+                  name: it['name']?.toString() ?? 'Food Item',
+                  price: '\$${p.toStringAsFixed(2)}',
+                  rawPrice: p,
+                  description: VendorService.cleanDescription(it['description']?.toString()),
+                  isVegetarian: VendorService.parseIsVegetarian(it),
+                  isAvailable: it['is_available'] as bool? ?? true,
+                ));
+              }
+            }
+          }
+
+          categoryList.add(MenuCategory(
+            id: catId,
+            name: catName,
+            itemCount: itemList.length,
+            items: itemList,
+          ));
+        }
+      }
+
+      setState(() {
+        _categories = categoryList;
+        _isLoadingMenu = false;
+      });
+    } else {
+      setState(() => _isLoadingMenu = false);
+    }
+  }
 
   // ── Entry stagger ────────────────────────────────
   late final AnimationController _entryAc = AnimationController(
@@ -175,9 +223,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
             children: [
               _reveal(0, _buildTopBar()),
               Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
+                child: RefreshIndicator(
+                  color: AppColors.orange,
+                  onRefresh: _fetchCategories,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _reveal(1, _buildHero()),
@@ -194,15 +245,41 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                       const SizedBox(height: 32),
                       _reveal(3, _buildMenuSectionHeader()),
                       const SizedBox(height: 16),
-                      ..._categories.asMap().entries.map(
-                            (e) =>
-                                _reveal(4 + e.key, _buildCategoryCard(e.value)),
+                      if (_isLoadingMenu)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 32),
+                            child: CircularProgressIndicator(color: AppColors.orange),
                           ),
+                        )
+                      else if (_categories.isEmpty)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'No categories added yet. Tap "Add Category" or "View All" to set up your menu!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                            ),
+                          ),
+                        )
+                      else
+                        ..._categories.asMap().entries.map(
+                              (e) =>
+                                  _reveal(4 + e.key, _buildCategoryCard(e.value)),
+                            ),
                       const SizedBox(height: 32),
                     ],
                   ),
                 ),
               ),
+            ),
             ],
           ),
         ),
@@ -909,15 +986,17 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
-  void _openAllCategoriesPage() {
-    Navigator.of(context).push(
+  Future<void> _openAllCategoriesPage() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AllCategoriesScreen(
           categories: List.of(_categories),
           onAddCategory: _openCreateCategoryModal,
+          onRefreshCategories: _fetchCategories,
         ),
       ),
     );
+    _fetchCategories();
   }
 
   // ── Create category modal ─────────────────────────────────────────────────
@@ -1128,13 +1207,29 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
     );
   }
 
-  void _createCategory() {
+  Future<void> _createCategory() async {
     final name = _categoryNameController.text.trim();
     if (name.isEmpty) return;
-    setState(() {
-      _categories.insert(0, MenuCategory(name, 0, const []));
-    });
-    Navigator.of(context).pop();
+
+    final res = await VendorService.createMenuCategory(name: name);
+    if (!mounted) return;
+
+    if (res['success'] == true) {
+      _categoryNameController.clear();
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Category created successfully!'),
+        backgroundColor: AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+      ));
+      _fetchCategories();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res['error'] ?? 'Failed to create category'),
+        backgroundColor: AppColors.orangeDim,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
 // ── Category card ─────────────────────────────────────────────────────────
@@ -1239,15 +1334,19 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                     }),
                     // ── Show more footer ──
                     InkWell(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CategoryItemsScreen(
-                            categoryName: cat.name,
-                            totalItems: cat.itemCount,
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CategoryItemsScreen(
+                              categoryId: cat.id,
+                              categoryName: cat.name,
+                              totalItems: cat.itemCount,
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                        _fetchCategories();
+                      },
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 13),
@@ -1352,7 +1451,25 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           ),
           InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () {},
+            onTap: () async {
+              final updated = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditFoodItemScreen(
+                    itemId: item.id,
+                    initialName: item.name,
+                    initialPrice: item.rawPrice,
+                    initialDescription: item.description,
+                    initialIsVeg: item.isVegetarian,
+                    initialIsAvailable: item.isAvailable,
+                    initialImageUrl: item.imageUrl,
+                  ),
+                ),
+              );
+              if (updated == true && mounted) {
+                _fetchCategories();
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: Icon(Icons.edit_outlined,

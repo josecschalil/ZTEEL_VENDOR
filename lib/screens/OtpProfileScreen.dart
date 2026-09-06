@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/setupShopScreen.dart';
+import 'package:frontend/screens/vendor_home.dart';
 import 'package:frontend/app_colors.dart';
-
-// ── Tokens (same as login) ─────────────────────
+import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/vendor_service.dart';
 
 // ── OTP Screen ────────────────────────────────
 class OtpScreen extends StatefulWidget {
   final String phone;
-  const OtpScreen({super.key, required this.phone});
+  final String? initialOtp;
+  const OtpScreen({super.key, required this.phone, this.initialOtp});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -16,11 +18,12 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   final List<TextEditingController> _ctrl =
-      List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _fn = List.generate(4, (_) => FocusNode());
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _fn = List.generate(6, (_) => FocusNode());
 
   // which box is active
   int _active = 0;
+  bool _isLoading = false;
 
   // shake animation for wrong code
   late final AnimationController _shakeAc = AnimationController(
@@ -54,12 +57,20 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     super.initState();
     _entryAc.forward();
     _fn[0].requestFocus();
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 6; i++) {
       _fn[i].addListener(() {
         if (_fn[i].hasFocus) setState(() => _active = i);
       });
     }
     _startCountdown();
+
+    // Auto-fill OTP if provided from backend response
+    if (widget.initialOtp != null && widget.initialOtp!.isNotEmpty) {
+      final otpStr = widget.initialOtp!;
+      for (int i = 0; i < otpStr.length && i < 6; i++) {
+        _ctrl[i].text = otpStr[i];
+      }
+    }
   }
 
   void _startCountdown() {
@@ -76,6 +87,31 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     });
   }
 
+  Future<void> _handleResend() async {
+    _startCountdown();
+    final res = await AuthService.sendOtp(widget.phone);
+    if (!mounted) return;
+    if (res['success'] == true) {
+      final newOtp = res['dev_otp'] as String?;
+      if (newOtp != null && newOtp.isNotEmpty) {
+        for (int i = 0; i < 6; i++) {
+          _ctrl[i].clear();
+        }
+        for (int i = 0; i < newOtp.length && i < 6; i++) {
+          _ctrl[i].text = newOtp[i];
+        }
+        setState(() {});
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('OTP resent successfully'),
+        backgroundColor: AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+      ));
+    }
+  }
+
   @override
   void dispose() {
     _shakeAc.dispose();
@@ -86,11 +122,11 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   }
 
   String get _code => _ctrl.map((c) => c.text).join();
-  bool get _filled => _code.length == 4;
+  bool get _filled => _code.length == 6;
 
   void _onKey(String val, int i) {
     if (val.length == 1) {
-      if (i < 3) {
+      if (i < 5) {
         _fn[i + 1].requestFocus();
       } else {
         _fn[i].unfocus();
@@ -101,19 +137,42 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     setState(() {});
   }
 
-  void _verify() {
-    if (!_filled) return;
-    // Simulate wrong code → shake
-    if (_code != '1234') {
-      _shakeAc.forward(from: 0);
-      for (final c in _ctrl) c.clear();
-      _fn[0].requestFocus();
-      setState(() {});
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SetupShopScreen()),
+  Future<void> _verify() async {
+    if (!_filled || _isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    // Wait 3 seconds in otp verification page on clicking submit button onloading
+    await Future.delayed(const Duration(seconds: 3));
+
+    final res = await AuthService.verifyVendorOtp(
+      rawPhone: widget.phone,
+      otp: _code,
     );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (res['success'] == true) {
+      final hasShop = await VendorService.hasExistingShopData();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => hasShop ? const VendorHome() : const SetupShopScreen(),
+        ),
+        (route) => false,
+      );
+    } else {
+      _shakeAc.forward(from: 0);
+      final errorMsg = res['error'] ?? 'Verification failed';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(errorMsg),
+        backgroundColor: AppColors.orangeDim,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+      ));
+    }
   }
 
   @override
@@ -232,7 +291,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                           height: 1.65),
                                       children: [
                                         const TextSpan(
-                                            text: 'A 4-digit OTP was sent to\n'),
+                                            text: 'A 6-digit OTP was sent to\n'),
                                         TextSpan(
                                           text: widget.phone,
                                           style: const TextStyle(
@@ -269,90 +328,90 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                               padding: const EdgeInsets.fromLTRB(28, 44, 28, 0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'OTP CODE',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.4,
+                                children: [
+                                  const Text(
+                                    'OTP CODE',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.4,
+                                    ),
                                   ),
-                                ),
 
-                                const SizedBox(height: 22),
+                                  const SizedBox(height: 22),
 
-                                // 4 digit boxes with shake
-                                AnimatedBuilder(
-                                  animation: _shakeAnim,
-                                  builder: (_, child) {
-                                    final dx = _shakeAnim.value == 0
-                                        ? 0.0
-                                        : 8.0 *
-                                            (0.5 -
-                                                (_shakeAnim.value % .15 / .15));
-                                    return Transform.translate(
-                                      offset: Offset(dx, 0),
-                                      child: child,
-                                    );
-                                  },
-                                  child: Row(
-                                    children: List.generate(
-                                      4,
-                                      (i) => Expanded(
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                              right: i < 3 ? 14 : 0),
-                                          child: _OtpDigit(
-                                            controller: _ctrl[i],
-                                            focusNode: _fn[i],
-                                            isActive: _active == i,
-                                            isFilled: _ctrl[i].text.isNotEmpty,
-                                            onChanged: (v) => _onKey(v, i),
+                                  // 6 digit boxes with shake
+                                  AnimatedBuilder(
+                                    animation: _shakeAnim,
+                                    builder: (_, child) {
+                                      final dx = _shakeAnim.value == 0
+                                          ? 0.0
+                                          : 8.0 *
+                                              (0.5 -
+                                                  (_shakeAnim.value % .15 / .15));
+                                      return Transform.translate(
+                                        offset: Offset(dx, 0),
+                                        child: child,
+                                      );
+                                    },
+                                    child: Row(
+                                      children: List.generate(
+                                        6,
+                                        (i) => Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                                right: i < 5 ? 8 : 0),
+                                            child: _OtpDigit(
+                                              controller: _ctrl[i],
+                                              focusNode: _fn[i],
+                                              isActive: _active == i,
+                                              isFilled: _ctrl[i].text.isNotEmpty,
+                                              onChanged: (v) => _onKey(v, i),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
 
-                                const SizedBox(height: 32),
+                                  const SizedBox(height: 32),
 
-                                // Resend row
-                                Row(
-                                  children: [
-                                    Text(
-                                      _canResend
-                                          ? "Didn't receive it?"
-                                          : 'Resend in  ${_countdown}s',
-                                      style: const TextStyle(
-                                          color: AppColors.textSecondary, fontSize: 13),
-                                    ),
-                                    if (_canResend) ...[
-                                      const SizedBox(width: 6),
-                                      GestureDetector(
-                                        onTap: () => setState(_startCountdown),
-                                        child: const Text(
-                                          'Resend OTP',
-                                          style: TextStyle(
-                                            color: AppColors.orange,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
+                                  // Resend row
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _canResend
+                                            ? "Didn't receive it?"
+                                            : 'Resend in  ${_countdown}s',
+                                        style: const TextStyle(
+                                            color: AppColors.textSecondary, fontSize: 13),
+                                      ),
+                                      if (_canResend) ...[
+                                        const SizedBox(width: 6),
+                                        GestureDetector(
+                                          onTap: _handleResend,
+                                          child: const Text(
+                                            'Resend OTP',
+                                            style: TextStyle(
+                                              color: AppColors.orange,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ],
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
                           const Expanded(child: SizedBox(height: 48)),
 
                           // ── Sticky footer ──────────────────────
-                          _reveal(4, _Footer(filled: _filled, onVerify: _verify)),
+                          _reveal(4, _Footer(filled: _filled, isLoading: _isLoading, onVerify: _verify)),
                         ],
                       ),
                     ),
@@ -387,10 +446,10 @@ class _OtpDigit extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      height: 64,
+      height: 56,
       decoration: BoxDecoration(
         color: isFilled ? AppColors.orange.withOpacity(.10) : AppColors.border.withOpacity(.6),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isActive
               ? AppColors.orange
@@ -413,7 +472,7 @@ class _OtpDigit extends StatelessWidget {
           ],
           style: TextStyle(
             color: isFilled ? AppColors.orange : AppColors.textSecondary,
-            fontSize: 26,
+            fontSize: 22,
             fontWeight: FontWeight.w700,
             letterSpacing: 0,
           ),
@@ -435,8 +494,13 @@ class _OtpDigit extends StatelessWidget {
 // ── Footer ─────────────────────────────────────
 class _Footer extends StatelessWidget {
   final bool filled;
+  final bool isLoading;
   final VoidCallback onVerify;
-  const _Footer({required this.filled, required this.onVerify});
+  const _Footer({
+    required this.filled,
+    required this.isLoading,
+    required this.onVerify,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -453,23 +517,32 @@ class _Footer extends StatelessWidget {
             duration: const Duration(milliseconds: 250),
             height: 56,
             child: ElevatedButton(
-              onPressed: filled ? onVerify : null,
+              onPressed: (filled && !isLoading) ? onVerify : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: filled ? AppColors.orange : AppColors.border,
                 foregroundColor: filled ? AppColors.textWhite : AppColors.textSecondary,
-                disabledBackgroundColor: AppColors.border,
+                disabledBackgroundColor: filled && isLoading ? AppColors.orange.withOpacity(0.6) : AppColors.border,
                 disabledForegroundColor: AppColors.textSecondary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text(
-                'Verify & Continue',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: .3),
-              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.textWhite,
+                      ),
+                    )
+                  : const Text(
+                      'Verify & Continue',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: .3),
+                    ),
             ),
           ),
           const SizedBox(height: 16),

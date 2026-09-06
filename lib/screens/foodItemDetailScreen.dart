@@ -1,59 +1,159 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
+import 'package:frontend/services/vendor_service.dart';
 
-class FoodItemDetailScreen extends StatelessWidget {
+class FoodItemDetailScreen extends StatefulWidget {
+  final String itemId;
+  final String itemName;
+  final String description;
+  final double price;
+  final String imageUrl;
+  final String categoryId;
+  final String categoryName;
+  final bool isAvailable;
+  final bool isVeg;
+  final bool isBestseller;
+
   const FoodItemDetailScreen({
     super.key,
+    this.itemId = '',
     required this.itemName,
     required this.description,
     required this.price,
     required this.imageUrl,
+    this.categoryId = '',
     required this.categoryName,
     required this.isAvailable,
     required this.isVeg,
     required this.isBestseller,
   });
 
-  final String itemName;
-  final String description;
-  final double price;
-  final String imageUrl;
-  final String categoryName;
-  final bool isAvailable;
-  final bool isVeg;
-  final bool isBestseller;
+  @override
+  State<FoodItemDetailScreen> createState() => _FoodItemDetailScreenState();
+}
+
+class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
+  late bool _isAvailable;
+  bool _hasChanged = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isAvailable = widget.isAvailable;
+  }
+
+  Future<void> _toggleAvailability() async {
+    if (widget.itemId.isEmpty) return;
+
+    final newStatus = !_isAvailable;
+    final res = await VendorService.updateMenuItem(
+      id: widget.itemId,
+      isAvailable: newStatus,
+    );
+
+    if (!mounted) return;
+
+    if (res['success'] == true) {
+      setState(() {
+        _isAvailable = newStatus;
+        _hasChanged = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(newStatus ? 'Item is now available!' : 'Item is now hidden.'),
+        backgroundColor: AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res['error'] ?? 'Failed to update availability'),
+        backgroundColor: AppColors.orangeDim,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  Future<void> _deleteItem() async {
+    if (widget.itemId.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Delete Food Item', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete "${widget.itemName}"?',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+            child: const Text('Delete', style: TextStyle(color: AppColors.textWhite)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final res = await VendorService.deleteMenuItem(widget.itemId);
+      if (!mounted) return;
+
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Item "${widget.itemName}" deleted.'),
+          backgroundColor: AppColors.orange,
+          behavior: SnackBarBehavior.floating,
+        ));
+        Navigator.of(context).pop(true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(res['error'] ?? 'Failed to delete item'),
+          backgroundColor: AppColors.orangeDim,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _buildTopBar(context),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeroCard(),
-                    const SizedBox(height: 14),
-                    _buildActions(),
-                    const SizedBox(height: 18),
-                    _buildIdentityCard(),
-                    const SizedBox(height: 14),
-                    _buildDescriptionCard(),
-                    const SizedBox(height: 14),
-                    _buildSnapshotRow(),
-                  ],
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {},
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _buildTopBar(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeroCard(),
+                      const SizedBox(height: 14),
+                      _buildActions(),
+                      const SizedBox(height: 18),
+                      _buildIdentityCard(),
+                      const SizedBox(height: 14),
+                      _buildDescriptionCard(),
+                      const SizedBox(height: 14),
+                      _buildSnapshotRow(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -65,7 +165,7 @@ class FoodItemDetailScreen extends StatelessWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.maybePop(context),
+            onTap: () => Navigator.maybePop(context, _hasChanged),
             child: Container(
               width: 38,
               height: 38,
@@ -93,13 +193,32 @@ class FoodItemDetailScreen extends StatelessWidget {
               ),
             ),
           ),
+          if (widget.itemId.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.red, size: 22),
+              onPressed: _deleteItem,
+              tooltip: 'Delete Item',
+            ),
+          const SizedBox(width: 4),
           GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
+            onTap: () async {
+              final updated = await Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const EditFoodItemScreen(),
+                  builder: (_) => EditFoodItemScreen(
+                    itemId: widget.itemId,
+                    initialCategoryId: widget.categoryId,
+                    initialName: widget.itemName,
+                    initialPrice: widget.price,
+                    initialDescription: widget.description,
+                    initialIsVeg: widget.isVeg,
+                    initialIsAvailable: _isAvailable,
+                    initialImageUrl: widget.imageUrl,
+                  ),
                 ),
               );
+              if (updated == true && mounted) {
+                Navigator.of(context).pop(true);
+              }
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -141,7 +260,7 @@ class FoodItemDetailScreen extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.network(
-              imageUrl,
+              widget.imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -178,15 +297,15 @@ class FoodItemDetailScreen extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _buildHeroChip(categoryName),
-                      _buildHeroChip(isAvailable ? 'Available' : 'Hidden'),
-                      if (isBestseller) _buildHeroChip('Bestseller'),
-                      _buildHeroChip(isVeg ? 'Veg' : 'Non-Veg'),
+                      _buildHeroChip(widget.categoryName),
+                      _buildHeroChip(_isAvailable ? 'Available' : 'Hidden'),
+                      if (widget.isBestseller) _buildHeroChip('Bestseller'),
+                      _buildHeroChip(widget.isVeg ? 'Veg' : 'Non-Veg'),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    itemName,
+                    widget.itemName,
                     style: const TextStyle(
                       color: AppColors.textWhite,
                       fontSize: 24,
@@ -238,7 +357,7 @@ class FoodItemDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Menu Positioning',
             style: TextStyle(
               color: AppColors.textSecondary,
@@ -251,13 +370,13 @@ class FoodItemDetailScreen extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildInfoTile('Category', categoryName),
+                child: _buildInfoTile('Category', widget.categoryName),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _buildInfoTile(
                   'Status',
-                  isAvailable ? 'Live on menu' : 'Currently hidden',
+                  _isAvailable ? 'Live on menu' : 'Currently hidden',
                 ),
               ),
             ],
@@ -323,7 +442,7 @@ class FoodItemDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            description,
+            VendorService.cleanDescription(widget.description),
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
@@ -342,17 +461,17 @@ class FoodItemDetailScreen extends StatelessWidget {
           child: _buildSnapshotCard(
             icon: Icons.local_offer_outlined,
             title: 'Visibility',
-            value: isAvailable ? 'Order-ready' : 'Off menu',
-            accent: isAvailable ? AppColors.green : AppColors.textMuted,
+            value: _isAvailable ? 'Order-ready' : 'Off menu',
+            accent: _isAvailable ? AppColors.green : AppColors.textMuted,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildSnapshotCard(
-            icon: isVeg ? Icons.eco_rounded : Icons.restaurant_menu_rounded,
+            icon: widget.isVeg ? Icons.eco_rounded : Icons.restaurant_menu_rounded,
             title: 'Dietary',
-            value: isVeg ? 'Vegetarian' : 'Non-Vegetarian',
-            accent: isVeg ? AppColors.green : AppColors.red,
+            value: widget.isVeg ? 'Vegetarian' : 'Non-Vegetarian',
+            accent: widget.isVeg ? AppColors.green : AppColors.red,
           ),
         ),
       ],
@@ -420,7 +539,7 @@ class FoodItemDetailScreen extends StatelessWidget {
               border: Border.all(color: AppColors.border),
             ),
             child: Text(
-              '\$${price.toStringAsFixed(2)}',
+              '\$${widget.price.toStringAsFixed(2)}',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppColors.orange,
@@ -432,19 +551,22 @@ class FoodItemDetailScreen extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            decoration: BoxDecoration(
-              color: AppColors.orange,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              isAvailable ? 'Mark Unavailable' : 'Make Available',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textWhite,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+          child: GestureDetector(
+            onTap: _toggleAvailability,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              decoration: BoxDecoration(
+                color: AppColors.orange,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                _isAvailable ? 'Mark Unavailable' : 'Make Available',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textWhite,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),

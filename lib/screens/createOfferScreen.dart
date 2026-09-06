@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:frontend/services/vendor_service.dart';
 
 class CreateOfferScreen extends StatefulWidget {
   const CreateOfferScreen({super.key});
@@ -9,27 +10,21 @@ class CreateOfferScreen extends StatefulWidget {
 }
 
 class _CreateOfferScreenState extends State<CreateOfferScreen> {
+  final TextEditingController _titleController = TextEditingController(text: 'Special Discount Offer');
+  final TextEditingController _descController = TextEditingController(text: 'Limited time promotional discount on selected items');
+
   // Target Selection
   int _targetTab = 0; // 0=Items, 1=Categories, 2=All Menu
-  final List<String> _allItems = const [
-    'Saffron Glazed Salmon',
-    'Velvet Butter Chicken',
-    'Royal Lamb Biryani',
-    'Tandoori Paneer Tikka',
-    'Crispy Saffron Samosas',
-    'Sweet Midnight Kulfi',
-    'Golden Garlic Prawns',
-  ];
-  final List<String> _allCategories = const [
-    'Starters',
-    'Main Courses',
-    'Desserts',
-    'Beverages',
-    'Chef Specials',
-    'Family Meals',
-  ];
-  final List<String> _selectedItems = ['Saffron Glazed Salmon'];
-  final List<String> _selectedCategories = ['Main Courses'];
+  List<String> _allItems = [];
+  List<String> _allCategories = [];
+  List<Map<String, dynamic>> _menuItemsData = [];
+  List<Map<String, dynamic>> _categoriesData = [];
+
+  final List<String> _selectedItems = [];
+  final List<String> _selectedCategories = [];
+
+  bool _isLoadingData = true;
+  bool _isSaving = false;
 
   // Offer Discount
   double _discountPercent = 25;
@@ -47,6 +42,53 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     true,
     false
   ]; // M T W T F S S
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMenuData();
+  }
+
+  Future<void> _loadMenuData() async {
+    setState(() => _isLoadingData = true);
+    final itemsRes = await VendorService.getMenuItems();
+    final catRes = await VendorService.getMenuCategories();
+    if (!mounted) return;
+
+    List<String> itemNames = [];
+    List<Map<String, dynamic>> itemObjs = [];
+    if (itemsRes['success'] == true && itemsRes['data'] != null) {
+      for (final item in itemsRes['data'] as List<dynamic>) {
+        if (item is Map<String, dynamic>) {
+          itemNames.add(item['name']?.toString() ?? 'Food Item');
+          itemObjs.add(item);
+        }
+      }
+    }
+
+    List<String> catNames = [];
+    List<Map<String, dynamic>> catObjs = [];
+    if (catRes['success'] == true && catRes['data'] != null) {
+      for (final cat in catRes['data'] as List<dynamic>) {
+        if (cat is Map<String, dynamic>) {
+          catNames.add(cat['name']?.toString() ?? 'Category');
+          catObjs.add(cat);
+        }
+      }
+    }
+
+    setState(() {
+      _allItems = itemNames;
+      _allCategories = catNames;
+      _menuItemsData = itemObjs;
+      _categoriesData = catObjs;
+      _selectedItems.clear();
+      _selectedCategories.clear();
+      if (itemNames.isNotEmpty) _selectedItems.add(itemNames.first);
+      if (catNames.isNotEmpty) _selectedCategories.add(catNames.first);
+      _isLoadingData = false;
+    });
+  }
 
   // Colors
 
@@ -257,6 +299,8 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                     SizedBox(height: _s(context, 24)),
                     _buildPageHeader(),
                     SizedBox(height: _s(context, 24)),
+                    _buildOfferDetailsCard(),
+                    SizedBox(height: _s(context, 14)),
                     _buildTargetSelectionCard(),
                     SizedBox(height: _s(context, 14)),
                     _buildOfferTypeCard(),
@@ -974,10 +1018,184 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     );
   }
 
+  // ── Offer Details Card ───────────────────────────────────────
+  Widget _buildOfferDetailsCard() {
+    return Container(
+      padding: EdgeInsets.all(_s(context, 18)),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(_s(context, 16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.edit_note_rounded,
+                  color: AppColors.orange, size: _s(context, 20)),
+              SizedBox(width: _s(context, 9)),
+              Text(
+                'Offer Details',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: _fs(context, 17),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: _s(context, 14)),
+          Text(
+            'OFFER TITLE',
+            style: TextStyle(
+              color: AppColors.orange,
+              fontSize: _fs(context, 10),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
+          ),
+          SizedBox(height: _s(context, 6)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: TextField(
+              controller: _titleController,
+              style: TextStyle(color: AppColors.textPrimary, fontSize: _fs(context, 13)),
+              decoration: const InputDecoration(
+                hintText: 'e.g. Weekend Special Discount',
+                hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          SizedBox(height: _s(context, 12)),
+          Text(
+            'DESCRIPTION',
+            style: TextStyle(
+              color: AppColors.orange,
+              fontSize: _fs(context, 10),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
+          ),
+          SizedBox(height: _s(context, 6)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: TextField(
+              controller: _descController,
+              maxLines: 2,
+              style: TextStyle(color: AppColors.textPrimary, fontSize: _fs(context, 13)),
+              decoration: const InputDecoration(
+                hintText: 'e.g. Enjoy 25% OFF on all main course items',
+                hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveOffer() async {
+    final title = _titleController.text.trim().isNotEmpty
+        ? _titleController.text.trim()
+        : '${_discountPercent.toInt()}% OFF Offer';
+    final desc = _descController.text.trim();
+
+    String scopeType = 'all_menu';
+    List<String> itemIds = [];
+    List<String> categoryIds = [];
+
+    if (_targetTab == 0) {
+      scopeType = 'item_set';
+      for (final name in _selectedItems) {
+        final obj = _menuItemsData.firstWhere(
+          (m) => m['name'] == name,
+          orElse: () => {},
+        );
+        if (obj['id'] != null) itemIds.add(obj['id'].toString());
+      }
+      if (itemIds.isEmpty && _allItems.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please select at least one menu item.'),
+          backgroundColor: AppColors.orangeDim,
+        ));
+        return;
+      }
+    } else if (_targetTab == 1) {
+      scopeType = 'category_set';
+      for (final name in _selectedCategories) {
+        final obj = _categoriesData.firstWhere(
+          (c) => c['name'] == name,
+          orElse: () => {},
+        );
+        if (obj['id'] != null) categoryIds.add(obj['id'].toString());
+      }
+      if (categoryIds.isEmpty && _allCategories.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please select at least one category.'),
+          backgroundColor: AppColors.orangeDim,
+        ));
+        return;
+      }
+    }
+
+    final startDate = DateTime.now();
+    final endDate = _endDate;
+
+    Map<String, dynamic> offerData = {
+      'title': title,
+      'description': desc,
+      'scope_type': scopeType,
+      'discount_percentage': _discountPercent,
+      'validity_type': 'date_range',
+      'starts_at': startDate.toUtc().toIso8601String(),
+      'ends_at': endDate.toUtc().toIso8601String(),
+      'is_active': true,
+    };
+
+    if (scopeType == 'item_set' && itemIds.isNotEmpty) {
+      offerData['item_ids'] = itemIds;
+    }
+    if (scopeType == 'category_set' && categoryIds.isNotEmpty) {
+      offerData['category_ids'] = categoryIds;
+    }
+
+    setState(() => _isSaving = true);
+    final res = await VendorService.createOffer(offerData);
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (res['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Offer created successfully!'),
+        backgroundColor: AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+      ));
+      Navigator.of(context).pop(true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res['error'] ?? 'Failed to create offer.'),
+        backgroundColor: AppColors.orangeDim,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
   // ── Save Button ──────────────────────────────────────────────
   Widget _buildSaveButton() {
     return GestureDetector(
-      onTap: () {},
+      onTap: _isSaving ? null : _saveOffer,
       child: Container(
         width: double.infinity,
         height: _s(context, 48),
@@ -986,15 +1204,21 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           borderRadius: BorderRadius.circular(_s(context, 12)),
         ),
         alignment: Alignment.center,
-        child: Text(
-          'SAVE OFFER',
-          style: TextStyle(
-            color: AppColors.textWhite,
-            fontSize: _fs(context, 13.5),
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.1,
-          ),
-        ),
+        child: _isSaving
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: AppColors.textWhite, strokeWidth: 2),
+              )
+            : Text(
+                'SAVE OFFER',
+                style: TextStyle(
+                  color: AppColors.textWhite,
+                  fontSize: _fs(context, 13.5),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                ),
+              ),
       ),
     );
   }
