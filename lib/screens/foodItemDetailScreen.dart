@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class FoodItemDetailScreen extends StatefulWidget {
   final String itemId;
@@ -131,7 +132,56 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
           bottom: false,
           child: Column(
             children: [
-              _buildTopBar(context),
+              AppTopBar(
+                title: 'Food Item Details',
+                showBackButton: true,
+                onBack: () => Navigator.maybePop(context, _hasChanged),
+                trailing: [
+                  if (widget.itemId.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.red, size: 22),
+                      onPressed: _deleteItem,
+                      tooltip: 'Delete Item',
+                    ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () async {
+                      final updated = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EditFoodItemScreen(
+                            itemId: widget.itemId,
+                            initialCategoryId: widget.categoryId,
+                            initialName: widget.itemName,
+                            initialPrice: widget.price,
+                            initialDescription: widget.description,
+                            initialIsVeg: widget.isVeg,
+                            initialIsAvailable: _isAvailable,
+                            initialImageUrl: widget.imageUrl,
+                          ),
+                        ),
+                      );
+                      if (updated == true && mounted) {
+                        Navigator.of(context).pop(true);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.orange,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        'Edit',
+                        style: TextStyle(
+                          color: AppColors.textWhite,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -155,88 +205,6 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.maybePop(context, _hasChanged),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceRaised,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textSecondary,
-                size: 16,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Food Item Details',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ),
-          if (widget.itemId.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.red, size: 22),
-              onPressed: _deleteItem,
-              tooltip: 'Delete Item',
-            ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () async {
-              final updated = await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => EditFoodItemScreen(
-                    itemId: widget.itemId,
-                    initialCategoryId: widget.categoryId,
-                    initialName: widget.itemName,
-                    initialPrice: widget.price,
-                    initialDescription: widget.description,
-                    initialIsVeg: widget.isVeg,
-                    initialIsAvailable: _isAvailable,
-                    initialImageUrl: widget.imageUrl,
-                  ),
-                ),
-              );
-              if (updated == true && mounted) {
-                Navigator.of(context).pop(true);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.orange,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'Edit',
-                style: TextStyle(
-                  color: AppColors.textWhite,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

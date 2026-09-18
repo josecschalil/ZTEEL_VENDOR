@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class CreateOfferScreen extends StatefulWidget {
   const CreateOfferScreen({super.key});
@@ -288,15 +289,18 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            const AppTopBar(
+              title: 'Create New Offer',
+              subtitle: 'Offer Management',
+              showBackButton: true,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: _s(context, 14)),
-                    _buildTopBar(),
-                    SizedBox(height: _s(context, 24)),
+                    SizedBox(height: _s(context, 20)),
                     _buildPageHeader(),
                     SizedBox(height: _s(context, 24)),
                     _buildOfferDetailsCard(),
@@ -327,47 +331,6 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  // ── Top Bar ──────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Row(
-      children: [
-        // Logo
-        Container(
-          width: _s(context, 40),
-          height: _s(context, 40),
-          decoration: BoxDecoration(
-            color: AppColors.orange,
-            borderRadius: BorderRadius.circular(_s(context, 11)),
-          ),
-          child: Icon(Icons.restaurant_menu,
-              color: AppColors.textWhite, size: _s(context, 21)),
-        ),
-        SizedBox(width: _s(context, 10)),
-        Expanded(
-          child: Text(
-            'SAFFRON BISTRO',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.textWhite,
-              fontSize: _fs(context, 15),
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.0,
-            ),
-          ),
-        ),
-        SizedBox(width: _s(context, 10)),
-        CircleAvatar(
-          radius: _s(context, 17),
-          backgroundColor: AppColors.border,
-          backgroundImage: const NetworkImage(
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-          ),
-        ),
-      ],
     );
   }
 

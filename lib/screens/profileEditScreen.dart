@@ -7,6 +7,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
+import 'package:frontend/config/api_config.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -406,9 +408,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               )
             : SingleChildScrollView(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTopBar(),
+                    AppTopBar(
+                      title: 'Zteeel Vendor',
+                      subtitle: 'Vendor Profile',
+                      avatarUrl: ApiConfig.getImageUrl(_iconImageUrl),
+                      trailing: [
+                        IconButton(
+                          onPressed: _loadVendorProfile,
+                          icon: const Icon(Icons.refresh, color: AppColors.orange, size: 22),
+                          tooltip: 'Refresh Profile',
+                        ),
+                      ],
+                    ),
                     _buildCoverPhoto(),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -458,52 +470,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   ],
                 ),
               ),
-      ),
-    );
-  }
-
-  // ── Top bar ────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border, width: 1),
-            ),
-            child: const Center(
-              child: Text(
-                'Z',
-                style: TextStyle(
-                  color: AppColors.orange,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Text(
-            'Zteel Vendor Profile',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: _loadVendorProfile,
-            icon: const Icon(Icons.refresh, color: AppColors.orange, size: 22),
-            tooltip: 'Refresh Profile',
-          ),
-        ],
       ),
     );
   }

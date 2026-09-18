@@ -146,6 +146,35 @@ class VendorService {
     }
   }
 
+  /// Update the vendor's shop open/closed override.
+  /// [override] should be one of: "open", "closed", "auto".
+  static Future<Map<String, dynamic>> updateAvailabilityOverride(String override) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.patch(
+        Uri.parse(ApiConfig.vendorProfileUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'availability_override': override}),
+      );
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'error': data['detail'] ?? data.toString()};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
   /// Update vendor business hours schedule
   static Future<Map<String, dynamic>> updateBusinessHours(List<Map<String, dynamic>> daysSchedule) async {
     final token = await _getAccessToken();

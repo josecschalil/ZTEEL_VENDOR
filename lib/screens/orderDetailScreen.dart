@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class OrderLineItem {
   final String name;
@@ -47,15 +48,9 @@ class OrderDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        title: const Text(
-          'Order Details',
-          style: TextStyle(
-              color: AppColors.textPrimary, fontWeight: FontWeight.w700),
-        ),
+      appBar: const AppTopBar(
+        title: 'Order Details',
+        showBackButton: true,
       ),
       body: SafeArea(
         child: Padding(

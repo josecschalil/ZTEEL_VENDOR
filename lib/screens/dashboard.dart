@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:frontend/app_colors.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 import 'categoryItemsScreen.dart';
 import 'editFoodItemScreen.dart';
 part 'dashboard_all_categories.dart';
@@ -60,12 +61,49 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
   final TextEditingController _categoryNameController = TextEditingController();
   List<MenuCategory> _categories = [];
   bool _isLoadingMenu = true;
+  bool _isShopOpen = true; // default to open until we load the real value
 
   @override
   void initState() {
     super.initState();
     _fetchCategories();
+    _fetchShopStatus();
   }
+
+  Future<void> _fetchShopStatus() async {
+    final res = await VendorService.getVendorProfile();
+    if (!mounted) return;
+    if (res['success'] == true && res['data'] != null) {
+      final data = res['data'] as Map<String, dynamic>;
+      final open = data['is_open_now'] as bool? ?? true;
+      setState(() => _isShopOpen = open);
+    }
+  }
+
+  Future<void> _toggleShopStatus(bool newOpen) async {
+    // Optimistically update UI
+    setState(() => _isShopOpen = newOpen);
+    final override = newOpen ? 'open' : 'closed';
+    final res = await VendorService.updateAvailabilityOverride(override);
+    if (!mounted) return;
+    if (res['success'] == true && res['data'] != null) {
+      final data = res['data'] as Map<String, dynamic>;
+      final confirmed = data['is_open_now'] as bool? ?? newOpen;
+      setState(() => _isShopOpen = confirmed);
+    } else {
+      // Revert if the API call failed
+      setState(() => _isShopOpen = !newOpen);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            res['error']?.toString() ?? 'Failed to update shop status',
+          ),
+          backgroundColor: const Color(0xFFE05252),
+        ),
+      );
+    }
+  }
+
 
   Future<void> _fetchCategories() async {
     setState(() => _isLoadingMenu = true);
@@ -221,7 +259,17 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
           bottom: true,
           child: Column(
             children: [
-              _reveal(0, _buildTopBar()),
+              _reveal(
+                0,
+                AppTopBar(
+                  title: 'Zteeel Vendor',
+                  subtitle: 'Admin Dashboard',
+                  showStatusBadge: true,
+                  isOpen: _isShopOpen,
+                  onStatusToggle: _toggleShopStatus,
+                  notificationCount: 3,
+                ),
+              ),
               Expanded(
                 child: RefreshIndicator(
                   color: AppColors.orange,
@@ -229,210 +277,60 @@ class _RestaurantDashboardState extends State<RestaurantDashboard>
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                     child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _reveal(1, _buildHero()),
-                      const SizedBox(height: 28),
-                      _reveal(
-                          2,
-                          _buildSectionHeader(
-                            title: 'Overview',
-                            subtitle: "Today's performance snapshot",
-                            badge: 'LIVE',
-                          )),
-                      const SizedBox(height: 14),
-                      _reveal(2, _buildStatsGrid()),
-                      const SizedBox(height: 32),
-                      _reveal(3, _buildMenuSectionHeader()),
-                      const SizedBox(height: 16),
-                      if (_isLoadingMenu)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 32),
-                            child: CircularProgressIndicator(color: AppColors.orange),
-                          ),
-                        )
-                      else if (_categories.isEmpty)
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 20),
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'No categories added yet. Tap "Add Category" or "View All" to set up your menu!',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _reveal(1, _buildHero()),
+                        const SizedBox(height: 28),
+                        _reveal(
+                            2,
+                            _buildSectionHeader(
+                              title: 'Overview',
+                              subtitle: "Today's performance snapshot",
+                              badge: 'LIVE',
+                            )),
+                        const SizedBox(height: 14),
+                        _reveal(2, _buildStatsGrid()),
+                        const SizedBox(height: 32),
+                        _reveal(3, _buildMenuSectionHeader()),
+                        const SizedBox(height: 16),
+                        if (_isLoadingMenu)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 32),
+                              child: CircularProgressIndicator(color: AppColors.orange),
                             ),
-                          ),
-                        )
-                      else
-                        ..._categories.asMap().entries.map(
-                              (e) =>
-                                  _reveal(4 + e.key, _buildCategoryCard(e.value)),
+                          )
+                        else if (_categories.isEmpty)
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.border),
                             ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Top bar ──────────────────────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        border: const Border(
-          bottom: BorderSide(color: AppColors.border, width: 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // ── Brand avatar ──
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEF5A4C), Color(0xFFE87722)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.local_fire_department_rounded,
-                color: AppColors.textWhite, size: 22),
-          ),
-          const SizedBox(width: 11),
-          // ── Brand name ──
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Zteeel Vendor',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.1,
-                ),
-              ),
-              Text(
-                'Admin Dashboard',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          // ── OPEN pill with pulse ──
-          AnimatedBuilder(
-            animation: _pulseAc,
-            builder: (_, __) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.greenDim,
-                border: Border.all(color: AppColors.greenBorder, width: 0.8),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: AppColors.green
-                          .withValues(alpha: 0.5 + 0.5 * _pulseAc.value),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.green
-                              .withValues(alpha: 0.45 * _pulseAc.value),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
+                            child: const Center(
+                              child: Text(
+                                'No categories added yet. Tap "Add Category" or "View All" to set up your menu!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                              ),
+                            ),
+                          )
+                        else
+                          ..._categories.asMap().entries.map(
+                                (e) =>
+                                    _reveal(4 + e.key, _buildCategoryCard(e.value)),
+                              ),
+                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'OPEN',
-                    style: TextStyle(
-                      color: AppColors.green,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.9,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          // ── Notification icon with badge ──
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  border: Border.all(color: AppColors.border, width: 0.8),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: const Icon(Icons.notifications_none_rounded,
-                    color: AppColors.textSecondary, size: 19),
-              ),
-              Positioned(
-                right: -3,
-                top: -3,
-                child: Container(
-                  width: 15,
-                  height: 15,
-                  decoration: const BoxDecoration(
-                    color: AppColors.orange,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: 7.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

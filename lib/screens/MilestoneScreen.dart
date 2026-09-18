@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 // ── Main screen ────────────────────────────────────────────────
 class MilestoneRewardsScreen extends StatefulWidget {
@@ -45,19 +46,20 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Column(
-        children: [
-          Expanded(
-            child: SafeArea(
-              bottom: false,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const AppTopBar(
+              title: 'Milestone Rewards',
+              subtitle: 'Tiered Customer Rewards',
+              showBackButton: true,
+            ),
+            Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 12),
-                    _buildTopBar(),
-                    const SizedBox(height: 28),
                     _buildPageHeader(),
                     const SizedBox(height: 28),
                     // Level 01 card
@@ -115,50 +117,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
-
-  // ── Top bar ──────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Row(
-      children: [
-        // Avatar
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppColors.border,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.orange.withOpacity(0.5), width: 1.5),
-          ),
-          child: const Icon(Icons.person, color: AppColors.orange, size: 24),
-        ),
-        const SizedBox(width: 10),
-        const Text(
-          'Midnight Saffron',
-          style: TextStyle(
-            color: AppColors.orange,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const Spacer(),
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border, width: 1),
-          ),
-          child:
-              const Icon(Icons.notifications_outlined, color: AppColors.orange, size: 20),
-        ),
-      ],
     );
   }
 

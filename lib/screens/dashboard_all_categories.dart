@@ -253,69 +253,10 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           bottom: false,
           child: Column(
             children: [
-              // ── Top bar ──
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-                decoration: BoxDecoration(
-                  color: AppColors.bg,
-                  border: const Border(
-                    bottom: BorderSide(color: AppColors.border, width: 1),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // Back button
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceRaised,
-                          border: Border.all(color: AppColors.border, width: 0.8),
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        child: const Icon(Icons.arrow_back_ios_new_rounded,
-                            color: AppColors.textSecondary, size: 15),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'All Categories',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.orangeDim,
-                        border: Border.all(color: AppColors.orangeBorder, width: 0.6),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${_categoryList.length} categories',
-                        style: const TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              AppTopBar(
+                title: 'All Categories',
+                showBackButton: true,
+                badgeText: '${_categoryList.length} categories',
               ),
               // ── Body ──
               Expanded(

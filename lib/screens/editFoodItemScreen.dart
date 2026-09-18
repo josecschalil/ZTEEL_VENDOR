@@ -1,10 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:frontend/app_colors.dart';
-import 'package:frontend/config/api_config.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class EditFoodItemScreen extends StatefulWidget {
   final String? itemId;
@@ -36,7 +35,6 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
     with TickerProviderStateMixin {
   late bool _isAvailable;
   late bool _isVeg;
-  int _selectedNavIndex = 1;
 
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
@@ -218,7 +216,10 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         opacity: _fadeAnim,
         child: Column(
           children: [
-            _buildTopBar(isEditing),
+            AppTopBar(
+              title: isEditing ? 'Edit Item' : 'New Food Item',
+              showBackButton: true,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -241,52 +242,6 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                     _buildSaveButton(),
                   ],
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Top Bar ─────────────────────────────────────────────────────
-  Widget _buildTopBar(bool isEditing) {
-    return SafeArea(
-      bottom: false,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: const BoxDecoration(
-          color: AppColors.bg,
-          border: Border(
-            bottom: BorderSide(color: AppColors.border, width: 0.5),
-          ),
-        ),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.maybePop(context),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.textSecondary,
-                  size: 15,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              isEditing ? 'Edit Item' : 'New Food Item',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
               ),
             ),
           ],

@@ -5,6 +5,7 @@ import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
 import 'package:frontend/screens/foodItemDetailScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 enum ItemStatus { available, notAvailable }
 
@@ -260,7 +261,14 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             bottom: true,
             child: Column(
               children: [
-                _reveal(0, _buildTopBar()),
+                _reveal(
+                  0,
+                  AppTopBar(
+                    title: widget.categoryName,
+                    showBackButton: true,
+                    badgeText: '${_items.length} items',
+                  ),
+                ),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _fetchItems,
@@ -297,72 +305,6 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ── Top Bar ──────────────────────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        border: const Border(
-          bottom: BorderSide(color: AppColors.border, width: 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceRaised,
-                border: Border.all(color: AppColors.border, width: 0.8),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.textSecondary, size: 15),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              widget.categoryName,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.orangeDim,
-              border: Border.all(color: AppColors.orangeBorder, width: 0.6),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${_items.length} items',
-              style: const TextStyle(
-                color: AppColors.orange,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

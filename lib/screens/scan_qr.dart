@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -311,7 +312,31 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             child: Column(
               children: [
                 // Top bar
-                _buildTopBar(),
+                AppTopBar(
+                  title: 'Zteel Scanner',
+                  showBackButton: true,
+                  isDark: true,
+                  backgroundColor: AppColors.transparent,
+                  showBorder: false,
+                  trailing: [
+                    GestureDetector(
+                      onTap: _switchCamera,
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.cameraswitch_outlined,
+                          color: AppColors.textWhite,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
                 // Scanner area
                 Expanded(
@@ -326,54 +351,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                 // Instructions + controls
                 _buildBottomContent(),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Top Bar ──────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.35),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.arrow_back, color: AppColors.textWhite, size: 22),
-            ),
-          ),
-          const SizedBox(width: 14),
-          const Text(
-            'Zteel Scanner',
-            style: TextStyle(
-              color: AppColors.textWhite,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: _switchCamera,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.35),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.cameraswitch_outlined, color: AppColors.textWhite, size: 22),
             ),
           ),
         ],

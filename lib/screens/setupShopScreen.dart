@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:frontend/screens/vendor_home.dart';
 import 'package:frontend/app_colors.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class SetupShopScreen extends StatefulWidget {
   const SetupShopScreen({super.key});
@@ -466,67 +467,44 @@ class _SetupShopScreenState extends State<SetupShopScreen>
           bottom: false,
           child: FadeTransition(
             opacity: _fadeAnimation,
-            child: Stack(
+            child: Column(
               children: [
-                SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 132),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                AppTopBar(
+                  title: 'Shop Setup',
+                  showBackButton: true,
+                  onBack: _handleBack,
+                  trailing: [
+                    TextButton(
+                      onPressed: _isSubmitting ? null : _skipAndFinish,
+                      child: Text(
+                        _currentStep == 0 ? 'Create Shop Now' : 'Skip optional steps',
+                        style: const TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: Stack(
                     children: [
-                      _buildTopBar(),
-                      const SizedBox(height: 34),
-                      _buildStepContent(),
+                      SingleChildScrollView(
+                        controller: _scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 132),
+                        child: _buildStepContent(),
+                      ),
+                      _buildFloatingSaveButton(),
                     ],
                   ),
                 ),
-                _buildFloatingSaveButton(),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  // ─── Floating Top Bar ────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Row(
-      children: [
-        IconButton(
-          onPressed: _handleBack,
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.textPrimary,
-          style: IconButton.styleFrom(
-            backgroundColor: AppColors.surfaceRaised,
-            fixedSize: const Size(44, 44),
-          ),
-        ),
-        const SizedBox(width: 14),
-        const Expanded(
-          child: Text(
-            'SHOP SETUP',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: _isSubmitting ? null : _skipAndFinish,
-          child: Text(
-            _currentStep == 0 ? 'Create Shop Now' : 'Skip optional steps',
-            style: const TextStyle(
-              color: AppColors.orange,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

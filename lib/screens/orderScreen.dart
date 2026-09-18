@@ -3,6 +3,7 @@ import 'package:frontend/app_colors.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/orderDetailScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -206,19 +207,24 @@ class _OrdersScreenState extends State<OrdersScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // ── Sticky header (top bar + title + tab bar) ──────────
+            AppTopBar(
+              title: _vendorName.isNotEmpty ? _vendorName : 'Zteeel Vendor',
+              subtitle: 'Order Management',
+              avatarUrl: ApiConfig.getImageUrl(_vendorIconUrl),
+              showStatusBadge: true,
+              notificationCount: _pendingOrders.length,
+            ),
+            // ── Header (title + tab bar) ──────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 16),
-                  _buildTopBar(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
                   _buildPageHeader(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildTabBar(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -290,62 +296,6 @@ class _OrdersScreenState extends State<OrdersScreen>
                 }).toList(),
         ),
       ),
-    );
-  }
-
-  Widget _buildTopBar() {
-    final isVendorNameMissing = _vendorName.isEmpty;
-    final iconUrl = ApiConfig.getImageUrl(_vendorIconUrl);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: iconUrl == null ? AppColors.red.withOpacity(0.15) : AppColors.surfaceWarm,
-                border: iconUrl == null ? Border.all(color: AppColors.red) : null,
-                image: iconUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(iconUrl),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: iconUrl == null
-                  ? const Icon(Icons.storefront_rounded, color: AppColors.red, size: 20)
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              isVendorNameMissing ? '[Missing Vendor Name]' : _vendorName,
-              style: TextStyle(
-                color: isVendorNameMissing ? AppColors.red : AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceRaised,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.orange,
-            size: 20,
-          ),
-        ),
-      ],
     );
   }
 

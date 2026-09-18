@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/screens/MilestoneScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/widgets/app_top_bar.dart';
 import 'package:frontend/app_colors.dart';
 
 // ─── Data Models ──────────────────────────────────────────────────────────────
@@ -216,7 +217,12 @@ class _OffersScreenState extends State<OffersScreen>
         body: SafeArea(
           child: Column(
             children: [
-              _buildTopBar(),
+              const AppTopBar(
+                title: 'Zteeel Vendor',
+                subtitle: 'Promotions & Offers',
+                showStatusBadge: true,
+                notificationCount: 2,
+              ),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _fetchOffers,
@@ -266,123 +272,6 @@ class _OffersScreenState extends State<OffersScreen>
     return _offers.firstWhere(
       (offer) => offer.isFeatured,
       orElse: () => _offers.first,
-    );
-  }
-
-  // ── Top App Bar ─────────────────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        border: const Border(
-          bottom: BorderSide(color: AppColors.border, width: 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Brand avatar
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEF5A4C), Color(0xFFE87722)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: const Center(
-              child: Text(
-                'SB',
-                style: TextStyle(
-                  color: AppColors.textWhite,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Zteel Offers',
-                  style: TextStyle(
-                    color: Color(0xFF1E293B),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                Text(
-                  'Promotions & Rewards',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Notification Bell
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(11),
-                  border: Border.all(color: AppColors.border, width: 0.8),
-                ),
-                child: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: AppColors.textSecondary,
-                  size: 19,
-                ),
-              ),
-              Positioned(
-                right: -3,
-                top: -3,
-                child: Container(
-                  width: 15,
-                  height: 15,
-                  decoration: const BoxDecoration(
-                    color: AppColors.orange,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '2',
-                      style: TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: 7.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
