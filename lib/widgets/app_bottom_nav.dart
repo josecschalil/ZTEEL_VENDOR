@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/dashboard.dart';
-import 'package:frontend/screens/offerScreen.dart';
-import 'package:frontend/screens/orderScreen.dart';
-import 'package:frontend/screens/profileEditScreen.dart';
 import 'package:frontend/screens/scan_qr.dart';
-import 'package:frontend/app_colors.dart';
 
 enum VendorTab { dashboard, offers, orders, profile }
 
@@ -18,80 +13,39 @@ class VendorBottomNav extends StatelessWidget {
   final VendorTab currentTab;
   final Function(VendorTab)? onTabChanged;
 
-  static const double _barHeight = 64;
-  static const double _qrButtonSize = 56;
-
   @override
   Widget build(BuildContext context) {
-    final leftItems = [
-      _VendorNavItem(
-        tab: VendorTab.dashboard,
-        icon: Icons.grid_view_rounded,
-        label: 'Dashboard',
-        builder: () => const RestaurantDashboard(),
-      ),
-      _VendorNavItem(
-        tab: VendorTab.offers,
-        icon: Icons.local_offer_outlined,
-        label: 'Offers',
-        builder: () => const OffersScreen(),
-      ),
-    ];
-
-    final rightItems = [
-      _VendorNavItem(
-        tab: VendorTab.orders,
-        icon: Icons.receipt_long_outlined,
-        label: 'Orders',
-        builder: () => const OrdersScreen(),
-      ),
-      _VendorNavItem(
-        tab: VendorTab.profile,
-        icon: Icons.person_outline_rounded,
-        label: 'Profile',
-        builder: () => const ProfileEditScreen(),
-      ),
-    ];
-
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: [
-        // ── Main Bottom Nav Bar ──
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.navBg,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
-              ),
-            ],
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 12 + bottomPadding),
+      decoration: const BoxDecoration(
+        color: Color(0xF5FFFFFF),
+        border: Border(top: BorderSide(color: Color(0x14E2E8F0))),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 20,
+            offset: Offset(0, -4),
           ),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              height: _barHeight,
-              child: Row(
-                children: [
-                  ...leftItems.map((item) => _buildNavItem(context, item)),
-                  const SizedBox(width: 64), // space for center QR button
-                  ...rightItems.map((item) => _buildNavItem(context, item)),
-                ],
-              ),
-            ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _NavItem(
+            icon: Icons.home_outlined,
+            label: 'Home',
+            isActive: currentTab == VendorTab.dashboard,
+            onTap: () => onTabChanged?.call(VendorTab.dashboard),
           ),
-        ),
-
-        // ── Center Floating Scan QR Button ──
-        Positioned(
-          top: -26,
-          child: GestureDetector(
+          _NavItem(
+            icon: Icons.local_offer_outlined,
+            label: 'Offers',
+            isActive: currentTab == VendorTab.offers,
+            onTap: () => onTabChanged?.call(VendorTab.offers),
+          ),
+          // Center scan button
+          GestureDetector(
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -99,118 +53,99 @@ class VendorBottomNav extends StatelessWidget {
                 ),
               );
             },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: _qrButtonSize + 8,
-                  height: _qrButtonSize + 8,
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.bg,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFEF5A4C), Color(0xFFD63A2C)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.orange.withValues(alpha: 0.28),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+            child: Transform.translate(
+              offset: const Offset(0, -14),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x40000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
                     ),
-                    child: const Icon(
-                      Icons.qr_code_scanner_rounded,
-                      color: AppColors.textWhite,
-                      size: 24,
-                    ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'SCAN QR',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
+                child: const Icon(
+                  Icons.qr_code_scanner_outlined,
+                  color: Colors.white,
+                  size: 22,
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ],
+          _NavItem(
+            icon: Icons.receipt_long_outlined,
+            label: 'Orders',
+            isActive: currentTab == VendorTab.orders,
+            onTap: () => onTabChanged?.call(VendorTab.orders),
+          ),
+          _NavItem(
+            icon: Icons.person_outline,
+            label: 'Profile',
+            isActive: currentTab == VendorTab.profile,
+            onTap: () => onTabChanged?.call(VendorTab.profile),
+          ),
+        ],
+      ),
     );
   }
+}
 
-  Widget _buildNavItem(BuildContext context, _VendorNavItem item) {
-    final isActive = item.tab == currentTab;
-    final color = isActive ? AppColors.orange : AppColors.textSecondary;
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
 
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _handleTap(context, item),
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 48,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? AppColors.orange.withValues(alpha: 0.10)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(item.icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
               style: TextStyle(
-                color: color,
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                letterSpacing: 0.2,
+                color: color,
               ),
-              child: Text(item.label),
             ),
+            if (isActive) ...[
+              const SizedBox(height: 3),
+              Container(
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0F172A),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 7),
+            ],
           ],
         ),
       ),
     );
   }
-
-  void _handleTap(BuildContext context, _VendorNavItem item) {
-    if (item.tab == currentTab) {
-      return;
-    }
-
-    onTabChanged?.call(item.tab);
-  }
-}
-
-class _VendorNavItem {
-  const _VendorNavItem({
-    required this.tab,
-    required this.icon,
-    required this.label,
-    required this.builder,
-  });
-
-  final VendorTab tab;
-  final IconData icon;
-  final String label;
-  final Widget Function() builder;
 }

@@ -1,58 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:frontend/app_colors.dart';
-import 'package:frontend/config/api_config.dart';
-import 'package:frontend/services/vendor_service.dart';
-import 'package:frontend/services/shop_status_service.dart';
-import 'package:frontend/widgets/app_top_bar.dart';
-import 'categoryItemsScreen.dart';
-import 'editFoodItemScreen.dart';
-import 'offerScreen.dart';
-import 'orderScreen.dart';
-part 'dashboard_all_categories.dart';
+
+class ArtisanTrattoApp extends StatelessWidget {
+  const ArtisanTrattoApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Artisan Trattoria',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        fontFamily: 'sans-serif',
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F172A)),
+      ),
+      home: const KitchenDashboard(),
+    );
+  }
+}
 
 // ─── Data Models ─────────────────────────────────────────────────────────────
 
-class MenuItem {
-  final String id;
-  final String imageUrl;
-  final String name;
-  final String price;
-  final double rawPrice;
-  final String description;
-  final bool isVegetarian;
-  final bool isAvailable;
-
-  const MenuItem({
-    this.id = '',
-    required this.imageUrl,
-    required this.name,
-    required this.price,
-    this.rawPrice = 0.0,
-    this.description = '',
-    this.isVegetarian = false,
-    this.isAvailable = true,
-  });
-}
-
 class MenuCategory {
-  final String id;
-  final String name;
-  final String label;
   final IconData icon;
+  final String label;
   final int count;
-  final int itemCount;
-  final List<MenuItem> items;
-
-  const MenuCategory({
-    this.id = '',
-    this.name = '',
-    this.label = '',
-    this.icon = Icons.restaurant_outlined,
-    this.count = 0,
-    this.itemCount = 0,
-    this.items = const [],
-  });
+  const MenuCategory(
+      {required this.icon, required this.label, required this.count});
 }
 
 class OrderItem {
@@ -64,7 +38,6 @@ class OrderItem {
   final OrderStatus statusType;
   final double amount;
   final int itemCount;
-
   const OrderItem({
     required this.id,
     required this.platform,
@@ -79,67 +52,25 @@ class OrderItem {
 
 enum OrderStatus { cooking, ready, completed }
 
-// ─── Main Restaurant Dashboard Screen ────────────────────────────────────────
+// ─── Main Dashboard Screen ────────────────────────────────────────────────────
 
-class RestaurantDashboard extends StatefulWidget {
-  const RestaurantDashboard({super.key});
+class KitchenDashboard extends StatefulWidget {
+  const KitchenDashboard({super.key});
 
   @override
-  State<RestaurantDashboard> createState() => _RestaurantDashboardState();
+  State<KitchenDashboard> createState() => _KitchenDashboardState();
 }
 
-class _RestaurantDashboardState extends State<RestaurantDashboard> {
-  final _shopStatus = ShopStatusService.instance;
+class _KitchenDashboardState extends State<KitchenDashboard> {
+  int _selectedNavIndex = 0;
 
-  static const List<MenuCategory> _defaultCategories = [
-    MenuCategory(
-      id: 'default_pizza',
-      icon: Icons.local_pizza_outlined,
-      label: 'Pizza',
-      name: 'Pizza',
-      count: 14,
-      itemCount: 14,
-    ),
-    MenuCategory(
-      id: 'default_pasta',
-      icon: Icons.restaurant_outlined,
-      label: 'Pasta',
-      name: 'Pasta',
-      count: 10,
-      itemCount: 10,
-    ),
-    MenuCategory(
-      id: 'default_burgers',
-      icon: Icons.lunch_dining_outlined,
-      label: 'Burgers',
-      name: 'Burgers',
-      count: 8,
-      itemCount: 8,
-    ),
-    MenuCategory(
-      id: 'default_salads',
-      icon: Icons.eco_outlined,
-      label: 'Salads',
-      name: 'Salads',
-      count: 6,
-      itemCount: 6,
-    ),
-    MenuCategory(
-      id: 'default_desserts',
-      icon: Icons.cake_outlined,
-      label: 'Desserts',
-      name: 'Desserts',
-      count: 9,
-      itemCount: 9,
-    ),
-    MenuCategory(
-      id: 'default_drinks',
-      icon: Icons.coffee_outlined,
-      label: 'Drinks',
-      name: 'Drinks',
-      count: 16,
-      itemCount: 16,
-    ),
+  static const List<MenuCategory> _categories = [
+    MenuCategory(icon: Icons.local_pizza_outlined, label: 'Pizza', count: 14),
+    MenuCategory(icon: Icons.restaurant_outlined, label: 'Pasta', count: 10),
+    MenuCategory(icon: Icons.lunch_dining_outlined, label: 'Burgers', count: 8),
+    MenuCategory(icon: Icons.eco_outlined, label: 'Salads', count: 6),
+    MenuCategory(icon: Icons.cake_outlined, label: 'Desserts', count: 9),
+    MenuCategory(icon: Icons.coffee_outlined, label: 'Drinks', count: 16),
   ];
 
   static const List<OrderItem> _orders = [
@@ -175,169 +106,39 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     ),
   ];
 
-  List<MenuCategory> _categories = _defaultCategories;
-
-  @override
-  void initState() {
-    super.initState();
-    _shopStatus.ensureLoaded();
-    _fetchCategories();
-  }
-
-  Future<void> _fetchCategories() async {
-    final catRes = await VendorService.getMenuCategories();
-    if (!mounted) return;
-
-    if (catRes['success'] == true && catRes['data'] != null) {
-      final rawList = catRes['data'] as List<dynamic>;
-      if (rawList.isNotEmpty) {
-        List<MenuCategory> categoryList = [];
-        for (final cat in rawList) {
-          if (cat is Map<String, dynamic>) {
-            final catId = cat['id']?.toString() ?? '';
-            final catName = cat['name']?.toString() ?? 'Category';
-
-            final itemRes = await VendorService.getMenuItems(categoryId: catId);
-            List<MenuItem> itemList = [];
-
-            if (itemRes['success'] == true && itemRes['data'] != null) {
-              final rawItems = itemRes['data'] as List<dynamic>;
-              for (final it in rawItems) {
-                if (it is Map<String, dynamic>) {
-                  final priceNum = it['price'];
-                  final rawPrice = (priceNum is num)
-                      ? priceNum.toDouble()
-                      : double.tryParse(priceNum?.toString() ?? '0') ?? 0.0;
-                  final priceStr = '₹${rawPrice.toStringAsFixed(0)}';
-
-                  itemList.add(MenuItem(
-                    id: it['id']?.toString() ?? '',
-                    name: it['name']?.toString() ?? 'Item',
-                    imageUrl:
-                        ApiConfig.getImageUrl(it['image']?.toString()) ?? '',
-                    price: priceStr,
-                    rawPrice: rawPrice,
-                    description: it['description']?.toString() ?? '',
-                    isVegetarian: it['is_vegetarian'] as bool? ?? false,
-                    isAvailable: it['is_available'] as bool? ?? true,
-                  ));
-                }
-              }
-            }
-
-            categoryList.add(MenuCategory(
-              id: catId,
-              name: catName,
-              label: catName,
-              icon: _getCategoryIcon(catName),
-              count: itemList.length,
-              itemCount: itemList.length,
-              items: itemList,
-            ));
-          }
-        }
-        if (mounted && categoryList.isNotEmpty) {
-          setState(() {
-            _categories = categoryList;
-          });
-        }
-      }
-    }
-  }
-
-  IconData _getCategoryIcon(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('pizza')) return Icons.local_pizza_outlined;
-    if (lower.contains('pasta') || lower.contains('noodle')) {
-      return Icons.restaurant_outlined;
-    }
-    if (lower.contains('burger') || lower.contains('sandwich')) {
-      return Icons.lunch_dining_outlined;
-    }
-    if (lower.contains('salad') || lower.contains('veg')) {
-      return Icons.eco_outlined;
-    }
-    if (lower.contains('dessert') ||
-        lower.contains('cake') ||
-        lower.contains('sweet')) {
-      return Icons.cake_outlined;
-    }
-    if (lower.contains('drink') ||
-        lower.contains('beverage') ||
-        lower.contains('tea') ||
-        lower.contains('coffee')) {
-      return Icons.coffee_outlined;
-    }
-    return Icons.restaurant_menu_outlined;
-  }
-
-  void _openAllCategories() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AllCategoriesScreen(
-          categories: _categories,
-          onAddCategory: () {},
-          onRefreshCategories: _fetchCategories,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        body: RefreshIndicator(
-          onRefresh: _fetchCategories,
-          color: const Color(0xFF0F172A),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Stack(
+        children: [
+          // Scrollable content
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
-                _HeroCard(
-                  onNotificationTap: () {},
-                ),
+                _HeroCard(),
                 const SizedBox(height: 16),
-                _QuickActionsBar(
-                  onMenuTap: _openAllCategories,
-                  onOrdersTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const OrdersScreen()),
-                    );
-                  },
-                  onReviewsTap: () {},
-                  onRatingsTap: () {},
-                ),
+                _QuickActionsBar(),
                 const SizedBox(height: 20),
-                _MajorCategoriesSection(
-                  categories: _categories,
-                  onSeeAll: _openAllCategories,
-                ),
+                _MajorCategoriesSection(categories: _categories),
                 const SizedBox(height: 20),
-                _LatestOrdersSection(
-                  orders: _orders,
-                  onSeeAll: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const OrdersScreen()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 32),
+                _LatestOrdersSection(orders: _orders),
+                const SizedBox(height: 120), // bottom nav clearance
               ],
             ),
           ),
-        ),
+          // Bottom navigation (pinned)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _BottomNav(
+              selectedIndex: _selectedNavIndex,
+              onTap: (i) => setState(() => _selectedNavIndex = i),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -346,10 +147,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
 // ─── Hero Card ────────────────────────────────────────────────────────────────
 
 class _HeroCard extends StatelessWidget {
-  final VoidCallback? onNotificationTap;
-
-  const _HeroCard({this.onNotificationTap});
-
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
@@ -376,7 +173,7 @@ class _HeroCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _HeroHeader(onNotificationTap: onNotificationTap),
+          _HeroHeader(),
           const SizedBox(height: 8),
           _HeroRevenueBadge(),
           const SizedBox(height: 4),
@@ -392,10 +189,6 @@ class _HeroCard extends StatelessWidget {
 }
 
 class _HeroHeader extends StatelessWidget {
-  final VoidCallback? onNotificationTap;
-
-  const _HeroHeader({this.onNotificationTap});
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -444,7 +237,7 @@ class _HeroHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withOpacity(0.5),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -464,21 +257,17 @@ class _HeroHeader extends StatelessWidget {
         Stack(
           children: [
             GestureDetector(
-              onTap: onNotificationTap,
+              onTap: () {},
               child: Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withOpacity(0.1),
                   shape: BoxShape.circle,
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
                 ),
-                child: Icon(
-                  Icons.notifications_outlined,
-                  size: 18,
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
+                child: Icon(Icons.notifications_outlined,
+                    size: 18, color: Colors.white.withOpacity(0.9)),
               ),
             ),
             Positioned(
@@ -506,35 +295,37 @@ class _HeroRevenueBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 30),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             "Today's Revenue",
             style: TextStyle(
-              fontSize: 11,
-              color: Colors.white.withValues(alpha: 0.8),
-              fontWeight: FontWeight.w500,
-            ),
+                fontSize: 11,
+                color: Colors.white.withOpacity(0.8),
+                fontWeight: FontWeight.w500),
           ),
           const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withValues(alpha: 0.2),
+              color: const Color(0xFF10B981).withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: const Color(0xFF34D399).withValues(alpha: 0.3)),
+              border:
+                  Border.all(color: const Color(0xFF34D399).withOpacity(0.3)),
             ),
             child: const Text(
               '+18.4%',
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF6EE7B7),
-              ),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF6EE7B7)),
             ),
           ),
         ],
@@ -564,15 +355,14 @@ class _HeroLiveIndicator extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const _PulsingDot(color: Color(0xFF34D399)),
+        _PulsingDot(color: const Color(0xFF34D399)),
         const SizedBox(width: 6),
         Text(
           'Kitchen Live · Open Orders',
           style: TextStyle(
-            fontSize: 11,
-            color: Colors.white.withValues(alpha: 0.7),
-            fontWeight: FontWeight.w500,
-          ),
+              fontSize: 11,
+              color: Colors.white.withOpacity(0.7),
+              fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -584,12 +374,17 @@ class _HeroMetricsCapsule extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
       child: Row(
         children: [
           Expanded(
             child: _MetricTile(
               icon: Icons.receipt_outlined,
-              iconBg: Colors.white.withValues(alpha: 0.1),
+              iconBg: Colors.white.withOpacity(0.1),
               iconColor: Colors.white,
               label: 'LIVE ORDERS',
               value: '18 Tickets',
@@ -599,7 +394,7 @@ class _HeroMetricsCapsule extends StatelessWidget {
           Expanded(
             child: _MetricTile(
               icon: null,
-              iconBg: const Color(0xFF10B981).withValues(alpha: 0.2),
+              iconBg: const Color(0xFF10B981).withOpacity(0.2),
               iconColor: const Color(0xFF10B981),
               label: 'AVG PREP',
               value: '14.2m',
@@ -640,9 +435,9 @@ class _MetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -666,7 +461,7 @@ class _MetricTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: Colors.white.withOpacity(0.5),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -694,9 +489,7 @@ class _MetricTile extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white.withValues(alpha: 0.6),
-                        ),
+                            fontSize: 10, color: Colors.white.withOpacity(0.6)),
                       ),
                     ],
                   ),
@@ -712,51 +505,23 @@ class _MetricTile extends StatelessWidget {
 // ─── Quick Actions ────────────────────────────────────────────────────────────
 
 class _QuickActionsBar extends StatelessWidget {
-  final VoidCallback? onMenuTap;
-  final VoidCallback? onOrdersTap;
-  final VoidCallback? onReviewsTap;
-  final VoidCallback? onRatingsTap;
-
-  const _QuickActionsBar({
-    this.onMenuTap,
-    this.onOrdersTap,
-    this.onReviewsTap,
-    this.onRatingsTap,
-  });
+  static const List<_QuickAction> _actions = [
+    _QuickAction(icon: Icons.menu_book_outlined, label: 'Menu'),
+    _QuickAction(icon: Icons.assignment_turned_in_outlined, label: 'Orders'),
+    _QuickAction(icon: Icons.chat_bubble_outline, label: 'Reviews'),
+    _QuickAction(icon: Icons.star_outline, label: 'Ratings'),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      _QuickAction(
-        icon: Icons.menu_book_outlined,
-        label: 'Menu',
-        onTap: onMenuTap,
-      ),
-      _QuickAction(
-        icon: Icons.assignment_turned_in_outlined,
-        label: 'Orders',
-        onTap: onOrdersTap,
-      ),
-      _QuickAction(
-        icon: Icons.chat_bubble_outline,
-        label: 'Reviews',
-        onTap: onReviewsTap,
-      ),
-      _QuickAction(
-        icon: Icons.star_outline,
-        label: 'Ratings',
-        onTap: onRatingsTap,
-      ),
-    ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
-        children: actions
+        children: _actions
             .map((a) => Expanded(
                   child: Padding(
                     padding:
-                        EdgeInsets.only(left: actions.indexOf(a) == 0 ? 0 : 5),
+                        EdgeInsets.only(left: _actions.indexOf(a) == 0 ? 0 : 5),
                     child: _QuickActionButton(action: a),
                   ),
                 ))
@@ -769,24 +534,17 @@ class _QuickActionsBar extends StatelessWidget {
 class _QuickAction {
   final IconData icon;
   final String label;
-  final VoidCallback? onTap;
-
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
+  const _QuickAction({required this.icon, required this.label});
 }
 
 class _QuickActionButton extends StatelessWidget {
   final _QuickAction action;
-
   const _QuickActionButton({required this.action});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: action.onTap,
+      onTap: () {},
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
@@ -795,10 +553,7 @@ class _QuickActionButton extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE2E8F0)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x08000000),
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
+                color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2)),
           ],
         ),
         child: Column(
@@ -807,8 +562,8 @@ class _QuickActionButton extends StatelessWidget {
             Container(
               width: 36,
               height: 36,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF1F5F9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child:
@@ -834,12 +589,7 @@ class _QuickActionButton extends StatelessWidget {
 
 class _MajorCategoriesSection extends StatelessWidget {
   final List<MenuCategory> categories;
-  final VoidCallback? onSeeAll;
-
-  const _MajorCategoriesSection({
-    required this.categories,
-    this.onSeeAll,
-  });
+  const _MajorCategoriesSection({required this.categories});
 
   @override
   Widget build(BuildContext context) {
@@ -847,7 +597,7 @@ class _MajorCategoriesSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          _SectionHeader(title: 'Major Categories', onSeeAll: onSeeAll),
+          _SectionHeader(title: 'Major Categories', onSeeAll: () {}),
           const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
@@ -858,25 +608,8 @@ class _MajorCategoriesSection extends StatelessWidget {
               crossAxisSpacing: 10,
               childAspectRatio: 1.0,
             ),
-            itemCount: categories.length > 6 ? 6 : categories.length,
-            itemBuilder: (_, i) => _CategoryCard(
-              category: categories[i],
-              onTap: () {
-                if (categories[i].id.isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CategoryItemsScreen(
-                        categoryId: categories[i].id,
-                        categoryName: categories[i].name,
-                      ),
-                    ),
-                  );
-                } else {
-                  onSeeAll?.call();
-                }
-              },
-            ),
+            itemCount: categories.length,
+            itemBuilder: (_, i) => _CategoryCard(category: categories[i]),
           ),
         ],
       ),
@@ -886,29 +619,20 @@ class _MajorCategoriesSection extends StatelessWidget {
 
 class _CategoryCard extends StatelessWidget {
   final MenuCategory category;
-  final VoidCallback? onTap;
-
-  const _CategoryCard({
-    required this.category,
-    this.onTap,
-  });
+  const _CategoryCard({required this.category});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {},
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border:
-              Border.all(color: const Color(0xFFE2E8F0).withValues(alpha: 0.8)),
+          border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.8)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
+                color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
           ],
         ),
         child: Column(
@@ -917,15 +641,14 @@ class _CategoryCard extends StatelessWidget {
             Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF1F5F9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
-                    color: Color(0x08000000),
-                    blurRadius: 2,
-                    offset: Offset(0, 1),
-                  ),
+                      color: Color(0x08000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1)),
                 ],
               ),
               child:
@@ -934,22 +657,18 @@ class _CategoryCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               category.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
-              ),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A)),
             ),
             const SizedBox(height: 2),
             Text(
               '${category.count} items',
               style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF94A3B8),
-              ),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF94A3B8)),
             ),
           ],
         ),
@@ -962,12 +681,7 @@ class _CategoryCard extends StatelessWidget {
 
 class _LatestOrdersSection extends StatelessWidget {
   final List<OrderItem> orders;
-  final VoidCallback? onSeeAll;
-
-  const _LatestOrdersSection({
-    required this.orders,
-    this.onSeeAll,
-  });
+  const _LatestOrdersSection({required this.orders});
 
   @override
   Widget build(BuildContext context) {
@@ -975,7 +689,7 @@ class _LatestOrdersSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          _SectionHeader(title: 'Latest Orders', onSeeAll: onSeeAll),
+          _SectionHeader(title: 'Latest Orders', onSeeAll: () {}),
           const SizedBox(height: 12),
           ...orders.map((o) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -989,13 +703,12 @@ class _LatestOrdersSection extends StatelessWidget {
 
 class _OrderCard extends StatelessWidget {
   final OrderItem order;
-
   const _OrderCard({required this.order});
 
   Color get _iconBg {
     switch (order.statusType) {
       case OrderStatus.ready:
-        return const Color(0xFF10B981).withValues(alpha: 0.08);
+        return const Color(0xFF10B981).withOpacity(0.08);
       default:
         return const Color(0xFFF1F5F9);
     }
@@ -1013,9 +726,9 @@ class _OrderCard extends StatelessWidget {
   Color get _borderColor {
     switch (order.statusType) {
       case OrderStatus.ready:
-        return const Color(0xFFD1FAE5).withValues(alpha: 0.6);
+        return const Color(0xFFD1FAE5).withOpacity(0.6);
       default:
-        return const Color(0xFFE2E8F0).withValues(alpha: 0.8);
+        return const Color(0xFFE2E8F0).withOpacity(0.8);
     }
   }
 
@@ -1040,10 +753,7 @@ class _OrderCard extends StatelessWidget {
         border: Border.all(color: _borderColor),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
+              color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -1056,7 +766,7 @@ class _OrderCard extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(
                 color: order.statusType == OrderStatus.ready
-                    ? const Color(0xFFD1FAE5).withValues(alpha: 0.6)
+                    ? const Color(0xFFD1FAE5).withOpacity(0.6)
                     : const Color(0xFFE2E8F0),
               ),
             ),
@@ -1072,19 +782,17 @@ class _OrderCard extends StatelessWidget {
                     Text(
                       order.id,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A)),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '· ${order.platform}',
                       style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF94A3B8),
-                      ),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF94A3B8)),
                     ),
                   ],
                 ),
@@ -1092,10 +800,9 @@ class _OrderCard extends StatelessWidget {
                 Text(
                   order.description,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
-                  ),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF475569)),
                 ),
                 const SizedBox(height: 5),
                 _StatusBadge(order: order),
@@ -1109,19 +816,17 @@ class _OrderCard extends StatelessWidget {
               Text(
                 '\$${order.amount.toStringAsFixed(2)}',
                 style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                ),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 2),
               Text(
                 '${order.itemCount} items',
                 style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF94A3B8),
-                ),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF94A3B8)),
               ),
             ],
           ),
@@ -1133,7 +838,6 @@ class _OrderCard extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final OrderItem order;
-
   const _StatusBadge({required this.order});
 
   Color get _dotColor {
@@ -1176,7 +880,7 @@ class _StatusBadge extends StatelessWidget {
       case OrderStatus.ready:
         return const Color(0xFFD1FAE5);
       case OrderStatus.completed:
-        return const Color(0xFFE2E8F0).withValues(alpha: 0.6);
+        return const Color(0xFFE2E8F0).withOpacity(0.6);
     }
   }
 
@@ -1200,13 +904,132 @@ class _StatusBadge extends StatelessWidget {
           child: Text(
             '${order.timeAgo} · ${order.status}',
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: _textColor,
-            ),
+                fontSize: 10, fontWeight: FontWeight.w600, color: _textColor),
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Bottom Navigation ────────────────────────────────────────────────────────
+
+class _BottomNav extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  const _BottomNav({required this.selectedIndex, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottomPadding),
+      decoration: const BoxDecoration(
+        color: Color(0xF5FFFFFF),
+        border: Border(top: BorderSide(color: Color(0x14E2E8F0))),
+        boxShadow: [
+          BoxShadow(
+              color: Color(0x0A000000), blurRadius: 20, offset: Offset(0, -4)),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _NavItem(
+              icon: Icons.home_outlined,
+              label: 'Home',
+              isActive: selectedIndex == 0,
+              onTap: () => onTap(0)),
+          _NavItem(
+              icon: Icons.kitchen,
+              label: 'Kitchen',
+              isActive: selectedIndex == 1,
+              onTap: () => onTap(1)),
+          // Center scan button
+          GestureDetector(
+            onTap: () {},
+            child: Transform.translate(
+              offset: const Offset(0, -14),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Color(0x40000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 4)),
+                  ],
+                ),
+                child: const Icon(Icons.qr_code_scanner_outlined,
+                    color: Colors.white, size: 22),
+              ),
+            ),
+          ),
+          _NavItem(
+              icon: Icons.bar_chart_outlined,
+              label: 'Reports',
+              isActive: selectedIndex == 3,
+              onTap: () => onTap(3)),
+          _NavItem(
+              icon: Icons.person_outline,
+              label: 'Profile',
+              isActive: selectedIndex == 4,
+              onTap: () => onTap(4)),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavItem(
+      {required this.icon,
+      required this.label,
+      required this.isActive,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 48,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
+            ),
+            if (isActive) ...[
+              const SizedBox(height: 3),
+              Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFF0F172A), shape: BoxShape.circle)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1216,7 +1039,6 @@ class _StatusBadge extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final VoidCallback? onSeeAll;
-
   const _SectionHeader({required this.title, this.onSeeAll});
 
   @override
@@ -1229,11 +1051,10 @@ class _SectionHeader extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
-                letterSpacing: -0.3,
-              ),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.3),
             ),
           ),
         ),
@@ -1244,10 +1065,9 @@ class _SectionHeader extends StatelessWidget {
             child: Text(
               'See All',
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade600,
-              ),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600),
             ),
           ),
         ),
@@ -1259,7 +1079,6 @@ class _SectionHeader extends StatelessWidget {
 class _PulsingDot extends StatefulWidget {
   final Color color;
   final double size;
-
   const _PulsingDot({required this.color, this.size = 8});
 
   @override
@@ -1275,12 +1094,10 @@ class _PulsingDotState extends State<_PulsingDot>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+        vsync: this, duration: const Duration(milliseconds: 1000))
+      ..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.4, end: 1.0)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1298,12 +1115,16 @@ class _PulsingDotState extends State<_PulsingDot>
         child: Container(
           width: widget.size,
           height: widget.size,
-          decoration: BoxDecoration(
-            color: widget.color,
-            shape: BoxShape.circle,
-          ),
+          decoration:
+              BoxDecoration(color: widget.color, shape: BoxShape.circle),
         ),
       ),
     );
   }
+}
+
+// The chef hat icon isn't in default Icons, so we provide a workaround:
+extension on Icons {
+  static const IconData chef_hat =
+      IconData(0xe53d, fontFamily: 'MaterialIcons');
 }
