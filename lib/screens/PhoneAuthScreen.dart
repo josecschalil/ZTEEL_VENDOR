@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/OtpProfileScreen.dart';
 import 'package:frontend/services/auth_service.dart';
@@ -56,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (rawInput.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please enter a valid 10-digit mobile number'),
-        backgroundColor: const Color(0xFF334155),
+        backgroundColor: AppColors.textSecondary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -86,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen>
       final errorMsg = res['error'] ?? 'Failed to send OTP';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(errorMsg),
-        backgroundColor: const Color(0xFF334155),
+        backgroundColor: AppColors.textSecondary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -99,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.bg,
         resizeToAvoidBottomInset: true,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -126,11 +127,11 @@ class _LoginScreenState extends State<LoginScreen>
                                     width: 38,
                                     height: 38,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF0F172A),
+                                      color: AppColors.primaryDark,
                                       borderRadius: BorderRadius.circular(9),
                                     ),
                                     child: const Icon(Icons.restaurant,
-                                        color: Colors.white, size: 19),
+                                        color: AppColors.white, size: 19),
                                   ),
                                   const SizedBox(width: 10),
                                   RichText(
@@ -143,15 +144,15 @@ class _LoginScreenState extends State<LoginScreen>
                                         TextSpan(
                                             text: 'Z',
                                             style: TextStyle(
-                                                color: Color(0xFF0F172A))),
+                                                color: AppColors.darkSurface)),
                                         TextSpan(
                                             text: 'tee',
                                             style: TextStyle(
-                                                color: Color(0xFF0F172A))),
+                                                color: AppColors.darkSurface)),
                                         TextSpan(
                                             text: 'el',
                                             style: TextStyle(
-                                                color: Color(0xFF0F172A),
+                                                color: AppColors.darkSurface,
                                                 fontWeight: FontWeight.w300)),
                                       ],
                                     ),
@@ -175,14 +176,14 @@ class _LoginScreenState extends State<LoginScreen>
                                         horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                          color: const Color(0xFFE2E8F0),
+                                          color: AppColors.border,
                                           width: 1),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
                                       'FOOD DEALS · NEAR YOU',
                                       style: TextStyle(
-                                        color: Color(0xFF334155),
+                                        color: AppColors.textSecondary,
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.6,
@@ -196,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   const Text(
                                     'Welcome\nto ZTEEEL',
                                     style: TextStyle(
-                                      color: Color(0xFF0F172A),
+                                      color: AppColors.darkSurface,
                                       fontSize: 44,
                                       fontWeight: FontWeight.w800,
                                       height: 1.08,
@@ -209,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   const Text(
                                     'Find the best food deals near you.\nLet\'s get started.',
                                     style: TextStyle(
-                                      color: Color(0xFF94A3B8),
+                                      color: AppColors.textMuted,
                                       fontSize: 15,
                                       height: 1.65,
                                     ),
@@ -229,11 +230,11 @@ class _LoginScreenState extends State<LoginScreen>
                                   Container(
                                       width: 28,
                                       height: 2,
-                                      color: const Color(0xFF0F172A)),
+                                      color: AppColors.darkSurface),
                                   Container(
                                       width: 72,
                                       height: 2,
-                                      color: const Color(0xFFE2E8F0)),
+                                      color: AppColors.border),
                                 ],
                               ),
                             ),
@@ -250,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   const Text(
                                     'PHONE NUMBER',
                                     style: TextStyle(
-                                      color: Color(0xFF94A3B8),
+                                      color: AppColors.textMuted,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 1.4,
@@ -267,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       const Text(
                                         '+91',
                                         style: TextStyle(
-                                          color: Color(0xFF0F172A),
+                                          color: AppColors.darkSurface,
                                           fontSize: 24,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -276,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       Container(
                                           width: 1,
                                           height: 26,
-                                          color: const Color(0xFFE2E8F0)),
+                                          color: AppColors.border),
                                       const SizedBox(width: 16),
                                       Expanded(
                                         child: TextField(
@@ -291,17 +292,17 @@ class _LoginScreenState extends State<LoginScreen>
                                           ],
                                           onChanged: (_) => setState(() {}),
                                           style: const TextStyle(
-                                            color: Color(0xFF0F172A),
+                                            color: AppColors.darkSurface,
                                             fontSize: 24,
                                             fontWeight: FontWeight.w600,
                                             letterSpacing: 2.5,
                                           ),
-                                          cursorColor: const Color(0xFF0F172A),
+                                          cursorColor: AppColors.primaryDark,
                                           cursorWidth: 2,
                                           decoration: const InputDecoration(
                                             hintText: '00000 00000',
                                             hintStyle: TextStyle(
-                                              color: Color(0xFFE2E8F0),
+                                              color: AppColors.border,
                                               fontSize: 24,
                                               fontWeight: FontWeight.w600,
                                               letterSpacing: 2.5,
@@ -322,8 +323,8 @@ class _LoginScreenState extends State<LoginScreen>
                                     duration: const Duration(milliseconds: 250),
                                     height: 1.5,
                                     color: _focused
-                                        ? const Color(0xFF0F172A)
-                                        : const Color(0xFFE2E8F0),
+                                        ? AppColors.darkSurface
+                                        : AppColors.border,
                                   ),
                                 ],
                               ),
@@ -364,7 +365,7 @@ class _Footer extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
       decoration: const BoxDecoration(
         border: Border(
-          top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          top: BorderSide(color: AppColors.border, width: 1),
         ),
       ),
       child: Column(
@@ -375,10 +376,10 @@ class _Footer extends StatelessWidget {
             child: ElevatedButton(
               onPressed: isLoading ? null : onContinue,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.primaryDark,
+                foregroundColor: AppColors.white,
                 disabledBackgroundColor:
-                    const Color(0xFF0F172A).withOpacity(0.6),
+                    AppColors.primaryDark.withOpacity(0.6),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -389,7 +390,7 @@ class _Footer extends StatelessWidget {
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: Colors.white,
+                        color: AppColors.white,
                       ),
                     )
                   : const Text(
@@ -406,7 +407,7 @@ class _Footer extends StatelessWidget {
             textAlign: TextAlign.center,
             text: TextSpan(
               style: TextStyle(
-                  color: const Color(0xFF94A3B8).withOpacity(.75),
+                  color: AppColors.textMuted.withOpacity(.75),
                   fontSize: 11.5,
                   height: 1.5),
               children: [
@@ -414,13 +415,13 @@ class _Footer extends StatelessWidget {
                 TextSpan(
                     text: 'Terms',
                     style: TextStyle(
-                        color: const Color(0xFF0F172A).withOpacity(.9),
+                        color: AppColors.darkSurface.withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: ' and '),
                 TextSpan(
                     text: 'Privacy Policy',
                     style: TextStyle(
-                        color: const Color(0xFF0F172A).withOpacity(.9),
+                        color: AppColors.darkSurface.withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: '.'),
               ],

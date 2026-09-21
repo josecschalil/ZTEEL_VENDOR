@@ -124,29 +124,20 @@ class _AppTopBarState extends State<AppTopBar>
   @override
   Widget build(BuildContext context) {
     final bgColor = widget.backgroundColor ??
-        (widget.isDark ? AppColors.transparent : AppColors.bg);
+        (widget.isDark ? AppColors.transparent : AppColors.surface);
     final titleColor =
         widget.isDark ? AppColors.textWhite : AppColors.textPrimary;
     final subtitleColor =
-        widget.isDark ? const Color(0xFFCBD5E1) : AppColors.textMuted;
+        widget.isDark ? AppColors.textInverse.withValues(alpha: 0.72) : AppColors.textMuted;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: bgColor,
         border: widget.showBorder && !widget.isDark
             ? const Border(
-                bottom: BorderSide(color: AppColors.border, width: 1),
+                bottom: BorderSide(color: AppColors.divider, width: 0.8),
               )
-            : null,
-        boxShadow: widget.showBorder && !widget.isDark
-            ? [
-                BoxShadow(
-                  color: AppColors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ]
             : null,
       ),
       child: SafeArea(
@@ -156,7 +147,7 @@ class _AppTopBarState extends State<AppTopBar>
           children: [
             // ── Left: Leading widget / Back button / Brand Avatar ──
             _buildLeading(context),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
 
             // ── Center: Title & Subtitle ──
             Expanded(
@@ -170,7 +161,7 @@ class _AppTopBarState extends State<AppTopBar>
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: titleColor,
-                      fontSize: widget.showBackButton ? 17 : 15,
+                      fontSize: widget.showBackButton ? 17 : 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.1,
                     ),
@@ -199,17 +190,17 @@ class _AppTopBarState extends State<AppTopBar>
               const SizedBox(width: 8),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.orangeDim,
+                  color: AppColors.primarySoft,
                   border:
-                      Border.all(color: AppColors.orangeBorder, width: 0.8),
+                      Border.all(color: AppColors.primaryBorder, width: 0.8),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   widget.badgeText!,
                   style: const TextStyle(
-                    color: AppColors.orange,
+                    color: AppColors.primaryDark,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -225,7 +216,7 @@ class _AppTopBarState extends State<AppTopBar>
 
             // ── Right: Notification Icon ──
             if (widget.notificationCount != null) ...[
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               _buildNotificationButton(context),
             ],
 
@@ -246,28 +237,35 @@ class _AppTopBarState extends State<AppTopBar>
     }
 
     if (widget.showBackButton) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onBack ?? () => Navigator.maybePop(context),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: widget.isDark
-                ? Colors.black.withValues(alpha: 0.35)
-                : AppColors.surfaceRaised,
-            border: Border.all(
-              color: widget.isDark ? Colors.transparent : AppColors.border,
-              width: 0.8,
+      return Semantics(
+        button: true,
+        label: 'Back',
+        child: Material(
+          color: AppColors.transparent,
+          child: InkWell(
+            onTap: widget.onBack ?? () => Navigator.maybePop(context),
+            borderRadius: BorderRadius.circular(AppRadii.medium),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? AppColors.black.withValues(alpha: 0.35)
+                    : AppColors.surfaceRaised,
+                border: Border.all(
+                  color: widget.isDark ? AppColors.transparent : AppColors.divider,
+                  width: 0.8,
+                ),
+                borderRadius: BorderRadius.circular(AppRadii.medium),
+              ),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                color: widget.isDark
+                    ? AppColors.textWhite
+                    : AppColors.textSecondary,
+                size: 20,
+              ),
             ),
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: widget.isDark
-                ? AppColors.textWhite
-                : AppColors.textSecondary,
-            size: 15,
           ),
         ),
       );
@@ -279,8 +277,8 @@ class _AppTopBarState extends State<AppTopBar>
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(AppRadii.medium),
+          border: Border.all(color: AppColors.divider, width: 1),
           image: DecorationImage(
             image: NetworkImage(widget.avatarUrl!),
             fit: BoxFit.cover,
@@ -293,19 +291,8 @@ class _AppTopBarState extends State<AppTopBar>
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEF5A4C), Color(0xFFE87722)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.orange.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        gradient: AppGradients.brand,
+        borderRadius: BorderRadius.circular(AppRadii.medium),
       ),
       child: Icon(
         widget.avatarIcon ?? Icons.local_fire_department_rounded,
@@ -317,19 +304,19 @@ class _AppTopBarState extends State<AppTopBar>
 
   Widget _buildStatusBadge() {
     final isOpen = widget.isOpen;
-    final statusColor = isOpen ? AppColors.green : const Color(0xFFE05252);
-    final bgColor = isOpen ? AppColors.greenDim : const Color(0xFFFFEDED);
-    final borderColor = isOpen ? AppColors.greenBorder : const Color(0xFFF5ACAC);
+    final statusColor = isOpen ? AppColors.success : AppColors.danger;
+    final bgColor = isOpen ? AppColors.successDim : AppColors.dangerTint;
+    final borderColor = isOpen ? AppColors.successBorder : AppColors.danger.withValues(alpha: 0.3);
     final label = isOpen ? 'OPEN' : 'CLOSED';
 
     final pill = AnimatedBuilder(
       animation: _pulseAc,
       builder: (_, __) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: bgColor,
           border: Border.all(color: borderColor, width: 0.8),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadii.pill),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -342,16 +329,6 @@ class _AppTopBarState extends State<AppTopBar>
                     ? statusColor.withValues(alpha: 0.5 + 0.5 * _pulseAc.value)
                     : statusColor.withValues(alpha: 0.85),
                 shape: BoxShape.circle,
-                boxShadow: isOpen
-                    ? [
-                        BoxShadow(
-                          color: statusColor
-                              .withValues(alpha: 0.45 * _pulseAc.value),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : [],
               ),
             ),
             const SizedBox(width: 6),
@@ -379,10 +356,14 @@ class _AppTopBarState extends State<AppTopBar>
 
     if (widget.onStatusToggle == null) return pill;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _showStatusConfirmDialog(context),
-      child: pill,
+    return Semantics(
+      button: true,
+      label: isOpen ? 'Shop open. Change status' : 'Shop closed. Change status',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _showStatusConfirmDialog(context),
+        child: pill,
+      ),
     );
   }
 
@@ -406,7 +387,7 @@ class _AppTopBarState extends State<AppTopBar>
               height: 36,
               decoration: BoxDecoration(
                 color: isOpen
-                    ? const Color(0xFFFFEDED)
+                    ? AppColors.dangerTint
                     : AppColors.greenDim,
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -415,7 +396,7 @@ class _AppTopBarState extends State<AppTopBar>
                     ? Icons.storefront_outlined
                     : Icons.store_rounded,
                 color: isOpen
-                    ? const Color(0xFFE05252)
+                    ? AppColors.danger
                     : AppColors.green,
                 size: 18,
               ),
@@ -460,7 +441,7 @@ class _AppTopBarState extends State<AppTopBar>
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor:
-                  isOpen ? const Color(0xFFE05252) : AppColors.green,
+                  isOpen ? AppColors.danger : AppColors.success,
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(
@@ -487,57 +468,66 @@ class _AppTopBarState extends State<AppTopBar>
 
   Widget _buildNotificationButton(BuildContext context) {
     final count = widget.notificationCount ?? 0;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onNotificationTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: widget.isDark
-                  ? Colors.black.withValues(alpha: 0.35)
-                  : AppColors.surfaceRaised,
-              border: Border.all(
-                color: widget.isDark ? Colors.transparent : AppColors.border,
-                width: 0.8,
-              ),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Icon(
-              Icons.notifications_none_rounded,
-              color: widget.isDark
-                  ? AppColors.textWhite
-                  : AppColors.textSecondary,
-              size: 19,
-            ),
-          ),
-          if (count > 0)
-            Positioned(
-              right: -3,
-              top: -3,
-              child: Container(
-                width: 16,
-                height: 16,
-                decoration: const BoxDecoration(
-                  color: AppColors.orange,
-                  shape: BoxShape.circle,
+    return Semantics(
+      button: true,
+      label: count > 0 ? '$count notifications' : 'Notifications',
+      child: Material(
+        color: AppColors.transparent,
+        child: InkWell(
+          onTap: widget.onNotificationTap,
+          borderRadius: BorderRadius.circular(AppRadii.medium),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: widget.isDark
+                      ? AppColors.black.withValues(alpha: 0.35)
+                      : AppColors.surfaceRaised,
+                  border: Border.all(
+                    color: widget.isDark
+                        ? AppColors.transparent
+                        : AppColors.divider,
+                    width: 0.8,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadii.medium),
                 ),
-                child: Center(
-                  child: Text(
-                    count > 99 ? '99+' : count.toString(),
-                    style: const TextStyle(
-                      color: AppColors.textWhite,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w800,
+                child: Icon(
+                  Icons.notifications_outlined,
+                  color: widget.isDark
+                      ? AppColors.textWhite
+                      : AppColors.textSecondary,
+                  size: 20,
+                ),
+              ),
+              if (count > 0)
+                Positioned(
+                  right: -3,
+                  top: -3,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        count > 99 ? '99+' : count.toString(),
+                        style: const TextStyle(
+                          color: AppColors.textWhite,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

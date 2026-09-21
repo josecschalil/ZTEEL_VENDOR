@@ -120,7 +120,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
@@ -269,7 +269,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
               },
               errorBuilder: (context, error) {
                 return Container(
-                  color: const Color(0xFF1A1A1A),
+                  color: AppColors.darkSurface,
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
@@ -325,7 +325,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.35),
+                          color: AppColors.black.withValues(alpha: 0.35),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -402,13 +402,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                         ],
                       ),
                       borderRadius: BorderRadius.circular(2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.orange.withOpacity(0.5),
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
-                      ],
                     ),
                   ),
                 );
@@ -549,15 +542,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         decoration: BoxDecoration(
           color: isActive ? AppColors.orange : AppColors.textWhite.withOpacity(0.16),
           shape: BoxShape.circle,
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: AppColors.orange.withOpacity(0.5),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
         ),
         child: Icon(
           icon,

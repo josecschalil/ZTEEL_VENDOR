@@ -1,21 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/app_colors.dart';
 
 class ArtisanTrattoApp extends StatelessWidget {
   const ArtisanTrattoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Artisan Trattoria',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'sans-serif',
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F172A)),
-      ),
-      home: const KitchenDashboard(),
-    );
+    return const KitchenDashboard();
   }
 }
 
@@ -109,7 +101,7 @@ class _KitchenDashboardState extends State<KitchenDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.bg,
       body: Stack(
         children: [
           // Scrollable content
@@ -152,18 +144,11 @@ class _HeroCard extends StatelessWidget {
     final topPadding = MediaQuery.of(context).padding.top;
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF0F172A),
+        gradient: AppGradients.brand,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(36),
           bottomRight: Radius.circular(36),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
       ),
       padding: EdgeInsets.only(
         top: topPadding + 20,
@@ -201,14 +186,14 @@ class _HeroHeader extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF334155), width: 2),
+                border: Border.all(color: AppColors.textSecondary, width: 2),
               ),
               child: ClipOval(
                 child: Image.network(
                   'https://lh3.googleusercontent.com/aida-public/AB6AXuCJFaKH2gw6QTTTf7UQJaJ6dWTW8bKkZDbrqQIP8UKXo4Yy6Z1lDi8lshjutI674H-xwyCrUpvrwv5WHrUt7cDSjcea9QPspaLdD-dq7jg390lJzD6FLgPekAulmMiEev8BjYymGjocIdnP5gK6MQLQk-R54NZpujjY5WLzQrupWVkdOufzyzs_fckJPbZwpK8B7zwa2kei7529jCzrESInxs7WiAWboj1mQJ0RcoB070a6cnvoWDVYig',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.person, color: Colors.white54),
+                      const Icon(Icons.person, color: AppColors.white54),
                 ),
               ),
             ),
@@ -219,9 +204,9 @@ class _HeroHeader extends StatelessWidget {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
+                  color: AppColors.success,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0F172A), width: 2),
+                  border: Border.all(color: AppColors.darkSurface, width: 2),
                 ),
               ),
             ),
@@ -237,7 +222,7 @@ class _HeroHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withOpacity(0.5),
+                  color: AppColors.white.withOpacity(0.5),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -246,7 +231,7 @@ class _HeroHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: AppColors.white,
                   letterSpacing: -0.3,
                 ),
               ),
@@ -262,12 +247,12 @@ class _HeroHeader extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: AppColors.white.withOpacity(0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(color: AppColors.white.withOpacity(0.1)),
                 ),
                 child: Icon(Icons.notifications_outlined,
-                    size: 18, color: Colors.white.withOpacity(0.9)),
+                    size: 18, color: AppColors.white.withOpacity(0.9)),
               ),
             ),
             Positioned(
@@ -277,10 +262,10 @@ class _HeroHeader extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
+                  color: AppColors.success,
                   shape: BoxShape.circle,
                   border:
-                      Border.all(color: const Color(0xFF0F172A), width: 1.5),
+                      Border.all(color: AppColors.darkSurface, width: 1.5),
                 ),
               ),
             ),
@@ -297,9 +282,9 @@ class _HeroRevenueBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: AppColors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: AppColors.white.withOpacity(0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -308,24 +293,24 @@ class _HeroRevenueBadge extends StatelessWidget {
             "Today's Revenue",
             style: TextStyle(
                 fontSize: 11,
-                color: Colors.white.withOpacity(0.8),
+                color: AppColors.white.withOpacity(0.8),
                 fontWeight: FontWeight.w500),
           ),
           const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.2),
+              color: AppColors.success.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
               border:
-                  Border.all(color: const Color(0xFF34D399).withOpacity(0.3)),
+                  Border.all(color: AppColors.successLight.withOpacity(0.3)),
             ),
             child: const Text(
               '+18.4%',
               style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF6EE7B7)),
+                  color: AppColors.successLight),
             ),
           ),
         ],
@@ -342,7 +327,7 @@ class _HeroRevenueAmount extends StatelessWidget {
       style: TextStyle(
         fontSize: 34,
         fontWeight: FontWeight.w800,
-        color: Colors.white,
+        color: AppColors.white,
         letterSpacing: -1,
       ),
     );
@@ -355,13 +340,13 @@ class _HeroLiveIndicator extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _PulsingDot(color: const Color(0xFF34D399)),
+        _PulsingDot(color: AppColors.successLight),
         const SizedBox(width: 6),
         Text(
           'Kitchen Live · Open Orders',
           style: TextStyle(
               fontSize: 11,
-              color: Colors.white.withOpacity(0.7),
+              color: AppColors.white.withOpacity(0.7),
               fontWeight: FontWeight.w500),
         ),
       ],
@@ -375,17 +360,17 @@ class _HeroMetricsCapsule extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.07),
+        color: AppColors.white.withOpacity(0.07),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: AppColors.white.withOpacity(0.1)),
       ),
       child: Row(
         children: [
           Expanded(
             child: _MetricTile(
               icon: Icons.receipt_outlined,
-              iconBg: Colors.white.withOpacity(0.1),
-              iconColor: Colors.white,
+              iconBg: AppColors.white.withOpacity(0.1),
+              iconColor: AppColors.white,
               label: 'LIVE ORDERS',
               value: '18 Tickets',
             ),
@@ -394,11 +379,11 @@ class _HeroMetricsCapsule extends StatelessWidget {
           Expanded(
             child: _MetricTile(
               icon: null,
-              iconBg: const Color(0xFF10B981).withOpacity(0.2),
-              iconColor: const Color(0xFF10B981),
+              iconBg: AppColors.success.withOpacity(0.2),
+              iconColor: AppColors.success,
               label: 'AVG PREP',
               value: '14.2m',
-              valueColor: const Color(0xFF6EE7B7),
+              valueColor: AppColors.successLight,
               subtitle: '· On Pace',
               isPulse: true,
             ),
@@ -435,9 +420,9 @@ class _MetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: AppColors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: AppColors.white.withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -461,7 +446,7 @@ class _MetricTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white.withOpacity(0.5),
+                    color: AppColors.white.withOpacity(0.5),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -471,7 +456,7 @@ class _MetricTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: valueColor ?? Colors.white,
+                      color: valueColor ?? AppColors.white,
                       letterSpacing: -0.3,
                     ),
                   )
@@ -483,13 +468,13 @@ class _MetricTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: valueColor ?? Colors.white,
+                          color: valueColor ?? AppColors.white,
                         ),
                       ),
                       Text(
                         subtitle!,
                         style: TextStyle(
-                            fontSize: 10, color: Colors.white.withOpacity(0.6)),
+                            fontSize: 10, color: AppColors.white.withOpacity(0.6)),
                       ),
                     ],
                   ),
@@ -548,13 +533,9 @@ class _QuickActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2)),
-          ],
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -563,11 +544,11 @@ class _QuickActionButton extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AppColors.surfaceRaised,
                 shape: BoxShape.circle,
               ),
               child:
-                  Icon(action.icon, size: 17, color: const Color(0xFF334155)),
+                  Icon(action.icon, size: 17, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 6),
             Text(
@@ -575,7 +556,7 @@ class _QuickActionButton extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+                color: AppColors.darkSurfaceRaised,
               ),
             ),
           ],
@@ -627,13 +608,9 @@ class _CategoryCard extends StatelessWidget {
       onTap: () {},
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.8)),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
-          ],
+          border: Border.all(color: AppColors.border.withOpacity(0.8)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -642,17 +619,11 @@ class _CategoryCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AppColors.surfaceRaised,
                 shape: BoxShape.circle,
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x08000000),
-                      blurRadius: 2,
-                      offset: Offset(0, 1)),
-                ],
               ),
               child:
-                  Icon(category.icon, size: 20, color: const Color(0xFF334155)),
+                  Icon(category.icon, size: 20, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 6),
             Text(
@@ -660,7 +631,7 @@ class _CategoryCard extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A)),
+                  color: AppColors.darkSurface),
             ),
             const SizedBox(height: 2),
             Text(
@@ -668,7 +639,7 @@ class _CategoryCard extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF94A3B8)),
+                  color: AppColors.textMuted),
             ),
           ],
         ),
@@ -708,27 +679,27 @@ class _OrderCard extends StatelessWidget {
   Color get _iconBg {
     switch (order.statusType) {
       case OrderStatus.ready:
-        return const Color(0xFF10B981).withOpacity(0.08);
+        return AppColors.success.withOpacity(0.08);
       default:
-        return const Color(0xFFF1F5F9);
+        return AppColors.surfaceRaised;
     }
   }
 
   Color get _iconColor {
     switch (order.statusType) {
       case OrderStatus.ready:
-        return const Color(0xFF059669);
+        return AppColors.success;
       default:
-        return const Color(0xFF475569);
+        return AppColors.textSecondary;
     }
   }
 
   Color get _borderColor {
     switch (order.statusType) {
       case OrderStatus.ready:
-        return const Color(0xFFD1FAE5).withOpacity(0.6);
+        return AppColors.successTint.withOpacity(0.6);
       default:
-        return const Color(0xFFE2E8F0).withOpacity(0.8);
+        return AppColors.border.withOpacity(0.8);
     }
   }
 
@@ -748,13 +719,9 @@ class _OrderCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _borderColor),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
-        ],
       ),
       child: Row(
         children: [
@@ -766,8 +733,8 @@ class _OrderCard extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(
                 color: order.statusType == OrderStatus.ready
-                    ? const Color(0xFFD1FAE5).withOpacity(0.6)
-                    : const Color(0xFFE2E8F0),
+                    ? AppColors.successTint.withOpacity(0.6)
+                    : AppColors.border,
               ),
             ),
             child: Icon(_icon, size: 18, color: _iconColor),
@@ -784,7 +751,7 @@ class _OrderCard extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A)),
+                          color: AppColors.darkSurface),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -792,7 +759,7 @@ class _OrderCard extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF94A3B8)),
+                          color: AppColors.textMuted),
                     ),
                   ],
                 ),
@@ -802,7 +769,7 @@ class _OrderCard extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF475569)),
+                      color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 5),
                 _StatusBadge(order: order),
@@ -818,7 +785,7 @@ class _OrderCard extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A)),
+                    color: AppColors.darkSurface),
               ),
               const SizedBox(height: 2),
               Text(
@@ -826,7 +793,7 @@ class _OrderCard extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF94A3B8)),
+                    color: AppColors.textMuted),
               ),
             ],
           ),
@@ -843,44 +810,44 @@ class _StatusBadge extends StatelessWidget {
   Color get _dotColor {
     switch (order.statusType) {
       case OrderStatus.cooking:
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case OrderStatus.ready:
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case OrderStatus.completed:
-        return const Color(0xFF94A3B8);
+        return AppColors.textMuted;
     }
   }
 
   Color get _textColor {
     switch (order.statusType) {
       case OrderStatus.cooking:
-        return const Color(0xFF92400E);
+        return AppColors.warning;
       case OrderStatus.ready:
-        return const Color(0xFF065F46);
+        return AppColors.success;
       case OrderStatus.completed:
-        return const Color(0xFF64748B);
+        return AppColors.textSecondary;
     }
   }
 
   Color get _bgColor {
     switch (order.statusType) {
       case OrderStatus.cooking:
-        return const Color(0xFFFFFBEB);
+        return AppColors.warningTint;
       case OrderStatus.ready:
-        return const Color(0xFFECFDF5);
+        return AppColors.successTint;
       case OrderStatus.completed:
-        return const Color(0xFFF1F5F9);
+        return AppColors.surfaceRaised;
     }
   }
 
   Color get _borderColor {
     switch (order.statusType) {
       case OrderStatus.cooking:
-        return const Color(0xFFE2E8F0);
+        return AppColors.border;
       case OrderStatus.ready:
-        return const Color(0xFFD1FAE5);
+        return AppColors.successTint;
       case OrderStatus.completed:
-        return const Color(0xFFE2E8F0).withOpacity(0.6);
+        return AppColors.border.withOpacity(0.6);
     }
   }
 
@@ -926,12 +893,8 @@ class _BottomNav extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottomPadding),
       decoration: const BoxDecoration(
-        color: Color(0xF5FFFFFF),
-        border: Border(top: BorderSide(color: Color(0x14E2E8F0))),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x0A000000), blurRadius: 20, offset: Offset(0, -4)),
-        ],
+        color: AppColors.shadow,
+        border: Border(top: BorderSide(color: AppColors.shadow)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -955,18 +918,12 @@ class _BottomNav extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: AppColors.primaryDark,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Color(0x40000000),
-                        blurRadius: 12,
-                        offset: Offset(0, 4)),
-                  ],
+                  border: Border.all(color: AppColors.white, width: 2),
                 ),
                 child: const Icon(Icons.qr_code_scanner_outlined,
-                    color: Colors.white, size: 22),
+                    color: AppColors.white, size: 22),
               ),
             ),
           ),
@@ -1000,7 +957,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8);
+    final color = isActive ? AppColors.primaryDark : AppColors.textMuted;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -1025,7 +982,7 @@ class _NavItem extends StatelessWidget {
                   width: 4,
                   height: 4,
                   decoration: const BoxDecoration(
-                      color: Color(0xFF0F172A), shape: BoxShape.circle)),
+                      color: AppColors.primaryDark, shape: BoxShape.circle)),
             ],
           ],
         ),
@@ -1053,7 +1010,7 @@ class _SectionHeader extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+                  color: AppColors.darkSurface,
                   letterSpacing: -0.3),
             ),
           ),
@@ -1067,7 +1024,7 @@ class _SectionHeader extends StatelessWidget {
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600),
+                  color: AppColors.iconMuted),
             ),
           ),
         ),

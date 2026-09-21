@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/app_colors.dart';
 
 import 'package:frontend/screens/editFoodItemScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
@@ -130,7 +131,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       isScrollControlled: true,
       builder: (context) => _DeleteSheet(itemName: widget.itemName),
     );
@@ -165,7 +166,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           elevation: 0,
-          backgroundColor: positive ? _C.dark : const Color(0xFF7F1D1D),
+          backgroundColor: positive ? _C.dark : AppColors.primaryDark,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           content: Row(
@@ -174,7 +175,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                 positive
                     ? Icons.check_circle_outline_rounded
                     : Icons.error_outline_rounded,
-                color: positive ? _C.emeraldLight : const Color(0xFFFCA5A5),
+                color: positive ? _C.emeraldLight : AppColors.primaryDark,
                 size: 19,
               ),
               const SizedBox(width: 10),
@@ -182,7 +183,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                 child: Text(
                   message,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -244,7 +245,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
     // instead of staying pinned above an inner Expanded scroll area.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
@@ -306,13 +307,6 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
           bottomLeft: Radius.circular(36),
           bottomRight: Radius.circular(36),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 24,
-            offset: Offset(0, 8),
-          ),
-        ],
       ),
       child: SafeArea(
         bottom: false,
@@ -359,7 +353,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                         Text(
                           widget.itemName,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontSize: 25,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -.7,
@@ -373,7 +367,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                             Text(
                               '\$${widget.price.toStringAsFixed(2)}',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.white,
                                 fontSize: 30,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -1,
@@ -409,9 +403,9 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
       width: 108,
       height: 108,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .08),
+        color: AppColors.white.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: .14)),
+        border: Border.all(color: AppColors.white.withValues(alpha: .14)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -423,14 +417,14 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => const Icon(
                 Icons.restaurant_rounded,
-                color: Colors.white54,
+                color: AppColors.white54,
                 size: 30,
               ),
             )
           else
             const Icon(
               Icons.restaurant_rounded,
-              color: Colors.white54,
+              color: AppColors.white54,
               size: 30,
             ),
           if (widget.isBestseller)
@@ -445,7 +439,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.star_rounded,
-                    color: Colors.white, size: 13),
+                    color: AppColors.white, size: 13),
               ),
             ),
         ],
@@ -462,13 +456,6 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
         color: _C.surface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: _C.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: Row(
         children: [
@@ -556,7 +543,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.star_rounded,
-                    color: Colors.white, size: 11),
+                    color: AppColors.white, size: 11),
               ),
             ),
         ],
@@ -684,13 +671,6 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
             color: _C.surface,
             borderRadius: BorderRadius.circular(29),
             border: Border.all(color: _C.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: .10),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
           child: Row(
             children: [
@@ -732,7 +712,7 @@ class _HeroIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.12),
+      color: AppColors.white.withValues(alpha: 0.12),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -740,7 +720,7 @@ class _HeroIconButton extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(icon, color: Colors.white, size: 17),
+          child: Icon(icon, color: AppColors.white, size: 17),
         ),
       ),
     );
@@ -759,7 +739,7 @@ class _StatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: isAvailable
             ? _C.emerald.withValues(alpha: .94)
-            : Colors.white.withValues(alpha: .14),
+            : AppColors.white.withValues(alpha: .14),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -769,7 +749,7 @@ class _StatusPill extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               shape: BoxShape.circle,
             ),
           ),
@@ -777,7 +757,7 @@ class _StatusPill extends StatelessWidget {
           Text(
             isAvailable ? 'LIVE' : 'HIDDEN',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontSize: 9.5,
               fontWeight: FontWeight.w900,
               letterSpacing: .7,
@@ -813,7 +793,7 @@ class _MiniSwitch extends StatelessWidget {
           width: 21,
           height: 21,
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             shape: BoxShape.circle,
           ),
           child: loading
@@ -971,8 +951,8 @@ class _PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = filled ? _C.dark : Colors.transparent;
-    final foreground = filled ? Colors.white : _C.textPrimary;
+    final background = filled ? _C.dark : AppColors.transparent;
+    final foreground = filled ? AppColors.white : _C.textPrimary;
 
     final content = loading
         ? SizedBox(
@@ -1125,7 +1105,7 @@ class _SheetButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final background = destructive ? _C.red : (filled ? _C.dark : _C.surface);
-    final foreground = destructive || filled ? Colors.white : _C.textPrimary;
+    final foreground = destructive || filled ? AppColors.white : _C.textPrimary;
 
     return SizedBox(
       height: 48,
@@ -1233,25 +1213,20 @@ class _ActionSheetButton extends StatelessWidget {
 }
 
 class _C {
-  static const bg = Color(0xFFF8FAFC);
-  static const surface = Color(0xFFFFFFFF);
-  static const raised = Color(0xFFF1F5F9);
-
-  static const dark = Color(0xFF0F172A);
-  static const border = Color(0xFFE2E8F0);
-  static const borderMid = Color(0xFFCBD5E1);
-
-  static const textPrimary = Color(0xFF0F172A);
-  static const textSecondary = Color(0xFF64748B);
-  static const textMuted = Color(0xFF94A3B8);
-
-  static const emerald = Color(0xFF10B981);
-  static const emeraldLight = Color(0xFF6EE7B7);
-  static const emeraldBg = Color(0xFFECFDF5);
-
-  static const red = Color(0xFFEF4444);
-  static const redBg = Color(0xFFFEF2F2);
-
-  static const amber = Color(0xFFF59E0B);
-  static const amberBg = Color(0xFFFFFBEB);
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const raised = AppColors.surfaceRaised;
+  static const dark = AppColors.primaryDark;
+  static const border = AppColors.border;
+  static const borderMid = AppColors.borderStrong;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
+  static const emerald = AppColors.success;
+  static const emeraldLight = AppColors.successLight;
+  static const emeraldBg = AppColors.successTint;
+  static const red = AppColors.danger;
+  static const redBg = AppColors.dangerTint;
+  static const amber = AppColors.warning;
+  static const amberBg = AppColors.warningTint;
 }

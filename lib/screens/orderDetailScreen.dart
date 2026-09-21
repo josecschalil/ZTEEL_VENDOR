@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 //
@@ -7,25 +8,18 @@ import 'package:flutter/material.dart';
 class _Pal {
   const _Pal._();
 
-  static const bg = Color(0xFFF8FAFC);
-  static const surface = Colors.white;
-  static const wash = Color(0xFFF1F5F9);
-  static const line = Color(0xFFE2E8F0);
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const wash = AppColors.surfaceRaised;
+  static const line = AppColors.border;
+  static const ink = AppColors.textPrimary;
+  static const ink700 = AppColors.textPrimary;
+  static const ink600 = AppColors.textSecondary;
+  static const ink500 = AppColors.textSecondary;
+  static const ink400 = AppColors.textMuted;
+  static const green = AppColors.success;
+  static const red = AppColors.danger;
 
-  static const ink = Color(0xFF0F172A);
-  static const ink700 = Color(0xFF334155);
-  static const ink600 = Color(0xFF475569);
-  static const ink500 = Color(0xFF64748B);
-  static const ink400 = Color(0xFF94A3B8);
-
-  static const green = Color(0xFF10B981);
-  static const red = Color(0xFFE11D48);
-
-  static const cardShadow = BoxShadow(
-    color: Color(0x06000000),
-    blurRadius: 4,
-    offset: Offset(0, 2),
-  );
 }
 
 class OrderLineItem {
@@ -174,7 +168,7 @@ class OrderDetailScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _Pal.ink,
+        color: AppColors.primaryDark,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -184,11 +178,11 @@ class OrderDetailScreen extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: AppColors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.receipt_long_rounded,
-                size: 18, color: Colors.white),
+                size: 18, color: AppColors.white),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -202,7 +196,7 @@ class OrderDetailScreen extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: AppColors.white,
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -215,7 +209,7 @@ class OrderDetailScreen extends StatelessWidget {
                     fontSize: 11.5,
                     height: 1.35,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.65),
+                    color: AppColors.white.withValues(alpha: 0.65),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -231,16 +225,16 @@ class OrderDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
+              color: AppColors.white.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              border: Border.all(color: AppColors.white.withValues(alpha: 0.2)),
             ),
             child: Text(
               totalAmount,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
           ),
@@ -306,7 +300,7 @@ class OrderDetailScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: _Pal.ink,
+              color: AppColors.primaryDark,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
@@ -315,7 +309,7 @@ class OrderDetailScreen extends StatelessWidget {
                 const Text(
                   'Total amount',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -323,7 +317,7 @@ class OrderDetailScreen extends StatelessWidget {
                 Text(
                   totalAmount,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
@@ -351,10 +345,6 @@ class OrderDetailScreen extends StatelessWidget {
         color: _Pal.surface,
         border:
             Border(top: BorderSide(color: _Pal.line.withValues(alpha: 0.8))),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x08000000), blurRadius: 12, offset: Offset(0, -4)),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -366,13 +356,13 @@ class OrderDetailScreen extends StatelessWidget {
               height: 50,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: _Pal.ink,
+                color: AppColors.primaryDark,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Text(
                 'Mark complete',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.1,
@@ -429,7 +419,6 @@ class _Card extends StatelessWidget {
         color: _Pal.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _Pal.line.withValues(alpha: 0.8)),
-        boxShadow: const [_Pal.cardShadow],
       ),
       child: child,
     );
@@ -446,21 +435,21 @@ class _PreviewChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: AppColors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.14)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: Colors.white.withValues(alpha: 0.7)),
+          Icon(icon, size: 11, color: AppColors.white.withValues(alpha: 0.7)),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.85),
+              color: AppColors.white.withValues(alpha: 0.85),
             ),
           ),
         ],

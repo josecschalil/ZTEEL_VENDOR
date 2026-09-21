@@ -9,11 +9,11 @@ import 'package:frontend/app_colors.dart';
 
 // ─── Color tokens (same as profile / orders / categories / rewards screens) ──
 class _K {
-  static const dark = Color(0xFF0F172A); // slate-900
-  static const darkRaised = Color(0xFF1E293B); // slate-800
-  static const emerald = Color(0xFF10B981);
-  static const emeraldLight = Color(0xFF6EE7B7);
-  static const white = Colors.white;
+  static const dark = AppColors.primaryDark;
+  static const darkRaised = AppColors.primaryDark;
+  static const emerald = AppColors.success;
+  static const emeraldLight = AppColors.successLight;
+  static const white = AppColors.white;
 }
 
 class SplashScreen extends StatefulWidget {
@@ -173,13 +173,6 @@ class _SplashScreenState extends State<SplashScreen>
                         decoration: BoxDecoration(
                           color: _K.white,
                           borderRadius: BorderRadius.circular(32),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.25),
-                              blurRadius: 30,
-                              offset: const Offset(0, 15),
-                            )
-                          ],
                         ),
                         child: const _QRIcon(size: 64, color: _K.dark),
                       ),
@@ -382,13 +375,6 @@ class _ProgressBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: _K.emerald,
                     borderRadius: BorderRadius.circular(barHeight),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _K.emerald.withOpacity(0.5),
-                        blurRadius: 6,
-                        spreadRadius: 1,
-                      )
-                    ],
                   ),
                 ),
               ),

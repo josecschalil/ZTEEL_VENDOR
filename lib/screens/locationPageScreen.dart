@@ -7,17 +7,18 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend/app_colors.dart';
 import '../services/location_service.dart';
 
 class LocationColors {
-  static const primary = Color(0xFF0F172A);
-  static const brand = Color(0xFFEE5B2B);
-  static const backgroundLight = Color(0xFFF8FAFC);
-  static const cardLight = Colors.white;
-  static const borderLight = Color(0xFFE2E8F0);
-  static const textPrimary = Color(0xFF0F172A);
-  static const textSecondary = Color(0xFF64748B);
-  static const textMuted = Color(0xFF94A3B8);
+  static const primary = AppColors.primaryDark;
+  static const brand = AppColors.primaryDark;
+  static const backgroundLight = AppColors.bg;
+  static const cardLight = AppColors.surface;
+  static const borderLight = AppColors.border;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
 }
 
 /// Models
@@ -354,7 +355,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
                           width: 16,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.25),
+                            color: AppColors.black.withValues(alpha: 0.25),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -390,13 +391,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
                             decoration: BoxDecoration(
                               color: LocationColors.cardLight,
                               borderRadius: BorderRadius.circular(14),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
                             ),
                             child: TextField(
                               controller: _searchController,
@@ -447,13 +441,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
                         decoration: BoxDecoration(
                           color: LocationColors.cardLight,
                           borderRadius: BorderRadius.circular(14),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
                         ),
                         constraints: const BoxConstraints(maxHeight: 260),
                         child: ListView.separated(
@@ -549,8 +536,7 @@ class _RoundButton extends StatelessWidget {
     return Material(
       color: LocationColors.cardLight,
       shape: const CircleBorder(),
-      elevation: 4,
-      shadowColor: Colors.black26,
+      elevation: 0,
       child: InkWell(
         onTap: loading ? null : onTap,
         customBorder: const CircleBorder(),
@@ -607,11 +593,10 @@ class _PinPainter extends CustomPainter {
       ..close();
     path.addPath(trianglePath, Offset.zero);
 
-    final paint = Paint()..color = const Color(0xFF0F172A);
-    canvas.drawShadow(path, Colors.black, 3, false);
+    final paint = Paint()..color = AppColors.darkSurface;
     canvas.drawPath(path, paint);
 
-    final dotPaint = Paint()..color = const Color(0xFFEE5B2B);
+    final dotPaint = Paint()..color = AppColors.primaryDark;
     canvas.drawCircle(Offset(w / 2, radius), radius * 0.38, dotPaint);
   }
 
@@ -648,13 +633,6 @@ class _LocationSheet extends StatelessWidget {
       decoration: const BoxDecoration(
         color: LocationColors.cardLight,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 16,
-            offset: Offset(0, -4),
-          ),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -679,12 +657,12 @@ class _LocationSheet extends StatelessWidget {
                 height: 42,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                  color: AppColors.darkSurface.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.store_mall_directory_rounded,
-                  color: Color(0xFF0F172A),
+                  color: AppColors.darkSurface,
                   size: 22,
                 ),
               ),
@@ -760,8 +738,8 @@ class _LocationSheet extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onConfirm,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.primaryDark,
+                foregroundColor: AppColors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),

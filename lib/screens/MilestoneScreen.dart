@@ -4,20 +4,20 @@ import 'package:frontend/widgets/app_top_bar.dart';
 
 // ─── Color tokens (same as profile / orders / categories screens) ────────────
 class _K {
-  static const bg = Color(0xFFF8FAFC); // slate-50
-  static const surface = Colors.white;
-  static const surfaceRaised = Color(0xFFF1F5F9); // slate-100
-  static const dark = Color(0xFF0F172A); // slate-900
-  static const border = Color(0xFFE2E8F0); // slate-200
-  static const borderMid = Color(0xFFCBD5E1); // slate-300
-  static const textPrimary = Color(0xFF0F172A);
-  static const textSecondary = Color(0xFF64748B); // slate-500
-  static const textMuted = Color(0xFF94A3B8); // slate-400
-  static const emerald = Color(0xFF10B981);
-  static const emeraldLight = Color(0xFF6EE7B7);
-  static const emeraldBg = Color(0xFFECFDF5);
-  static const white = Colors.white;
-  static const transparent = Colors.transparent;
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const surfaceRaised = AppColors.surfaceRaised;
+  static const dark = AppColors.primaryDark;
+  static const border = AppColors.border;
+  static const borderMid = AppColors.borderStrong;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
+  static const emerald = AppColors.success;
+  static const emeraldLight = AppColors.successLight;
+  static const emeraldBg = AppColors.successTint;
+  static const white = AppColors.white;
+  static const transparent = AppColors.transparent;
 }
 
 // ── Main screen ─────────────────────────────────────────────────────────────
@@ -142,10 +142,6 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
           bottomLeft: Radius.circular(36),
           bottomRight: Radius.circular(36),
         ),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8)),
-        ],
       ),
       padding: EdgeInsets.only(
           top: topPadding + 20, left: 20, right: 20, bottom: 24),
@@ -157,12 +153,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: AppColors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: AppColors.white.withOpacity(0.1)),
               ),
               child: Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: Colors.white.withOpacity(0.9)),
+                  size: 16, color: AppColors.white.withOpacity(0.9)),
             ),
           ),
           const SizedBox(width: 14),
@@ -175,7 +171,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.5),
+                      color: AppColors.white.withOpacity(0.5),
                       letterSpacing: 0.4),
                 ),
                 const Text(
@@ -183,7 +179,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: AppColors.white,
                       letterSpacing: -0.3),
                 ),
                 const SizedBox(height: 4),
@@ -221,12 +217,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: AppColors.white.withOpacity(0.1),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: AppColors.white.withOpacity(0.1)),
             ),
             child: Icon(Icons.star_outline_rounded,
-                size: 18, color: Colors.white.withOpacity(0.9)),
+                size: 18, color: AppColors.white.withOpacity(0.9)),
           ),
         ],
       ),
@@ -250,10 +246,6 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
         color: _K.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _K.border, width: 1),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -825,10 +817,6 @@ class _StatChip extends StatelessWidget {
         color: _K.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _K.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

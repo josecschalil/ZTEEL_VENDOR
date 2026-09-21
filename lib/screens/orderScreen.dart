@@ -9,20 +9,20 @@ import 'package:frontend/widgets/app_top_bar.dart';
 
 // ─── Color tokens (mirrors profile_edit_screen.dart _Dt) ─────────────────────
 class _C {
-  static const bg = Color(0xFFF8FAFC); // slate-50
-  static const surface = Colors.white;
-  static const surfaceRaised = Color(0xFFF1F5F9); // slate-100
-  static const dark = Color(0xFF0F172A); // slate-900
-  static const border = Color(0xFFE2E8F0); // slate-200
-  static const textPrimary = Color(0xFF0F172A); // slate-900
-  static const textSecondary = Color(0xFF64748B); // slate-500
-  static const textMuted = Color(0xFF94A3B8); // slate-400
-  static const emerald = Color(0xFF10B981); // emerald-500
-  static const emeraldLight = Color(0xFF6EE7B7); // emerald-300
-  static const emeraldBg = Color(0xFFECFDF5); // emerald-50
-  static const red = Color(0xFFEF4444);
-  static const redBg = Color(0xFFFEF2F2);
-  static const transparent = Colors.transparent;
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const surfaceRaised = AppColors.surfaceRaised;
+  static const dark = AppColors.primaryDark;
+  static const border = AppColors.border;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
+  static const emerald = AppColors.success;
+  static const emeraldLight = AppColors.successLight;
+  static const emeraldBg = AppColors.successTint;
+  static const red = AppColors.danger;
+  static const redBg = AppColors.dangerTint;
+  static const transparent = AppColors.transparent;
 }
 
 // ─── Sample Dummy Orders (Pending, Completed, Expired) ───────────────────────
@@ -488,7 +488,7 @@ class _OrdersScreenState extends State<OrdersScreen>
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
@@ -542,13 +542,6 @@ class _OrdersScreenState extends State<OrdersScreen>
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
       padding: EdgeInsets.only(
         top: topPadding + 16,
@@ -568,7 +561,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF334155), width: 2),
+                  border: Border.all(color: AppColors.textSecondary, width: 2),
                 ),
                 child: ClipOval(
                   child: (avatarUrl != null && avatarUrl.isNotEmpty)
@@ -591,7 +584,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: AppColors.white.withValues(alpha: 0.5),
                         letterSpacing: 1.2,
                       ),
                     ),
@@ -601,7 +594,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AppColors.white,
                         letterSpacing: -0.2,
                       ),
                       maxLines: 1,
@@ -619,16 +612,16 @@ class _OrdersScreenState extends State<OrdersScreen>
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: AppColors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: AppColors.white.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Icon(
                         Icons.refresh_rounded,
                         size: 18,
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: AppColors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ),
@@ -656,7 +649,7 @@ class _OrdersScreenState extends State<OrdersScreen>
           const Text(
             'Your Orders',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontSize: 26,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -666,7 +659,7 @@ class _OrdersScreenState extends State<OrdersScreen>
           Text(
             'Track your culinary journey with us.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.65),
+              color: AppColors.white.withValues(alpha: 0.65),
               fontSize: 12.5,
               fontWeight: FontWeight.w400,
             ),
@@ -763,7 +756,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                 child: Text(
                   tabs[i],
                   style: TextStyle(
-                    color: selected ? Colors.white : _C.textSecondary,
+                    color: selected ? AppColors.white : _C.textSecondary,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 12,
                   ),
@@ -831,13 +824,6 @@ class _OrdersScreenState extends State<OrdersScreen>
             color: isCardHasMissingData ? _C.red : _C.border,
             width: isCardHasMissingData ? 1.5 : 0.8,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -926,7 +912,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                       child: const Text(
                         'Mark Completed',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1085,9 +1071,9 @@ class _AvatarFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF1E293B),
+      color: AppColors.darkSurfaceRaised,
       child: const Icon(Icons.storefront_rounded,
-          color: Color(0xFF475569), size: 24),
+          color: AppColors.textSecondary, size: 24),
     );
   }
 }

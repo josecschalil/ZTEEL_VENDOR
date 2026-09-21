@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 import 'package:frontend/services/vendor_service.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
@@ -8,25 +9,18 @@ import 'package:frontend/services/vendor_service.dart';
 class _Pal {
   const _Pal._();
 
-  static const bg = Color(0xFFF8FAFC);
-  static const surface = Colors.white;
-  static const wash = Color(0xFFF1F5F9);
-  static const line = Color(0xFFE2E8F0);
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const wash = AppColors.surfaceRaised;
+  static const line = AppColors.border;
+  static const ink = AppColors.textPrimary;
+  static const ink700 = AppColors.textPrimary;
+  static const ink600 = AppColors.textSecondary;
+  static const ink500 = AppColors.textSecondary;
+  static const ink400 = AppColors.textMuted;
+  static const green = AppColors.success;
+  static const red = AppColors.danger;
 
-  static const ink = Color(0xFF0F172A);
-  static const ink700 = Color(0xFF334155);
-  static const ink600 = Color(0xFF475569);
-  static const ink500 = Color(0xFF64748B);
-  static const ink400 = Color(0xFF94A3B8);
-
-  static const green = Color(0xFF10B981);
-  static const red = Color(0xFFE11D48);
-
-  static const cardShadow = BoxShadow(
-    color: Color(0x06000000),
-    blurRadius: 4,
-    offset: Offset(0, 2),
-  );
 }
 
 enum _Target { items, categories, allMenu }
@@ -253,7 +247,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           style: const TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: AppColors.white,
           ),
         ),
         backgroundColor: isError ? _Pal.red : _Pal.ink,
@@ -280,8 +274,8 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: _Pal.ink,
-              onPrimary: Colors.white,
-              surface: Colors.white,
+              onPrimary: AppColors.white,
+              surface: AppColors.white,
               onSurface: _Pal.ink,
             ),
           ),
@@ -300,7 +294,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
   }) async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -377,7 +371,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -696,7 +690,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _Pal.ink,
+        color: AppColors.primaryDark,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -706,11 +700,11 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: AppColors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.local_offer_rounded,
-                size: 18, color: Colors.white),
+                size: 18, color: AppColors.white),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -731,7 +725,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppColors.white,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -745,7 +739,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                           fontSize: 11.5,
                           height: 1.35,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.65),
+                          color: AppColors.white.withValues(alpha: 0.65),
                         ),
                       ),
                     ],
@@ -763,16 +757,16 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
+              color: AppColors.white.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              border: Border.all(color: AppColors.white.withValues(alpha: 0.2)),
             ),
             child: Text(
               '${_discountPercent.toInt()}%',
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
           ),
@@ -1131,7 +1125,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: selected ? Colors.white : _Pal.ink500,
+                      color: selected ? AppColors.white : _Pal.ink500,
                     ),
                   ),
                 ),
@@ -1184,10 +1178,6 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         color: _Pal.surface,
         border:
             Border(top: BorderSide(color: _Pal.line.withValues(alpha: 0.8))),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x08000000), blurRadius: 12, offset: Offset(0, -4)),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1207,12 +1197,12 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.2),
+                          color: AppColors.white, strokeWidth: 2.2),
                     )
                   : Text(
                       isEditing ? 'Save changes' : 'Save offer',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.1,
@@ -1271,7 +1261,6 @@ class _Card extends StatelessWidget {
         color: _Pal.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _Pal.line.withValues(alpha: 0.8)),
-        boxShadow: const [_Pal.cardShadow],
       ),
       child: child,
     );
@@ -1347,11 +1336,8 @@ class _SegmentedTabs extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 9),
                 margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
                 decoration: BoxDecoration(
-                  color: selected ? _Pal.surface : Colors.transparent,
+                  color: selected ? _Pal.surface : AppColors.transparent,
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: selected
-                      ? const <BoxShadow>[_Pal.cardShadow]
-                      : const <BoxShadow>[],
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -1476,21 +1462,21 @@ class _PreviewChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: AppColors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.14)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: Colors.white.withValues(alpha: 0.7)),
+          Icon(icon, size: 11, color: AppColors.white.withValues(alpha: 0.7)),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.85),
+              color: AppColors.white.withValues(alpha: 0.85),
             ),
           ),
         ],

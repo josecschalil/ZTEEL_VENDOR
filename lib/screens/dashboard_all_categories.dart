@@ -2,24 +2,24 @@ part of 'dashboard.dart';
 
 // ─── Color tokens ─────────────────────────────────────────────────────────────
 class _K {
-  static const bg = Color(0xFFF8FAFC); // slate-50
-  static const surface = Colors.white;
-  static const surfaceRaised = Color(0xFFF1F5F9); // slate-100
-  static const dark = Color(0xFF0F172A); // slate-900
-  static const border = Color(0xFFE2E8F0); // slate-200
-  static const borderMid = Color(0xFFCBD5E1); // slate-300
-  static const textPrimary = Color(0xFF0F172A);
-  static const textSecondary = Color(0xFF64748B); // slate-500
-  static const textMuted = Color(0xFF94A3B8); // slate-400
-  static const emerald = Color(0xFF10B981);
-  static const emeraldBg = Color(0xFFECFDF5);
-  static const red = Color(0xFFEF4444);
-  static const redBg = Color(0xFFFEF2F2);
-  static const amber = Color(0xFFF59E0B);
-  static const amberBg = Color(0xFFFFFBEB);
-  static const amberText = Color(0xFFB45309);
-  static const amberLight = Color(0xFFFCD34D);
-  static const white = Colors.white;
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const surfaceRaised = AppColors.surfaceRaised;
+  static const dark = AppColors.primaryDark;
+  static const border = AppColors.border;
+  static const borderMid = AppColors.borderStrong;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
+  static const emerald = AppColors.success;
+  static const emeraldBg = AppColors.successTint;
+  static const red = AppColors.danger;
+  static const redBg = AppColors.dangerTint;
+  static const amber = AppColors.warning;
+  static const amberBg = AppColors.warningTint;
+  static const amberText = AppColors.warning;
+  static const amberLight = AppColors.gold;
+  static const white = AppColors.white;
 }
 
 enum _CatSort { menuOrder, name, mostDishes }
@@ -350,7 +350,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
@@ -398,10 +398,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           bottomLeft: Radius.circular(28),
           bottomRight: Radius.circular(28),
         ),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8)),
-        ],
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
@@ -410,7 +406,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
         ),
         child: CustomPaint(
           painter: const _CatRingsPainter(
-            color: Color(0x0FFFFFFF),
+            color: AppColors.shadow,
             anchor: Offset(0.95, 0),
           ),
           child: Padding(
@@ -425,14 +421,14 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: AppColors.white.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.1)),
+                              color: AppColors.white.withValues(alpha: 0.1)),
                         ),
                         child: Icon(Icons.arrow_back_ios_new_rounded,
                             size: 16,
-                            color: Colors.white.withValues(alpha: 0.9)),
+                            color: AppColors.white.withValues(alpha: 0.9)),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -445,7 +441,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: AppColors.white.withValues(alpha: 0.5),
                               letterSpacing: 0.4,
                             ),
                           ),
@@ -454,7 +450,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: AppColors.white,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -469,26 +465,19 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                         decoration: BoxDecoration(
                           color: _K.emerald,
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _K.emerald.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.add_rounded,
-                                size: 18, color: Colors.white),
+                                size: 18, color: AppColors.white),
                             SizedBox(width: 4),
                             Text(
                               'Add',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: AppColors.white,
                               ),
                             ),
                           ],
@@ -501,10 +490,10 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.07),
+                    color: AppColors.white.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(16),
                     border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        Border.all(color: AppColors.white.withValues(alpha: 0.1)),
                   ),
                   child: Row(
                     children: [
@@ -539,7 +528,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               fontWeight: FontWeight.w800,
               letterSpacing: -0.6,
               height: 1.1,
-              color: valueColor ?? Colors.white,
+              color: valueColor ?? AppColors.white,
             ),
           ),
           const SizedBox(height: 2),
@@ -548,7 +537,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: AppColors.white.withValues(alpha: 0.5),
               letterSpacing: 0.2,
             ),
           ),
@@ -558,7 +547,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   }
 
   Widget _heroDivider() => Container(
-      width: 1, height: 26, color: Colors.white.withValues(alpha: 0.12));
+      width: 1, height: 26, color: AppColors.white.withValues(alpha: 0.12));
 
   // ─── Grid Header & Sort ───────────────────────────────────────────────────
 
@@ -599,8 +588,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       tooltip: 'Sort',
       initialValue: _sort,
       color: _K.surface,
-      elevation: 6,
-      shadowColor: const Color(0x330F172A),
+      elevation: 0,
       offset: const Offset(0, 40),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
@@ -713,13 +701,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           color: _K.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: _K.border),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
         ),
         child: Column(
           children: [
@@ -757,7 +738,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                   style: TextStyle(fontWeight: FontWeight.w700)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _K.dark,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
@@ -814,13 +795,6 @@ class _CatSquareCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x120F172A),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -844,9 +818,9 @@ class _CatSquareCard extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.35),
-                    Colors.black.withValues(alpha: 0.15),
-                    Colors.black.withValues(alpha: 0.88),
+                    AppColors.black.withValues(alpha: 0.35),
+                    AppColors.black.withValues(alpha: 0.15),
+                    AppColors.black.withValues(alpha: 0.88),
                   ],
                   stops: const [0.0, 0.45, 1.0],
                 ),
@@ -868,13 +842,13 @@ class _CatSquareCard extends StatelessWidget {
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: count > 0
-                              ? Colors.black.withValues(alpha: 0.5)
+                              ? AppColors.black.withValues(alpha: 0.5)
                               : _K.amber.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: count > 0
-                                ? Colors.white.withValues(alpha: 0.25)
-                                : Colors.transparent,
+                                ? AppColors.white.withValues(alpha: 0.25)
+                                : AppColors.transparent,
                             width: 0.8,
                           ),
                         ),
@@ -883,7 +857,7 @@ class _CatSquareCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
-                            color: count > 0 ? Colors.white : Colors.white,
+                            color: count > 0 ? AppColors.white : AppColors.white,
                           ),
                         ),
                       ),
@@ -896,17 +870,17 @@ class _CatSquareCard extends StatelessWidget {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.4),
+                            color: AppColors.black.withValues(alpha: 0.4),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.25),
+                              color: AppColors.white.withValues(alpha: 0.25),
                               width: 0.8,
                             ),
                           ),
                           child: const Icon(
                             Icons.more_horiz_rounded,
                             size: 16,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                         ),
                       ),
@@ -923,11 +897,11 @@ class _CatSquareCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: AppColors.white,
                       letterSpacing: -0.3,
                       shadows: [
                         Shadow(
-                          color: Colors.black,
+                          color: AppColors.black,
                           blurRadius: 6,
                           offset: Offset(0, 1),
                         ),
@@ -944,7 +918,7 @@ class _CatSquareCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.75),
+                      color: AppColors.white.withValues(alpha: 0.75),
                     ),
                   ),
                 ],
@@ -953,7 +927,7 @@ class _CatSquareCard extends StatelessWidget {
 
             // ── InkWell Ripple for whole card tap ───────────────────────────
             Material(
-              color: Colors.transparent,
+              color: AppColors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),
                 onTap: onTap,
@@ -977,8 +951,8 @@ class _CatSquareCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF334155), // slate-700
-            Color(0xFF0F172A), // slate-900
+            AppColors.textSecondary, // slate-700
+            AppColors.darkSurface, // slate-900
           ],
         ),
       ),
@@ -988,7 +962,7 @@ class _CatSquareCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 54,
             fontWeight: FontWeight.w900,
-            color: Colors.white.withValues(alpha: 0.08),
+            color: AppColors.white.withValues(alpha: 0.08),
           ),
         ),
       ),
@@ -1014,7 +988,7 @@ class _AddCategorySquareCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Material(
-          color: Colors.transparent,
+          color: AppColors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onTap,
@@ -1096,7 +1070,7 @@ class _CatMonogram extends StatelessWidget {
         style: TextStyle(
           fontSize: size * 0.4,
           fontWeight: FontWeight.w800,
-          color: filled ? Colors.white : _K.textMuted,
+          color: filled ? AppColors.white : _K.textMuted,
         ),
       ),
     );
@@ -1129,7 +1103,7 @@ class _CatSheetAction extends StatelessWidget {
             color: danger ? _K.red.withValues(alpha: 0.2) : _K.border),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
@@ -1362,9 +1336,9 @@ class _CatRenameDialogState extends State<_CatRenameDialog> {
                       onPressed: v.text.trim().isEmpty ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _K.dark,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.white,
                         disabledBackgroundColor: _K.borderMid,
-                        disabledForegroundColor: Colors.white,
+                        disabledForegroundColor: AppColors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -1456,7 +1430,7 @@ class _CatDeleteDialog extends StatelessWidget {
                     onPressed: () => Navigator.pop(context, true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _K.red,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),

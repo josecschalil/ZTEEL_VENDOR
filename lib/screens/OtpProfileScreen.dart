@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/setupShopScreen.dart';
 import 'package:frontend/screens/vendor_home.dart';
@@ -98,7 +99,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('OTP resent successfully'),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppColors.primaryDark,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -161,7 +162,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       final errorMsg = res['error'] ?? 'Verification failed';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(errorMsg),
-        backgroundColor: const Color(0xFF334155),
+        backgroundColor: AppColors.textSecondary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -174,7 +175,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.bg,
         resizeToAvoidBottomInset: true,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -204,13 +205,13 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                       height: 38,
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                            color: const Color(0xFFE2E8F0),
+                                            color: AppColors.border,
                                             width: 1.2),
                                         borderRadius: BorderRadius.circular(9),
                                       ),
                                       child: const Icon(
                                           Icons.arrow_back_ios_new,
-                                          color: Color(0xFF94A3B8),
+                                          color: AppColors.textMuted,
                                           size: 15),
                                     ),
                                   ),
@@ -225,15 +226,15 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                         TextSpan(
                                             text: 'Z',
                                             style: TextStyle(
-                                                color: Color(0xFF0F172A))),
+                                                color: AppColors.darkSurface)),
                                         TextSpan(
                                             text: 'tee',
                                             style: TextStyle(
-                                                color: Color(0xFF0F172A))),
+                                                color: AppColors.darkSurface)),
                                         TextSpan(
                                             text: 'el',
                                             style: TextStyle(
-                                                color: Color(0xFF0F172A),
+                                                color: AppColors.darkSurface,
                                                 fontWeight: FontWeight.w300)),
                                       ],
                                     ),
@@ -256,14 +257,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                         horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                          color: const Color(0xFFE2E8F0),
+                                          color: AppColors.border,
                                           width: 1),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
                                       'VERIFICATION',
                                       style: TextStyle(
-                                        color: Color(0xFF334155),
+                                        color: AppColors.textSecondary,
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.6,
@@ -274,7 +275,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                   const Text(
                                     'Enter the\ncode',
                                     style: TextStyle(
-                                      color: Color(0xFF0F172A),
+                                      color: AppColors.darkSurface,
                                       fontSize: 44,
                                       fontWeight: FontWeight.w800,
                                       height: 1.08,
@@ -285,7 +286,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                   RichText(
                                     text: TextSpan(
                                       style: const TextStyle(
-                                          color: Color(0xFF94A3B8),
+                                          color: AppColors.textMuted,
                                           fontSize: 15,
                                           height: 1.65),
                                       children: [
@@ -295,7 +296,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                         TextSpan(
                                           text: widget.phone,
                                           style: const TextStyle(
-                                            color: Color(0xFF0F172A),
+                                            color: AppColors.darkSurface,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -317,11 +318,11 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                   Container(
                                       width: 28,
                                       height: 2,
-                                      color: const Color(0xFF0F172A)),
+                                      color: AppColors.darkSurface),
                                   Container(
                                       width: 72,
                                       height: 2,
-                                      color: const Color(0xFFE2E8F0)),
+                                      color: AppColors.border),
                                 ],
                               ),
                             ),
@@ -338,7 +339,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                   const Text(
                                     'OTP CODE',
                                     style: TextStyle(
-                                      color: Color(0xFF94A3B8),
+                                      color: AppColors.textMuted,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 1.4,
@@ -393,7 +394,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                             ? "Didn't receive it?"
                                             : 'Resend in  ${_countdown}s',
                                         style: const TextStyle(
-                                            color: Color(0xFF94A3B8),
+                                            color: AppColors.textMuted,
                                             fontSize: 13),
                                       ),
                                       if (_canResend) ...[
@@ -403,7 +404,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                           child: const Text(
                                             'Resend OTP',
                                             style: TextStyle(
-                                              color: Color(0xFF0F172A),
+                                              color: AppColors.darkSurface,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -463,15 +464,15 @@ class _OtpDigit extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         color: isFilled
-            ? const Color(0xFF0F172A).withOpacity(.08)
-            : const Color(0xFFE2E8F0).withOpacity(.6),
+            ? AppColors.darkSurface.withOpacity(.08)
+            : AppColors.border.withOpacity(.6),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isActive
-              ? const Color(0xFF0F172A)
+              ? AppColors.primaryDark
               : isFilled
-                  ? const Color(0xFF334155)
-                  : const Color(0xFFE2E8F0),
+                  ? AppColors.textSecondary
+                  : AppColors.border,
           width: isActive ? 1.8 : 1.2,
         ),
       ),
@@ -487,12 +488,12 @@ class _OtpDigit extends StatelessWidget {
             LengthLimitingTextInputFormatter(1),
           ],
           style: TextStyle(
-            color: isFilled ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+            color: isFilled ? AppColors.darkSurface : AppColors.textMuted,
             fontSize: 22,
             fontWeight: FontWeight.w700,
             letterSpacing: 0,
           ),
-          cursorColor: const Color(0xFF0F172A),
+          cursorColor: AppColors.primaryDark,
           cursorWidth: 1.5,
           maxLength: 1,
           decoration: const InputDecoration(
@@ -524,7 +525,7 @@ class _Footer extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
       decoration: const BoxDecoration(
         border: Border(
-          top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          top: BorderSide(color: AppColors.border, width: 1),
         ),
       ),
       child: Column(
@@ -537,13 +538,13 @@ class _Footer extends StatelessWidget {
               onPressed: (filled && !isLoading) ? onVerify : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor:
-                    filled ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+                    filled ? AppColors.primaryDark : AppColors.border,
                 foregroundColor:
-                    filled ? Colors.white : const Color(0xFF94A3B8),
+                    filled ? AppColors.white : AppColors.textMuted,
                 disabledBackgroundColor: filled && isLoading
-                    ? const Color(0xFF0F172A).withOpacity(0.6)
-                    : const Color(0xFFE2E8F0),
-                disabledForegroundColor: const Color(0xFF94A3B8),
+                    ? AppColors.primaryDark.withOpacity(0.6)
+                    : AppColors.border,
+                disabledForegroundColor: AppColors.textMuted,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -554,7 +555,7 @@ class _Footer extends StatelessWidget {
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: Colors.white,
+                        color: AppColors.white,
                       ),
                     )
                   : const Text(
@@ -571,7 +572,7 @@ class _Footer extends StatelessWidget {
             textAlign: TextAlign.center,
             text: TextSpan(
               style: TextStyle(
-                  color: const Color(0xFF94A3B8).withOpacity(.75),
+                  color: AppColors.textMuted.withOpacity(.75),
                   fontSize: 11.5,
                   height: 1.5),
               children: [
@@ -579,13 +580,13 @@ class _Footer extends StatelessWidget {
                 TextSpan(
                     text: 'Terms',
                     style: TextStyle(
-                        color: const Color(0xFF0F172A).withOpacity(.9),
+                        color: AppColors.darkSurface.withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: ' and '),
                 TextSpan(
                     text: 'Privacy Policy',
                     style: TextStyle(
-                        color: const Color(0xFF0F172A).withOpacity(.9),
+                        color: AppColors.darkSurface.withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: '.'),
               ],

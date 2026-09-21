@@ -14,10 +14,7 @@ class ZteeelApp extends StatelessWidget {
     return MaterialApp(
       title: 'Zteeel',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.orangeWarm),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
       home: const SplashScreen(),
     );
   }

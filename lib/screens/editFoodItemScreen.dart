@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/app_colors.dart';
 
 /// ─────────────────────────────────────────────────────────────────
 /// Design tokens
@@ -13,17 +14,17 @@ import 'package:frontend/services/vendor_service.dart';
 /// consistent.
 /// ─────────────────────────────────────────────────────────────────
 class _C {
-  static const bg = Color(0xFFF8FAFC);
-  static const surface = Color(0xFFFFFFFF);
-  static const primaryDark = Color(0xFF0F172A);
-  static const accent = Color(0xFF10B981); // emerald
-  static const accentLight = Color(0xFFECFDF5);
-  static const border = Color(0xFFE2E8F0);
-  static const textPrimary = Color(0xFF0F172A);
-  static const textSecondary = Color(0xFF64748B);
-  static const textMuted = Color(0xFF94A3B8);
-  static const error = Color(0xFFEF4444);
-  static const warning = Color(0xFFF59E0B);
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const primaryDark = AppColors.primaryDark;
+  static const accent = AppColors.success;
+  static const accentLight = AppColors.successTint;
+  static const border = AppColors.border;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
+  static const error = AppColors.danger;
+  static const warning = AppColors.warning;
 }
 
 class EditFoodItemScreen extends StatefulWidget {
@@ -157,7 +158,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         content: Text(
           message,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.white,
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
@@ -251,7 +252,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
       ),
@@ -311,13 +312,6 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
               color: _C.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _C.border),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x06000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
             ),
             child: const Icon(
               Icons.arrow_back_ios_new_rounded,
@@ -349,13 +343,6 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
         color: _C.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _C.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
       child: child,
     );
@@ -382,13 +369,6 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           image: imgProvider != null
               ? DecorationImage(image: imgProvider, fit: BoxFit.cover)
               : null,
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x08000000),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
         ),
         child: Stack(
           children: [
@@ -442,12 +422,12 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.edit_outlined, color: Colors.white, size: 12),
+                      Icon(Icons.edit_outlined, color: AppColors.white, size: 12),
                       SizedBox(width: 5),
                       Text(
                         'Change Photo',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -657,13 +637,6 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
           decoration: BoxDecoration(
             color: _C.primaryDark,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: _C.primaryDark.withValues(alpha: 0.22),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
           ),
           child: Center(
             child: _isSaving
@@ -671,7 +644,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
+                        color: AppColors.white, strokeWidth: 2),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
@@ -685,7 +658,7 @@ class _EditFoodItemScreenState extends State<EditFoodItemScreen>
                       Text(
                         isEditing ? 'Save Changes' : 'Create Item',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.1,

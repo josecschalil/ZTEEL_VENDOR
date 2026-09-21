@@ -14,38 +14,27 @@ import 'package:frontend/widgets/app_top_bar.dart';
 // ─── Design tokens matching the Artisan Trattoria dashboard ──────────────────
 class _Dt {
   // Backgrounds
-  static const bg = Color(0xFFF8FAFC); // slate-50
-  static const surface = Colors.white;
-  static const surfaceRaised = Color(0xFFF1F5F9); // slate-100
-  static const dark = Color(0xFF0F172A); // slate-900 (hero)
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const surfaceRaised = AppColors.surfaceRaised;
+  static const dark = AppColors.primaryDark;
 
   // Borders
-  static const border = Color(0xFFE2E8F0); // slate-200
-  static const borderMuted = Color(0xFFCBD5E1); // slate-300
+  static const border = AppColors.border;
+  static const borderMuted = AppColors.borderStrong;
 
   // Text
-  static const textPrimary = Color(0xFF0F172A); // slate-900
-  static const textSecondary = Color(0xFF64748B); // slate-500
-  static const textMuted = Color(0xFF94A3B8); // slate-400
-  static const textWhite = Colors.white;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
+  static const textWhite = AppColors.white;
 
   // Accents — slate-900 primary, emerald secondary (matches dashboard)
-  static const accent = Color(0xFF0F172A); // slate-900
-  static const emerald = Color(0xFF10B981); // emerald-500
-  static const emeraldLight = Color(0xFF6EE7B7); // emerald-300
-  static const emeraldBg = Color(0xFFECFDF5); // emerald-50
+  static const accent = AppColors.primaryDark;
+  static const emerald = AppColors.success;
+  static const emeraldLight = AppColors.successLight;
+  static const emeraldBg = AppColors.successTint;
 
-  // Shadows
-  static const shadow = BoxShadow(
-    color: Color(0x08000000),
-    blurRadius: 4,
-    offset: Offset(0, 2),
-  );
-  static const shadowMd = BoxShadow(
-    color: Color(0x14000000),
-    blurRadius: 10,
-    offset: Offset(0, 4),
-  );
 }
 
 class ProfileEditScreen extends StatefulWidget {
@@ -215,7 +204,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content:
           Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-      backgroundColor: success ? _Dt.accent : const Color(0xFF64748B),
+      backgroundColor: success ? _Dt.accent : AppColors.textSecondary,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       margin: const EdgeInsets.all(16),
@@ -334,7 +323,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           colorScheme: const ColorScheme.dark(
             primary: _Dt.emerald,
             onSurface: _Dt.textPrimary,
-            surface: Color(0xFF1E293B),
+            surface: AppColors.darkSurfaceRaised,
           ),
         ),
         child: child!,
@@ -372,7 +361,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     final topPadding = MediaQuery.of(context).padding.top;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
@@ -435,13 +424,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             width: double.infinity,
             decoration: BoxDecoration(
               color: _Dt.dark,
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 16,
-                  offset: Offset(0, 4),
-                ),
-              ],
               image: coverImg != null
                   ? DecorationImage(
                       image: coverImg,
@@ -462,13 +444,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Icon(
                             Icons.add_photo_alternate_outlined,
                             size: 36,
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: AppColors.white.withValues(alpha: 0.4),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Tap to add cover photo',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: AppColors.white.withValues(alpha: 0.5),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -486,9 +468,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Color(0x55000000),
-                          Colors.transparent,
-                          Color(0x80000000),
+                          AppColors.shadow,
+                          AppColors.transparent,
+                          AppColors.shadow,
                         ],
                         stops: [0.0, 0.45, 1.0],
                       ),
@@ -501,7 +483,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   Positioned.fill(
                     child: Container(
                       decoration: const BoxDecoration(
-                        color: Color(0xA6000000),
+                        color: AppColors.shadow,
                       ),
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -518,7 +500,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           Text(
                             'Uploading cover…',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
                             ),
@@ -538,22 +520,22 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
+                          color: AppColors.black.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: AppColors.white.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.camera_alt_outlined,
-                                color: Colors.white, size: 12),
+                                color: AppColors.white, size: 12),
                             const SizedBox(width: 4),
                             Text(
                               _isUploadingCover ? 'Uploading…' : 'Change cover',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.white,
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -568,16 +550,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.5),
+                            color: AppColors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: AppColors.white.withValues(alpha: 0.2),
                             ),
                           ),
                           child: Icon(
                             Icons.refresh_rounded,
                             size: 15,
-                            color: Colors.white.withValues(alpha: 0.95),
+                            color: AppColors.white.withValues(alpha: 0.95),
                           ),
                         ),
                       ),
@@ -602,23 +584,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   height: avatarSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF1E293B),
+                    color: AppColors.darkSurfaceRaised,
                     border: Border.all(
-                      color: Colors.white,
+                      color: AppColors.white,
                       width: 4,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: ClipOval(
                     child: _isUploadingIcon
                         ? Container(
-                            color: const Color(0xFF1E293B),
+                            color: AppColors.darkSurfaceRaised,
                             child: const Center(
                               child: SizedBox(
                                 width: 22,
@@ -652,18 +627,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     decoration: BoxDecoration(
                       color: _Dt.emerald,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 4,
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.white, width: 2),
                     ),
                     child: const Icon(
                       Icons.camera_alt,
                       size: 12,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   ),
                 ),
@@ -885,22 +854,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: _isMapInteractive
-                          ? _Dt.dark.withValues(alpha: 0.88)
-                          : Colors.black.withValues(alpha: 0.6),
+                          ? AppColors.darkSurface.withValues(alpha: 0.88)
+                          : AppColors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: _isMapInteractive
                             ? _Dt.emerald.withValues(alpha: 0.6)
-                            : Colors.white.withValues(alpha: 0.2),
+                            : AppColors.white.withValues(alpha: 0.2),
                         width: 1,
                       ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x26000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -912,7 +874,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           size: 13,
                           color: _isMapInteractive
                               ? _Dt.emeraldLight
-                              : Colors.white,
+                              : AppColors.white,
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -924,7 +886,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             fontWeight: FontWeight.w600,
                             color: _isMapInteractive
                                 ? _Dt.emeraldLight
-                                : Colors.white,
+                                : AppColors.white,
                           ),
                         ),
                       ],
@@ -982,7 +944,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: isSelected
-                                  ? Colors.white
+                                  ? AppColors.white
                                   : hasSessions
                                       ? _Dt.emerald
                                       : _Dt.textMuted,
@@ -995,7 +957,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               fontSize: 7,
                               fontWeight: FontWeight.w600,
                               color: isSelected
-                                  ? Colors.white.withOpacity(0.6)
+                                  ? AppColors.white.withOpacity(0.6)
                                   : hasSessions
                                       ? _Dt.emeraldLight
                                       : _Dt.textMuted,
@@ -1120,7 +1082,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             Text(selectedDayValidation,
                 style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF64748B),
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500)),
           ],
         ],
@@ -1196,7 +1158,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               onPressed: _isSaving ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _Dt.dark,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.white,
                 disabledBackgroundColor: _Dt.dark.withOpacity(0.55),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -1207,7 +1169,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white))
+                          strokeWidth: 2.5, color: AppColors.white))
                   : const Text('Save changes',
                       style: TextStyle(
                           fontSize: 14,
@@ -1263,13 +1225,9 @@ class _Card extends StatelessWidget {
       width: double.infinity,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2))
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: child,
     );
@@ -1290,7 +1248,7 @@ class _FieldRow extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Icon(icon, size: 18, color: const Color(0xFF94A3B8)),
+          child: Icon(icon, size: 18, color: AppColors.textMuted),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -1301,7 +1259,7 @@ class _FieldRow extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF94A3B8),
+                      color: AppColors.textMuted,
                       letterSpacing: 0.2)),
               const SizedBox(height: 4),
               child,
@@ -1323,13 +1281,9 @@ class _QuickActionChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2))
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1338,15 +1292,15 @@ class _QuickActionChip extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: const BoxDecoration(
-                color: Color(0xFFF1F5F9), shape: BoxShape.circle),
-            child: Icon(icon, size: 16, color: const Color(0xFF334155)),
+                color: AppColors.surfaceRaised, shape: BoxShape.circle),
+            child: Icon(icon, size: 16, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 5),
           Text(label,
               style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B))),
+                  color: AppColors.darkSurfaceRaised)),
         ],
       ),
     );
@@ -1365,15 +1319,15 @@ class _TimeChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: AppColors.bg,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Text(label,
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A))),
+                color: AppColors.darkSurface)),
       ),
     );
   }
@@ -1385,9 +1339,9 @@ class _AvatarPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF1E293B),
+      color: AppColors.darkSurfaceRaised,
       child: const Icon(Icons.storefront_rounded,
-          color: Color(0xFF475569), size: 24),
+          color: AppColors.textSecondary, size: 24),
     );
   }
 }

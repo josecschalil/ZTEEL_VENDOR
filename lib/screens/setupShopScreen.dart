@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:frontend/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -198,9 +199,9 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color(0xFF0F172A), // Dark professional theme
-            onPrimary: Colors.white,
-            onSurface: Color(0xFF0F172A),
+            primary: AppColors.primaryDark,
+            onPrimary: AppColors.white,
+            onSurface: AppColors.darkSurface,
           ),
         ),
         child: child!,
@@ -248,7 +249,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           elevation: 0,
           backgroundColor:
-              positive ? const Color(0xFF0F172A) : const Color(0xFF7F1D1D),
+              positive ? AppColors.darkSurface : AppColors.primaryDark,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           content: Row(
@@ -258,8 +259,8 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                     ? Icons.check_circle_outline_rounded
                     : Icons.error_outline_rounded,
                 color: positive
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFFCA5A5),
+                    ? AppColors.success
+                    : AppColors.primaryDark,
                 size: 19,
               ),
               const SizedBox(width: 10),
@@ -267,7 +268,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                 child: Text(
                   message,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -374,20 +375,20 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
   Widget build(BuildContext context) {
     if (_isLoadingProfile) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
+        backgroundColor: AppColors.bg,
         body:
-            Center(child: CircularProgressIndicator(color: Color(0xFF0F172A))),
+            Center(child: CircularProgressIndicator(color: AppColors.primaryDark)),
       );
     }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.bg,
         body: Stack(
           children: [
             SingleChildScrollView(
@@ -449,7 +450,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
             height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
+              color: AppColors.primaryDark,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(36),
                 bottomRight: Radius.circular(36),
@@ -459,18 +460,11 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                       image: coverImg,
                       fit: BoxFit.cover,
                       colorFilter: ColorFilter.mode(
-                        Colors.black.withOpacity(0.4),
+                        AppColors.black.withOpacity(0.4),
                         BlendMode.darken,
                       ),
                     )
                   : null,
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22000000),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
-                ),
-              ],
             ),
             child: SafeArea(
               bottom: false,
@@ -485,13 +479,13 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: AppColors.white.withOpacity(0.15),
                           shape: BoxShape.circle,
                           border:
-                              Border.all(color: Colors.white.withOpacity(0.2)),
+                              Border.all(color: AppColors.white.withOpacity(0.2)),
                         ),
                         child: const Icon(Icons.arrow_back_rounded,
-                            color: Colors.white, size: 20),
+                            color: AppColors.white, size: 20),
                       ),
                     ),
                   ),
@@ -503,10 +497,10 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.35),
+                            color: AppColors.black.withOpacity(0.35),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.3)),
+                                color: AppColors.white.withOpacity(0.3)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -516,11 +510,11 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                                   width: 14,
                                   height: 14,
                                   child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2),
+                                      color: AppColors.white, strokeWidth: 2),
                                 )
                               else
                                 const Icon(Icons.camera_alt_outlined,
-                                    color: Colors.white, size: 16),
+                                    color: AppColors.white, size: 16),
                               const SizedBox(width: 8),
                               Text(
                                 _isUploadingCover
@@ -529,7 +523,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                                         ? 'Change Cover'
                                         : 'Add Cover Photo'),
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -552,17 +546,10 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                    color: AppColors.surfaceRaised,
                     shape: BoxShape.circle,
                     border:
-                        Border.all(color: const Color(0xFFF8FAFC), width: 4),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x1A000000),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
+                        Border.all(color: AppColors.bg, width: 4),
                   ),
                   child: ClipOval(
                     child: Stack(
@@ -572,16 +559,16 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                           Image(image: iconImg, fit: BoxFit.cover)
                         else
                           const Icon(Icons.storefront_rounded,
-                              size: 36, color: Color(0xFF94A3B8)),
+                              size: 36, color: AppColors.textMuted),
                         if (_isUploadingIcon)
                           Container(
-                            color: Colors.black.withOpacity(0.5),
+                            color: AppColors.black.withOpacity(0.5),
                             child: const Center(
                               child: SizedBox(
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                    color: Color(0xFF10B981), strokeWidth: 2.5),
+                                    color: AppColors.success, strokeWidth: 2.5),
                               ),
                             ),
                           ),
@@ -595,13 +582,13 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981),
+                        color: AppColors.success,
                         shape: BoxShape.circle,
                         border: Border.all(
-                            color: const Color(0xFFF8FAFC), width: 3),
+                            color: AppColors.bg, width: 3),
                       ),
                       child: const Icon(Icons.edit_rounded,
-                          color: Colors.white, size: 14),
+                          color: AppColors.white, size: 14),
                     ),
                   ),
               ],
@@ -677,7 +664,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF334155),
+            color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -687,20 +674,13 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: hasAddress
-                    ? const Color(0xFFE2E8F0)
-                    : const Color(0xFFCBD5E1),
+                    ? AppColors.border
+                    : AppColors.borderStrong,
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x06000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,8 +694,8 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: hasAddress
-                            ? const Color(0xFF0F172A).withValues(alpha: 0.07)
-                            : const Color(0xFFF1F5F9),
+                            ? AppColors.darkSurface.withValues(alpha: 0.07)
+                            : AppColors.surfaceRaised,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -723,8 +703,8 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                             ? Icons.location_on_rounded
                             : Icons.add_location_alt_outlined,
                         color: hasAddress
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFF64748B),
+                            ? AppColors.darkSurface
+                            : AppColors.textSecondary,
                         size: 22,
                       ),
                     ),
@@ -744,8 +724,8 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                               fontWeight:
                                   hasAddress ? FontWeight.w700 : FontWeight.w500,
                               color: hasAddress
-                                  ? const Color(0xFF0F172A)
-                                  : const Color(0xFF64748B),
+                                  ? AppColors.darkSurface
+                                  : AppColors.textSecondary,
                               height: 1.35,
                             ),
                           ),
@@ -757,7 +737,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                             style: const TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF94A3B8),
+                              color: AppColors.textMuted,
                             ),
                           ),
                         ],
@@ -768,7 +748,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
+                        color: AppColors.primaryDark,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -778,14 +758,14 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                             hasAddress
                                 ? Icons.edit_location_alt_rounded
                                 : Icons.map_rounded,
-                            color: Colors.white,
+                            color: AppColors.white,
                             size: 14,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             hasAddress ? 'Change' : 'Pick Map',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -820,7 +800,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
           child: Text(
             "By finishing, you agree to our Vendor Terms & Conditions.",
             style: TextStyle(
-              color: Color(0xFF94A3B8),
+              color: AppColors.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -842,7 +822,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF334155),
+            color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: 12),
@@ -859,15 +839,15 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                 height: 42,
                 decoration: BoxDecoration(
                   color: isFocused
-                      ? const Color(0xFF0F172A)
-                      : (hasSessions ? const Color(0xFFECFDF5) : Colors.white),
+                      ? AppColors.darkSurface
+                      : (hasSessions ? AppColors.successTint : AppColors.white),
                   shape: BoxShape.circle,
                   border: isFocused
                       ? null
                       : Border.all(
                           color: hasSessions
-                              ? const Color(0xFF10B981).withOpacity(0.3)
-                              : const Color(0xFFE2E8F0),
+                              ? AppColors.success.withOpacity(0.3)
+                              : AppColors.border,
                         ),
                 ),
                 alignment: Alignment.center,
@@ -875,10 +855,10 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                   dayLabels[i],
                   style: TextStyle(
                     color: isFocused
-                        ? Colors.white
+                        ? AppColors.white
                         : (hasSessions
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFF64748B)),
+                            ? AppColors.success
+                            : AppColors.textSecondary),
                     fontSize: 14,
                     fontWeight: isFocused || hasSessions
                         ? FontWeight.w700
@@ -893,16 +873,9 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x06000000),
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -913,7 +886,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                   Text(
                     _fullDayLabel(_selectedDayIndex),
                     style: const TextStyle(
-                      color: Color(0xFF0F172A),
+                      color: AppColors.darkSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -924,19 +897,19 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        color: AppColors.success.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.add_rounded,
-                              size: 16, color: Color(0xFF059669)),
+                              size: 16, color: AppColors.success),
                           SizedBox(width: 4),
                           Text(
                             'Add hours',
                             style: TextStyle(
-                              color: Color(0xFF059669),
+                              color: AppColors.success,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -955,7 +928,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                     child: Text(
                       'No hours added. Marked as Closed.',
                       style: TextStyle(
-                          color: Color(0xFF94A3B8),
+                          color: AppColors.textMuted,
                           fontSize: 13,
                           fontWeight: FontWeight.w500),
                     ),
@@ -979,7 +952,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           child: Icon(Icons.arrow_forward_rounded,
-                              size: 16, color: Color(0xFF94A3B8)),
+                              size: 16, color: AppColors.textMuted),
                         ),
                         Expanded(
                           child: _buildTimePickerField(
@@ -994,11 +967,11 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEF2F2),
+                              color: AppColors.dangerTint,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.delete_outline_rounded,
-                                color: Color(0xFFEF4444), size: 18),
+                                color: AppColors.danger, size: 18),
                           ),
                         ),
                       ],
@@ -1010,7 +983,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(validation,
                       style: const TextStyle(
-                          color: Color(0xFFEF4444), fontSize: 12)),
+                          color: AppColors.danger, fontSize: 12)),
                 ),
             ],
           ),
@@ -1028,15 +1001,15 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: AppColors.bg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.border),
         ),
         alignment: Alignment.center,
         child: Text(
           _formatTime(time),
           style: const TextStyle(
-            color: Color(0xFF0F172A),
+            color: AppColors.darkSurface,
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
@@ -1063,14 +1036,14 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
+                color: AppColors.darkSurface,
                 letterSpacing: -0.3,
               ),
             ),
             Text(
               'STEP $step OF 2',
               style: const TextStyle(
-                color: Color(0xFF10B981),
+                color: AppColors.success,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
@@ -1084,7 +1057,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF64748B),
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -1106,22 +1079,15 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF334155),
+            color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x06000000),
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
+            border: Border.all(color: AppColors.border),
           ),
           child: TextField(
             controller: controller,
@@ -1129,21 +1095,21 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF0F172A),
+              color: AppColors.darkSurface,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: const TextStyle(
-                color: Color(0xFF94A3B8),
+                color: AppColors.textMuted,
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
               ),
               prefixIcon: maxLines == 1
-                  ? Icon(icon, color: const Color(0xFF94A3B8), size: 20)
+                  ? Icon(icon, color: AppColors.textMuted, size: 20)
                   : Padding(
                       padding: const EdgeInsets.only(bottom: 60),
                       child:
-                          Icon(icon, color: const Color(0xFF94A3B8), size: 20),
+                          Icon(icon, color: AppColors.textMuted, size: 20),
                     ),
               contentPadding: const EdgeInsets.all(16),
               border: InputBorder.none,
@@ -1151,7 +1117,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide:
-                    const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                    const BorderSide(color: AppColors.success, width: 1.5),
               ),
             ),
           ),
@@ -1168,15 +1134,8 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 16,
-              offset: Offset(0, -4),
-            ),
-          ],
+          color: AppColors.white,
+          border: Border(top: BorderSide(color: AppColors.border)),
         ),
         child: SizedBox(
           height: 54,
@@ -1185,8 +1144,8 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                 ? null
                 : (_currentStep == 0 ? _goToNextStep : _completeSetup),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F172A),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -1197,7 +1156,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2.5),
+                        color: AppColors.white, strokeWidth: 2.5),
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1215,7 +1174,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                         _currentStep == 0
                             ? Icons.arrow_forward_rounded
                             : Icons.check_circle_rounded,
-                        color: const Color(0xFF10B981),
+                        color: AppColors.success,
                         size: 18,
                       ),
                     ],

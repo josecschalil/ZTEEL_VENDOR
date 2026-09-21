@@ -4,26 +4,27 @@ import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
 import 'package:frontend/screens/foodItemDetailScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/app_colors.dart';
 
 // ─── Color tokens (same palette as dashboard / profile / orders) ─────────────
 // NOTE: `_K` is private to each library. If you want one source of truth,
 // move this class into a shared file (e.g. theme/tokens.dart) and make it public.
 class _K {
-  static const bg = Color(0xFFF8FAFC); // slate-50
-  static const surface = Colors.white;
-  static const surfaceRaised = Color(0xFFF1F5F9); // slate-100
-  static const dark = Color(0xFF0F172A); // slate-900
-  static const border = Color(0xFFE2E8F0); // slate-200
-  static const borderMid = Color(0xFFCBD5E1); // slate-300
-  static const textPrimary = Color(0xFF0F172A);
-  static const textSecondary = Color(0xFF64748B); // slate-500
-  static const textMuted = Color(0xFF94A3B8); // slate-400
-  static const emerald = Color(0xFF10B981);
-  static const emeraldLight = Color(0xFF6EE7B7);
-  static const emeraldBg = Color(0xFFECFDF5);
-  static const red = Color(0xFFEF4444);
-  static const redBg = Color(0xFFFEF2F2);
-  static const amber = Color(0xFFF59E0B);
+  static const bg = AppColors.bg;
+  static const surface = AppColors.surface;
+  static const surfaceRaised = AppColors.surfaceRaised;
+  static const dark = AppColors.primaryDark;
+  static const border = AppColors.border;
+  static const borderMid = AppColors.borderStrong;
+  static const textPrimary = AppColors.textPrimary;
+  static const textSecondary = AppColors.textSecondary;
+  static const textMuted = AppColors.textMuted;
+  static const emerald = AppColors.success;
+  static const emeraldLight = AppColors.successLight;
+  static const emeraldBg = AppColors.successTint;
+  static const red = AppColors.danger;
+  static const redBg = AppColors.dangerTint;
+  static const amber = AppColors.warning;
 }
 
 // ─── Models / enums (public API unchanged) ───────────────────────────────────
@@ -321,7 +322,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                       onPressed: () => Navigator.pop(ctx, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _K.red,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -431,7 +432,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
@@ -489,10 +490,6 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           bottomLeft: Radius.circular(36),
           bottomRight: Radius.circular(36),
         ),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8)),
-        ],
       ),
       padding: EdgeInsets.fromLTRB(20, top + 16, 20, 22),
       child: Column(
@@ -505,13 +502,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.white.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                     border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        Border.all(color: AppColors.white.withValues(alpha: 0.1)),
                   ),
                   child: Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 16, color: Colors.white.withValues(alpha: 0.9)),
+                      size: 16, color: AppColors.white.withValues(alpha: 0.9)),
                 ),
               ),
               const SizedBox(width: 14),
@@ -524,7 +521,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: AppColors.white.withValues(alpha: 0.5),
                         letterSpacing: 0.4,
                       ),
                     ),
@@ -536,7 +533,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppColors.white,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -548,23 +545,23 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: AppColors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                      Border.all(color: AppColors.white.withValues(alpha: 0.15)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.restaurant_menu_rounded,
-                        size: 12, color: Colors.white.withValues(alpha: 0.7)),
+                        size: 12, color: AppColors.white.withValues(alpha: 0.7)),
                     const SizedBox(width: 6),
                     Text(
                       '${_items.length} dishes',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: AppColors.white.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
@@ -583,12 +580,12 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: _searchFocused ? 0.12 : 0.08),
+        color: AppColors.white.withValues(alpha: _searchFocused ? 0.12 : 0.08),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: _searchFocused
               ? _K.emeraldLight.withValues(alpha: 0.7)
-              : Colors.white.withValues(alpha: 0.12),
+              : AppColors.white.withValues(alpha: 0.12),
           width: 1.2,
         ),
       ),
@@ -598,23 +595,23 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         textInputAction: TextInputAction.search,
         cursorColor: _K.emeraldLight,
         style: const TextStyle(
-            color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
+            color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           isDense: true,
           hintText: 'Search dishes in ${widget.categoryName}',
           hintStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
+            color: AppColors.white.withValues(alpha: 0.4),
             fontSize: 13.5,
             fontWeight: FontWeight.w400,
           ),
           prefixIcon: Icon(Icons.search_rounded,
-              color: Colors.white.withValues(alpha: 0.55), size: 19),
+              color: AppColors.white.withValues(alpha: 0.55), size: 19),
           prefixIconConstraints:
               const BoxConstraints(minWidth: 44, minHeight: 44),
           suffixIcon: _query.isNotEmpty
               ? IconButton(
                   icon: Icon(Icons.close_rounded,
-                      color: Colors.white.withValues(alpha: 0.6), size: 17),
+                      color: AppColors.white.withValues(alpha: 0.6), size: 17),
                   onPressed: _searchCtrl.clear,
                 )
               : null,
@@ -639,10 +636,6 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         color: _K.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _K.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -732,16 +725,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: selected ? _K.dark : Colors.transparent,
+            color: selected ? _K.dark : AppColors.transparent,
             borderRadius: BorderRadius.circular(10),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                        color: Color(0x260F172A),
-                        blurRadius: 8,
-                        offset: Offset(0, 3))
-                  ]
-                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -756,7 +741,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                     color: selected
                         ? (filter == ItemFilter.available
                             ? _K.emeraldLight
-                            : Colors.white.withValues(alpha: 0.6))
+                            : AppColors.white.withValues(alpha: 0.6))
                         : dotColor,
                   ),
                 ),
@@ -767,7 +752,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : _K.textSecondary,
+                  color: selected ? AppColors.white : _K.textSecondary,
                 ),
               ),
               const SizedBox(width: 6),
@@ -777,7 +762,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: selected
-                      ? Colors.white.withValues(alpha: 0.6)
+                      ? AppColors.white.withValues(alpha: 0.6)
                       : _K.textMuted,
                 ),
               ),
@@ -936,7 +921,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 onPressed: _addItem,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _K.dark,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -963,13 +948,6 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         decoration: BoxDecoration(
           color: _K.dark,
           borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: _K.dark.withValues(alpha: 0.30),
-              blurRadius: 18,
-              offset: const Offset(0, 7),
-            ),
-          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -980,13 +958,13 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               decoration: const BoxDecoration(
                   color: _K.emerald, shape: BoxShape.circle),
               child:
-                  const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                  const Icon(Icons.add_rounded, color: AppColors.white, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
               'Add Item',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.1,
@@ -1028,10 +1006,6 @@ class _ItemTile extends StatelessWidget {
         color: _K.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _K.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x08000000), blurRadius: 10, offset: Offset(0, 3)),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(19),
@@ -1070,19 +1044,19 @@ class _ItemTile extends StatelessWidget {
                   ),
           ),
           if (!_live) ...[
-            Container(color: _K.dark.withValues(alpha: 0.58)),
+            Container(color: AppColors.darkSurface.withValues(alpha: 0.58)),
             Center(
               child: Container(
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
+                  color: AppColors.white.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                   border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                      Border.all(color: AppColors.white.withValues(alpha: 0.25)),
                 ),
                 child: const Icon(Icons.visibility_off_outlined,
-                    size: 17, color: Colors.white),
+                    size: 17, color: AppColors.white),
               ),
             ),
           ],
@@ -1105,13 +1079,13 @@ class _ItemTile extends StatelessWidget {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.star_rounded, size: 11, color: Colors.white),
+                        Icon(Icons.star_rounded, size: 11, color: AppColors.white),
                         SizedBox(width: 3),
                         Text('Best',
                             style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white)),
+                                color: AppColors.white)),
                       ],
                     ),
                   ),
@@ -1127,13 +1101,13 @@ class _ItemTile extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: _K.dark.withValues(alpha: 0.92),
+                color: AppColors.darkSurface.withValues(alpha: 0.92),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 '\$${item.price.toStringAsFixed(2)}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.1,
@@ -1168,8 +1142,7 @@ class _ItemTile extends StatelessWidget {
       tooltip: 'Options',
       padding: EdgeInsets.zero,
       color: _K.surface,
-      elevation: 6,
-      shadowColor: const Color(0x330F172A),
+      elevation: 0,
       offset: const Offset(0, 36),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
@@ -1185,7 +1158,7 @@ class _ItemTile extends StatelessWidget {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
+          color: AppColors.white.withValues(alpha: 0.92),
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.more_horiz_rounded,
@@ -1263,7 +1236,7 @@ class _VegMark extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
+        color: AppColors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(7),
       ),
       child: Container(
@@ -1316,14 +1289,8 @@ class _MiniToggle extends StatelessWidget {
               width: 18,
               height: 18,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                      color: Color(0x33000000),
-                      blurRadius: 3,
-                      offset: Offset(0, 1)),
-                ],
               ),
             ),
           ),
