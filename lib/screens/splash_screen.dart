@@ -7,6 +7,15 @@ import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/app_colors.dart';
 
+// ─── Color tokens (same as profile / orders / categories / rewards screens) ──
+class _K {
+  static const dark = Color(0xFF0F172A); // slate-900
+  static const darkRaised = Color(0xFF1E293B); // slate-800
+  static const emerald = Color(0xFF10B981);
+  static const emeraldLight = Color(0xFF6EE7B7);
+  static const white = Colors.white;
+}
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -108,10 +117,10 @@ class _SplashScreenState extends State<SplashScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: AppColors.orange,
+        backgroundColor: _K.dark,
         body: Stack(
           children: [
-            // Decorative background patterns (e.g., large faint circles)
+            // Decorative background patterns (large faint circles)
             Positioned(
               top: -150,
               right: -100,
@@ -120,7 +129,7 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 400,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.textInverse.withOpacity(0.03),
+                  color: _K.white.withOpacity(0.03),
                 ),
               ),
             ),
@@ -132,7 +141,20 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 500,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.textInverse.withOpacity(0.03),
+                  color: _K.white.withOpacity(0.03),
+                ),
+              ),
+            ),
+            // Subtle emerald glow accent, echoing the dashboard's "live" motif
+            Positioned(
+              top: -80,
+              left: -80,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _K.emerald.withOpacity(0.06),
                 ),
               ),
             ),
@@ -149,17 +171,17 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppColors.textInverse,
+                          color: _K.white,
                           borderRadius: BorderRadius.circular(32),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
+                              color: Colors.black.withOpacity(0.25),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             )
                           ],
                         ),
-                        child: const _QRIcon(size: 64, color: AppColors.orange),
+                        child: const _QRIcon(size: 64, color: _K.dark),
                       ),
                     ),
                   ),
@@ -179,7 +201,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 fontSize: 44,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -1.0,
-                                color: AppColors.textInverse,
+                                color: _K.white,
                               ),
                               children: [
                                 TextSpan(text: 'Z'),
@@ -194,14 +216,25 @@ class _SplashScreenState extends State<SplashScreen>
                               ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'VENDOR PARTNER',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 4.0,
-                              color: AppColors.textInverse.withOpacity(0.8),
+                          const SizedBox(height: 10),
+                          // Emerald "live" pill — matches dashboard status badges
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _K.emerald.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: _K.emerald.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              'VENDOR PARTNER',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 3.0,
+                                color: _K.emeraldLight,
+                              ),
                             ),
                           ),
                         ],
@@ -226,7 +259,7 @@ class _SplashScreenState extends State<SplashScreen>
                     Text(
                       'Setting up your workspace...',
                       style: TextStyle(
-                        color: AppColors.textInverse.withOpacity(0.6),
+                        color: _K.white.withOpacity(0.5),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.5,
@@ -337,20 +370,21 @@ class _ProgressBar extends StatelessWidget {
               // Track
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.textInverse.withOpacity(0.2),
+                  color: _K.white.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(barHeight),
                 ),
               ),
 
+              // Fill — emerald, matching the dashboard's "live" accent
               FractionallySizedBox(
                 widthFactor: progress,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.textInverse,
+                    color: _K.emerald,
                     borderRadius: BorderRadius.circular(barHeight),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.textInverse.withOpacity(0.5),
+                        color: _K.emerald.withOpacity(0.5),
                         blurRadius: 6,
                         spreadRadius: 1,
                       )

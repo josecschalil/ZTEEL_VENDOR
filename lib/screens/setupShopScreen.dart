@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:frontend/screens/locationPageScreen.dart';
 import 'package:frontend/screens/vendor_home.dart';
-import 'package:frontend/app_colors.dart';
 import 'package:frontend/services/vendor_service.dart';
-import 'package:frontend/widgets/app_top_bar.dart';
 
 class SetupShopScreen extends StatefulWidget {
   const SetupShopScreen({super.key});
@@ -14,20 +14,17 @@ class SetupShopScreen extends StatefulWidget {
   State<SetupShopScreen> createState() => _SetupShopScreenState();
 }
 
-class _SetupShopScreenState extends State<SetupShopScreen>
-    with TickerProviderStateMixin {
-  final _scrollController = ScrollController();
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-
-  final List<List<_OpeningSession>> _daySessions =
-      List.generate(7, (_) => <_OpeningSession>[]);
-  int _selectedDayIndex = 0;
+class _SetupShopScreenState extends State<SetupShopScreen> {
   int _currentStep = 0;
+  final ScrollController _scrollController = ScrollController();
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+
+  final List<List<_OpeningSession>> _daySessions =
+      List.generate(7, (_) => <_OpeningSession>[]);
+  int _selectedDayIndex = 0;
 
   String _selectedCategory = 'restaurant';
   double _latitude = 12.9716;
@@ -37,42 +34,37 @@ class _SetupShopScreenState extends State<SetupShopScreen>
   File? _coverImageFile;
   String? _iconImageUrl;
   String? _coverImageUrl;
+
   bool _isUploadingIcon = false;
   bool _isUploadingCover = false;
   bool _isSubmitting = false;
+  bool _isLoadingProfile = true;
+
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    );
-    _fadeController.forward();
     _loadVendorProfile();
   }
 
   Future<void> _loadVendorProfile() async {
     final res = await VendorService.getVendorProfile();
+    if (!mounted) return;
+
     if (res['success'] == true && res['data'] != null) {
       final data = res['data'] as Map<String, dynamic>;
-      if (!mounted) return;
       setState(() {
-        if (data['business_name'] != null && data['business_name'].toString().isNotEmpty) {
+        if (data['business_name'] != null) {
           _nameController.text = data['business_name'].toString();
         }
         if (data['shop_description'] != null) {
           _descController.text = data['shop_description'].toString();
         }
-        if (data['address'] != null && data['address'].toString().isNotEmpty) {
+        if (data['address'] != null) {
           _addressController.text = data['address'].toString();
         }
-        if (data['category'] != null && data['category'].toString().isNotEmpty) {
+        if (data['category'] != null) {
           _selectedCategory = data['category'].toString().toLowerCase();
         }
         if (data['latitude'] != null) {
@@ -83,13 +75,17 @@ class _SetupShopScreenState extends State<SetupShopScreen>
         }
         _iconImageUrl = data['icon_image']?.toString();
         _coverImageUrl = data['cover_image']?.toString();
+        _isLoadingProfile = false;
       });
+    } else {
+      setState(() => _isLoadingProfile = false);
     }
   }
 
   Future<void> _pickIconImage() async {
     try {
-      final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? picked =
+          await _picker.pickImage(source: ImageSource.gallery);
       if (picked != null) {
         final file = File(picked.path);
         setState(() {
@@ -103,38 +99,24 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
         if (res['success'] == true) {
           if (res['icon_image'] != null) {
-            setState(() {
-              _iconImageUrl = res['icon_image'].toString();
-            });
+            _iconImageUrl = res['icon_image'].toString();
           }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('Shop logo uploaded and updated!'),
-            backgroundColor: AppColors.orange,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            margin: const EdgeInsets.all(16),
-          ));
+          _showToast('Shop logo updated successfully!', positive: true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(res['error'] ?? 'Failed to upload logo'),
-            backgroundColor: AppColors.orangeDim,
-            behavior: SnackBarBehavior.floating,
-          ));
+          _showToast(res['error'] ?? 'Failed to upload logo', positive: false);
         }
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUploadingIcon = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Could not pick icon image: $e'),
-        backgroundColor: AppColors.orangeDim,
-      ));
+      _showToast('Could not pick icon image.', positive: false);
     }
   }
 
   Future<void> _pickCoverImage() async {
     try {
-      final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? picked =
+          await _picker.pickImage(source: ImageSource.gallery);
       if (picked != null) {
         final file = File(picked.path);
         setState(() {
@@ -148,44 +130,22 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
         if (res['success'] == true) {
           if (res['cover_image'] != null) {
-            setState(() {
-              _coverImageUrl = res['cover_image'].toString();
-            });
+            _coverImageUrl = res['cover_image'].toString();
           }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('Cover photo uploaded and updated!'),
-            backgroundColor: AppColors.orange,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            margin: const EdgeInsets.all(16),
-          ));
+          _showToast('Cover photo updated successfully!', positive: true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(res['error'] ?? 'Failed to upload cover photo'),
-            backgroundColor: AppColors.orangeDim,
-            behavior: SnackBarBehavior.floating,
-          ));
+          _showToast(res['error'] ?? 'Failed to upload cover photo',
+              positive: false);
         }
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUploadingCover = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Could not pick cover image: $e'),
-        backgroundColor: AppColors.orangeDim,
-      ));
+      _showToast('Could not pick cover image.', positive: false);
     }
   }
 
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    _scrollController.dispose();
-    _nameController.dispose();
-    _descController.dispose();
-    _addressController.dispose();
-    super.dispose();
-  }
+  // ─── Step 2 Operations Logic ─────────────────────────────────────────────────
 
   String _formatTime(TimeOfDay t) {
     final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
@@ -220,10 +180,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
         return 'A session has an invalid time range.';
       }
       if (i > 0 && normalized[i].$1 < normalized[i - 1].$2) {
-        return 'Sessions overlap. Please adjust time ranges.';
+        return 'Sessions overlap. Please adjust times.';
       }
     }
-
     return null;
   }
 
@@ -239,10 +198,9 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: AppColors.orange,
-            onPrimary: AppColors.textWhite,
-            onSurface: AppColors.textPrimary,
-            surface: AppColors.surface,
+            primary: Color(0xFF0F172A), // Dark professional theme
+            onPrimary: Colors.white,
+            onSurface: Color(0xFF0F172A),
           ),
         ),
         child: child!,
@@ -280,99 +238,76 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     });
   }
 
-  Future<void> _showOperationsStep() async {
-    final rawName = _nameController.text.trim();
-    if (rawName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Shop name is mandatory to create your shop profile.'),
-        backgroundColor: AppColors.orangeDim,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ));
-      return;
-    }
-
-    setState(() => _currentStep = 1);
-    if (_scrollController.hasClients) {
-      await _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
+  void _showToast(String message, {required bool positive}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          elevation: 0,
+          backgroundColor:
+              positive ? const Color(0xFF0F172A) : const Color(0xFF7F1D1D),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          content: Row(
+            children: [
+              Icon(
+                positive
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.error_outline_rounded,
+                color: positive
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFFCA5A5),
+                size: 19,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
+  }
+
+  void _handleBack() {
+    if (_currentStep == 1) {
+      setState(() => _currentStep = 0);
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic);
+    } else {
+      if (Navigator.canPop(context)) Navigator.pop(context);
     }
   }
 
-  Future<void> _skipAndFinish() async {
+  void _goToNextStep() {
     final rawName = _nameController.text.trim();
     if (rawName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Shop name is mandatory to create your shop profile.'),
-        backgroundColor: AppColors.orangeDim,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ));
+      _showToast('Shop name is required.', positive: false);
       return;
     }
-
-    setState(() => _isSubmitting = true);
-
-    final profileRes = await VendorService.updateVendorProfile(
-      businessName: rawName,
-      shopDescription: _descController.text.trim(),
-      address: _addressController.text.trim(),
-      category: _selectedCategory,
-      latitude: _latitude,
-      longitude: _longitude,
-      iconImage: _iconImageFile,
-      coverImage: _coverImageFile,
-    );
-
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
-
-    if (profileRes['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Shop created! Other details can be updated anytime from Profile.'),
-        backgroundColor: AppColors.orange,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ));
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const VendorHome()),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(profileRes['error'] ?? 'Failed to create shop profile'),
-        backgroundColor: AppColors.orangeDim,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ));
-    }
+    setState(() => _currentStep = 1);
+    _scrollController.animateTo(0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic);
   }
 
   Future<void> _completeSetup() async {
-    final rawName = _nameController.text.trim();
-    if (rawName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Shop name is mandatory to create your shop profile.'),
-        backgroundColor: AppColors.orangeDim,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ));
-      return;
-    }
-
     setState(() => _isSubmitting = true);
 
-    // 1. Update Profile (business_name, shop_description, address, category, lat, long)
+    // 1. Profile Update
     final profileRes = await VendorService.updateVendorProfile(
-      businessName: rawName,
+      businessName: _nameController.text.trim(),
       shopDescription: _descController.text.trim(),
       address: _addressController.text.trim(),
       category: _selectedCategory,
@@ -385,35 +320,27 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     if (profileRes['success'] != true) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(profileRes['error'] ?? 'Failed to save shop profile'),
-        backgroundColor: AppColors.orangeDim,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ));
+      _showToast(profileRes['error'] ?? 'Failed to save shop profile',
+          positive: false);
       return;
     }
 
-    // 2. Update Business Hours Schedule (if configured)
-    bool hasHours = false;
-    for (int i = 0; i < 7; i++) {
-      if (_daySessions[i].isNotEmpty) {
-        hasHours = true;
-        break;
-      }
-    }
-
+    // 2. Schedule Update
+    bool hasHours = _daySessions.any((sessions) => sessions.isNotEmpty);
     if (hasHours) {
       List<Map<String, dynamic>> daysSchedule = [];
       for (int i = 0; i < 7; i++) {
         final sessions = _daySessions[i];
         final isClosed = sessions.isEmpty;
-        final slots = sessions.map((s) => {
-          'opens_at': '${s.start.hour.toString().padLeft(2, '0')}:${s.start.minute.toString().padLeft(2, '0')}:00',
-          'closes_at': '${s.end.hour.toString().padLeft(2, '0')}:${s.end.minute.toString().padLeft(2, '0')}:00',
-          'closes_next_day': false,
-        }).toList();
+        final slots = sessions
+            .map((s) => {
+                  'opens_at':
+                      '${s.start.hour.toString().padLeft(2, '0')}:${s.start.minute.toString().padLeft(2, '0')}:00',
+                  'closes_at':
+                      '${s.end.hour.toString().padLeft(2, '0')}:${s.end.minute.toString().padLeft(2, '0')}:00',
+                  'closes_next_day': false,
+                })
+            .toList();
 
         daysSchedule.add({
           'weekday': i,
@@ -426,14 +353,7 @@ class _SetupShopScreenState extends State<SetupShopScreen>
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('Shop setup completed successfully!'),
-      backgroundColor: AppColors.orange,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      margin: const EdgeInsets.all(16),
-    ));
+    _showToast('Shop setup completed successfully!', positive: true);
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const VendorHome()),
@@ -441,149 +361,70 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
   }
 
-  void _handleBack() {
-    if (_currentStep == 1) {
-      setState(() => _currentStep = 0);
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-      return;
-    }
-
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _addressController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingProfile) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body:
+            Center(child: CircularProgressIndicator(color: Color(0xFF0F172A))),
+      );
+    }
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFFCFA),
-        body: SafeArea(
-          bottom: false,
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                AppTopBar(
-                  title: 'Shop Setup',
-                  showBackButton: true,
-                  onBack: _handleBack,
-                  trailing: [
-                    TextButton(
-                      onPressed: _isSubmitting ? null : _skipAndFinish,
-                      child: Text(
-                        _currentStep == 0 ? 'Create Shop Now' : 'Skip optional steps',
-                        style: const TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.only(bottom: 120),
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeroCoverAndAvatar(),
+                  const SizedBox(height: 32),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: AnimatedCrossFade(
+                      firstChild: _buildStorefrontStep(),
+                      secondChild: _buildOperationsStep(),
+                      crossFadeState: _currentStep == 0
+                          ? CrossFadeState.showFirst
+                          : CrossFadeState.showSecond,
+                      duration: const Duration(milliseconds: 300),
+                      firstCurve: Curves.easeOutCubic,
+                      secondCurve: Curves.easeOutCubic,
                     ),
-                  ],
-                ),
-                Expanded(
-                  child: Stack(
-                    children: [
-                      SingleChildScrollView(
-                        controller: _scrollController,
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 132),
-                        child: _buildStepContent(),
-                      ),
-                      _buildFloatingSaveButton(),
-                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            _buildStickyBottomBar(),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStepContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 260),
-          child: KeyedSubtree(
-            key: ValueKey(_currentStep),
-            child: _buildHeader(),
-          ),
-        ),
-        const SizedBox(height: 24),
-        AnimatedCrossFade(
-          firstChild: _buildStorefrontBody(),
-          secondChild: _buildOperationsBody(),
-          crossFadeState: _currentStep == 0
-              ? CrossFadeState.showFirst
-              : CrossFadeState.showSecond,
-          duration: const Duration(milliseconds: 420),
-          firstCurve: Curves.easeOutCubic,
-          secondCurve: Curves.easeOutCubic,
-          sizeCurve: Curves.easeInOutCubic,
-          alignment: Alignment.topCenter,
-        ),
-      ],
-    );
-  }
+  // ─── Hero Cover & Avatar Header ──────────────────────────────────────────────
 
-
-
-  Widget _buildStorefrontBody() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildVisualIdentitySection(),
-        const SizedBox(height: 28),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: _buildTextField(
-            label: 'Shop name *',
-            hint: 'e.g. Amber & Spice Atelier',
-            controller: _nameController,
-          ),
-        ),
-        const SizedBox(height: 26),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: _buildTextField(
-            label: 'Short description',
-            hint: 'What do you serve and what makes it special?',
-            controller: _descController,
-            maxLines: 4,
-          ),
-        ),
-        const SizedBox(height: 28),
-        _buildPrivacyNote(),
-      ],
-    );
-  }
-
-  Widget _buildOperationsBody() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 4),
-        _buildOpenDaysSection(),
-        const SizedBox(height: 32),
-        _buildLocationSection(),
-        const SizedBox(height: 24),
-        _buildTermsText(),
-      ],
-    );
-  }
-
-  // ─── Visual Identity Section ─────────────────────────────────────
-  Widget _buildVisualIdentitySection() {
+  Widget _buildHeroCoverAndAvatar() {
     ImageProvider? coverImg;
     if (_coverImageFile != null) {
       coverImg = FileImage(_coverImageFile!);
@@ -591,80 +432,105 @@ class _SetupShopScreenState extends State<SetupShopScreen>
       coverImg = NetworkImage(_coverImageUrl!);
     }
 
+    ImageProvider? iconImg;
+    if (_iconImageFile != null) {
+      iconImg = FileImage(_iconImageFile!);
+    } else if (_iconImageUrl != null && _iconImageUrl!.isNotEmpty) {
+      iconImg = NetworkImage(_iconImageUrl!);
+    }
+
     return SizedBox(
-      height: 214,
+      height: 250,
       child: Stack(
+        alignment: Alignment.topCenter,
         clipBehavior: Clip.none,
         children: [
           Container(
-            height: 156,
+            height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF342C27), Color(0xFF7D4238)],
+              color: const Color(0xFF0F172A),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
               ),
               image: coverImg != null
                   ? DecorationImage(
                       image: coverImg,
                       fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(
+                        Colors.black.withOpacity(0.4),
+                        BlendMode.darken,
+                      ),
                     )
                   : null,
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22000000),
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                ),
+              ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
+            child: SafeArea(
+              bottom: false,
               child: Stack(
                 children: [
-                  if (coverImg == null)
-                    Positioned(
-                      top: -30,
-                      right: -10,
+                  Positioned(
+                    top: 10,
+                    left: 20,
+                    child: GestureDetector(
+                      onTap: _handleBack,
                       child: Container(
-                        width: 130,
-                        height: 130,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.orange.withOpacity(0.35),
+                          color: Colors.white.withOpacity(0.15),
                           shape: BoxShape.circle,
+                          border:
+                              Border.all(color: Colors.white.withOpacity(0.2)),
                         ),
-                      ),
-                    ),
-                  const Positioned(
-                    left: 18,
-                    top: 18,
-                    child: Text(
-                      'YOUR STOREFRONT',
-                      style: TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.1,
+                        child: const Icon(Icons.arrow_back_rounded,
+                            color: Colors.white, size: 20),
                       ),
                     ),
                   ),
-                  if (_isUploadingCover)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black.withOpacity(0.55),
-                        child: const Center(
-                          child: Column(
+                  if (_currentStep == 0)
+                    Center(
+                      child: GestureDetector(
+                        onTap: _isUploadingCover ? null : _pickCoverImage,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.35),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.3)),
+                          ),
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: AppColors.orange,
-                                  strokeWidth: 2.5,
-                                ),
-                              ),
-                              SizedBox(height: 6),
+                              if (_isUploadingCover)
+                                const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              else
+                                const Icon(Icons.camera_alt_outlined,
+                                    color: Colors.white, size: 16),
+                              const SizedBox(width: 8),
                               Text(
-                                'Uploading cover...',
-                                style: TextStyle(
+                                _isUploadingCover
+                                    ? 'Uploading...'
+                                    : (coverImg != null
+                                        ? 'Change Cover'
+                                        : 'Add Cover Photo'),
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 11,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -673,134 +539,71 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                         ),
                       ),
                     ),
-                  Positioned(
-                    right: 12,
-                    bottom: 12,
-                    child: TextButton.icon(
-                      onPressed: _isUploadingCover ? null : _pickCoverImage,
-                      icon: const Icon(Icons.add_photo_alternate_outlined, size: 17),
-                      label: Text(_isUploadingCover
-                          ? 'Uploading...'
-                          : (coverImg != null ? 'Change Cover' : 'Cover photo')),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.textWhite,
-                        backgroundColor: Colors.black.withOpacity(0.35),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 9,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.white.withOpacity(0.3)),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
           Positioned(
-            left: 18,
             bottom: 0,
-            child: Row(
+            child: Stack(
+              alignment: Alignment.bottomRight,
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 86,
-                      height: 86,
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    shape: BoxShape.circle,
+                    border:
+                        Border.all(color: const Color(0xFFF8FAFC), width: 4),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (iconImg != null)
+                          Image(image: iconImg, fit: BoxFit.cover)
+                        else
+                          const Icon(Icons.storefront_rounded,
+                              size: 36, color: Color(0xFF94A3B8)),
+                        if (_isUploadingIcon)
+                          Container(
+                            color: Colors.black.withOpacity(0.5),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                    color: Color(0xFF10B981), strokeWidth: 2.5),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_currentStep == 0)
+                  GestureDetector(
+                    onTap: _isUploadingIcon ? null : _pickIconImage,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: const Color(0xFF10B981),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFFFFFCFA),
-                          width: 4,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.13),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                            color: const Color(0xFFF8FAFC), width: 3),
                       ),
-                      child: ClipOval(
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: _iconImageFile != null
-                                  ? Image.file(
-                                      _iconImageFile!,
-                                      width: 86,
-                                      height: 86,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : (_iconImageUrl != null && _iconImageUrl!.isNotEmpty)
-                                      ? Image.network(
-                                          _iconImageUrl!,
-                                          width: 86,
-                                          height: 86,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => const Icon(
-                                            Icons.storefront_rounded,
-                                            color: AppColors.orange,
-                                            size: 34,
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.storefront_rounded,
-                                          color: AppColors.orange,
-                                          size: 34,
-                                        ),
-                            ),
-                            if (_isUploadingIcon)
-                              Positioned.fill(
-                                child: Container(
-                                  color: Colors.black.withOpacity(0.55),
-                                  child: const Center(
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: AppColors.orange,
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
+                      child: const Icon(Icons.edit_rounded,
+                          color: Colors.white, size: 14),
                     ),
-                    Positioned(
-                      right: -2,
-                      bottom: 2,
-                      child: GestureDetector(
-                        onTap: _isUploadingIcon ? null : _pickIconImage,
-                        child: Container(
-                          padding: const EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: AppColors.orange,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFFFFCFA), width: 2),
-                          ),
-                          child: const Icon(
-                            Icons.edit_rounded,
-                            color: AppColors.textWhite,
-                            size: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
@@ -809,74 +612,190 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
   }
 
-  // ─── Header ──────────────────────────────────────────────────────
-  Widget _buildHeader() {
-    final title = _currentStep == 0
-        ? 'Set your storefront'
-        : 'Set up daily operations';
-    final subtitle = _currentStep == 0
-        ? 'Make your shop easy to recognise.'
-        : 'Choose your hours and confirm your location.';
+  // ─── Step 1: Storefront Profile ──────────────────────────────────────────────
+
+  Widget _buildStorefrontStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+            title: 'Business Profile',
+            subtitle: 'These details will be displayed to your customers.',
+            step: 1),
+        const SizedBox(height: 24),
+        _buildTextFieldCard(
+          label: 'Shop Name *',
+          hint: 'e.g. Artisan Trattoria',
+          icon: Icons.store_mall_directory_outlined,
+          controller: _nameController,
+        ),
+        const SizedBox(height: 20),
+        _buildTextFieldCard(
+          label: 'Description',
+          hint: 'What kind of food do you serve?',
+          icon: Icons.notes_rounded,
+          controller: _descController,
+          maxLines: 4,
+        ),
+      ],
+    );
+  }
+
+  // ─── Step 2: Daily Operations ────────────────────────────────────────────────
+
+  Future<void> _openLocationPicker() async {
+    final picked = await Navigator.push<PickedLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialPosition: LatLng(_latitude, _longitude),
+          initialAddress: _addressController.text.trim().isNotEmpty
+              ? _addressController.text.trim()
+              : null,
+        ),
+      ),
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _addressController.text = picked.address;
+        _latitude = picked.latitude;
+        _longitude = picked.longitude;
+      });
+      _showToast('Shop location updated!', positive: true);
+    }
+  }
+
+  Widget _buildLocationPickerCard() {
+    final hasAddress = _addressController.text.trim().isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 28,
+        const Text(
+          'Shop Location *',
+          style: TextStyle(
+            fontSize: 13,
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
+            color: Color(0xFF334155),
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 15,
-            height: 1.45,
-          ),
-        ),
-        const SizedBox(height: 22),
-        Row(
-          children: [
-            Text(
-              'STEP ${_currentStep + 1} OF 2',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.9,
+        GestureDetector(
+          onTap: _openLocationPicker,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: hasAddress
+                    ? const Color(0xFFE2E8F0)
+                    : const Color(0xFFCBD5E1),
               ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x06000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-            const Spacer(),
-            Text(
-              _currentStep == 0 ? 'Storefront' : 'Operations',
-              style: const TextStyle(
-                color: AppColors.orange,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 9),
-        TweenAnimationBuilder<double>(
-          tween: Tween<double>(
-            begin: 0.5,
-            end: (_currentStep + 1) / 2,
-          ),
-          duration: const Duration(milliseconds: 420),
-          curve: Curves.easeInOutCubic,
-          builder: (context, value, child) => ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: value,
-              minHeight: 5,
-              backgroundColor: AppColors.border,
-              color: AppColors.orange,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: hasAddress
+                            ? const Color(0xFF0F172A).withValues(alpha: 0.07)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        hasAddress
+                            ? Icons.location_on_rounded
+                            : Icons.add_location_alt_outlined,
+                        color: hasAddress
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFF64748B),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasAddress
+                                ? _addressController.text.trim()
+                                : 'Select shop location on map',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  hasAddress ? FontWeight.w700 : FontWeight.w500,
+                              color: hasAddress
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFF64748B),
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            hasAddress
+                                ? 'Lat: ${_latitude.toStringAsFixed(4)}, Lng: ${_longitude.toStringAsFixed(4)}'
+                                : 'Tap to open map and pin exact store address',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            hasAddress
+                                ? Icons.edit_location_alt_rounded
+                                : Icons.map_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            hasAddress ? 'Change' : 'Pick Map',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
@@ -884,44 +803,49 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
   }
 
-  Widget _buildPrivacyNote() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.orangeDim,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.orangeBorder),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.visibility_outlined, color: AppColors.orange, size: 19),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Shop name is mandatory. All other shop details are optional and can be updated anytime from profile settings.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-                height: 1.4,
-              ),
+  Widget _buildOperationsStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+            title: 'Daily Operations',
+            subtitle: 'Set your business hours and location details.',
+            step: 2),
+        const SizedBox(height: 24),
+        _buildBusinessHoursSection(),
+        const SizedBox(height: 28),
+        _buildLocationPickerCard(),
+        const SizedBox(height: 32),
+        const Center(
+          child: Text(
+            "By finishing, you agree to our Vendor Terms & Conditions.",
+            style: TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  // ─── Open Days Section ──────────────────────────────────────────
-  Widget _buildOpenDaysSection() {
+  Widget _buildBusinessHoursSection() {
     const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     final validation = _sessionValidationMessage(_selectedDayIndex);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('BUSINESS HOURS'),
-        const SizedBox(height: 14),
+        const Text(
+          'Business Hours',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(7, (i) {
@@ -929,36 +853,36 @@ class _SetupShopScreenState extends State<SetupShopScreen>
             final isFocused = _selectedDayIndex == i;
             return GestureDetector(
               onTap: () => setState(() => _selectedDayIndex = i),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
                   color: isFocused
-                      ? AppColors.orange
-                      : (hasSessions
-                          ? AppColors.orangeDim
-                          : AppColors.surfaceRaised),
+                      ? const Color(0xFF0F172A)
+                      : (hasSessions ? const Color(0xFFECFDF5) : Colors.white),
                   shape: BoxShape.circle,
                   border: isFocused
                       ? null
                       : Border.all(
                           color: hasSessions
-                              ? AppColors.orange.withOpacity(0.3)
-                              : AppColors.border),
+                              ? const Color(0xFF10B981).withOpacity(0.3)
+                              : const Color(0xFFE2E8F0),
+                        ),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   dayLabels[i],
                   style: TextStyle(
                     color: isFocused
-                        ? AppColors.textWhite
+                        ? Colors.white
                         : (hasSessions
-                            ? AppColors.orange
-                            : AppColors.textSecondary),
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF64748B)),
                     fontSize: 14,
                     fontWeight: isFocused || hasSessions
-                        ? FontWeight.w500
-                        : FontWeight.w400,
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                   ),
                 ),
               ),
@@ -969,14 +893,14 @@ class _SetupShopScreenState extends State<SetupShopScreen>
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
               BoxShadow(
-                color: Colors.black.withOpacity(0.025),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+                color: Color(0x06000000),
+                blurRadius: 4,
+                offset: Offset(0, 2),
               ),
             ],
           ),
@@ -989,31 +913,53 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                   Text(
                     _fullDayLabel(_selectedDayIndex),
                     style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: () => _addSession(_selectedDayIndex),
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text('Add hours'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.orange,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: () => _addSession(_selectedDayIndex),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_rounded,
+                              size: 16, color: Color(0xFF059669)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Add hours',
+                            style: TextStyle(
+                              color: Color(0xFF059669),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               if (_daySessions[_selectedDayIndex].isEmpty)
-                const Text(
-                  'No hours added. This day will show as closed.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'No hours added. Marked as Closed.',
+                      style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
                 )
               else
                 ..._daySessions[_selectedDayIndex].asMap().entries.map((entry) {
@@ -1032,8 +978,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text('-',
-                              style: TextStyle(color: AppColors.textSecondary)),
+                          child: Icon(Icons.arrow_forward_rounded,
+                              size: 16, color: Color(0xFF94A3B8)),
                         ),
                         Expanded(
                           child: _buildTimePickerField(
@@ -1045,8 +991,15 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                         const SizedBox(width: 12),
                         GestureDetector(
                           onTap: () => _removeSession(_selectedDayIndex, idx),
-                          child: const Icon(Icons.close_rounded,
-                              color: AppColors.textSecondary, size: 20),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.delete_outline_rounded,
+                                color: Color(0xFFEF4444), size: 18),
+                          ),
                         ),
                       ],
                     ),
@@ -1056,8 +1009,8 @@ class _SetupShopScreenState extends State<SetupShopScreen>
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(validation,
-                      style:
-                          const TextStyle(color: AppColors.red, fontSize: 12)),
+                      style: const TextStyle(
+                          color: Color(0xFFEF4444), fontSize: 12)),
                 ),
             ],
           ),
@@ -1066,154 +1019,82 @@ class _SetupShopScreenState extends State<SetupShopScreen>
     );
   }
 
-  Widget _buildTimePickerField(
-      {required TimeOfDay time, required VoidCallback onTap}) {
+  Widget _buildTimePickerField({
+    required TimeOfDay time,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         alignment: Alignment.center,
         child: Text(
           _formatTime(time),
           style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w500),
+            color: Color(0xFF0F172A),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
   }
 
-  // ─── Location Section ────────────────────────────────────────────
-  Widget _buildLocationSection() {
+  // ─── Reusable Components ─────────────────────────────────────────────────────
+
+  Widget _buildSectionHeader({
+    required String title,
+    required String subtitle,
+    required int step,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('LOCATION ADDRESS'),
-        const SizedBox(height: 12),
-        _buildTextField(
-          label: 'Shop Address',
-          hint: 'Enter your full shop address',
-          controller: _addressController,
-          maxLines: 2,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+                letterSpacing: -0.3,
+              ),
+            ),
+            Text(
+              'STEP $step OF 2',
+              style: const TextStyle(
+                color: Color(0xFF10B981),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF64748B),
+          ),
         ),
       ],
     );
   }
 
-  // ─── Save Button ─────────────────────────────────────────────────
-  Widget _buildSaveButton() {
-    return SizedBox(
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _isSubmitting
-            ? null
-            : (_currentStep == 0 ? _showOperationsStep : _completeSetup),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.orange,
-          foregroundColor: AppColors.textWhite,
-          disabledBackgroundColor: AppColors.orange.withOpacity(0.6),
-          disabledForegroundColor: AppColors.textWhite,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: _isSubmitting
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.textWhite,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _currentStep == 0 ? 'Continue' : 'Finish setup',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.1,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    _currentStep == 0
-                        ? Icons.arrow_forward_rounded
-                        : Icons.check_rounded,
-                    size: 19,
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingSaveButton() {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
-        decoration: BoxDecoration(
-          color: AppColors.bg,
-          border: const Border(
-            top: BorderSide(color: AppColors.border, width: 1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: _buildSaveButton(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTermsText() {
-    return const Center(
-      child: Text(
-        "By continuing, you agree to ZTEEL's Vendor Terms and Conditions.",
-        style: TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 11.5,
-          height: 1.4,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _sectionLabel(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: AppColors.textSecondary,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
+  Widget _buildTextFieldCard({
     required String label,
     required String hint,
+    required IconData icon,
     required TextEditingController controller,
     int maxLines = 1,
   }) {
@@ -1223,46 +1104,125 @@ class _SetupShopScreenState extends State<SetupShopScreen>
         Text(
           label,
           style: const TextStyle(
-            color: AppColors.textPrimary,
             fontSize: 13,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF334155),
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 14,
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(
-              color: AppColors.textSecondary,
+          child: TextField(
+            controller: controller,
+            maxLines: maxLines,
+            style: const TextStyle(
               fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF0F172A),
             ),
-            filled: true,
-            fillColor: AppColors.surfaceRaised,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.orange, width: 1.5),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+              prefixIcon: maxLines == 1
+                  ? Icon(icon, color: const Color(0xFF94A3B8), size: 20)
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 60),
+                      child:
+                          Icon(icon, color: const Color(0xFF94A3B8), size: 20),
+                    ),
+              contentPadding: const EdgeInsets.all(16),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide:
+                    const BorderSide(color: Color(0xFF10B981), width: 1.5),
+              ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStickyBottomBar() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 16,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          height: 54,
+          child: ElevatedButton(
+            onPressed: _isSubmitting
+                ? null
+                : (_currentStep == 0 ? _goToNextStep : _completeSetup),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F172A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2.5),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _currentStep == 0 ? 'Continue' : 'Finish Setup',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _currentStep == 0
+                            ? Icons.arrow_forward_rounded
+                            : Icons.check_circle_rounded,
+                        color: const Color(0xFF10B981),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
     );
   }
 }

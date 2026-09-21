@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/OtpProfileScreen.dart';
-import 'package:frontend/app_colors.dart';
 import 'package:frontend/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -57,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (rawInput.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Please enter a valid 10-digit mobile number'),
-        backgroundColor: AppColors.orangeDim,
+        backgroundColor: const Color(0xFF334155),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -87,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen>
       final errorMsg = res['error'] ?? 'Failed to send OTP';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(errorMsg),
-        backgroundColor: AppColors.orangeDim,
+        backgroundColor: const Color(0xFF334155),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -98,9 +97,9 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: AppColors.bg,
+        backgroundColor: const Color(0xFFF8FAFC),
         resizeToAvoidBottomInset: true,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -110,7 +109,8 @@ class _LoginScreenState extends State<LoginScreen>
                 return SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
                     child: IntrinsicHeight(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,11 +126,11 @@ class _LoginScreenState extends State<LoginScreen>
                                     width: 38,
                                     height: 38,
                                     decoration: BoxDecoration(
-                                      color: AppColors.orange,
+                                      color: const Color(0xFF0F172A),
                                       borderRadius: BorderRadius.circular(9),
                                     ),
                                     child: const Icon(Icons.restaurant,
-                                        color: AppColors.textPrimary, size: 19),
+                                        color: Colors.white, size: 19),
                                   ),
                                   const SizedBox(width: 10),
                                   RichText(
@@ -142,14 +142,16 @@ class _LoginScreenState extends State<LoginScreen>
                                       children: [
                                         TextSpan(
                                             text: 'Z',
-                                            style: TextStyle(color: AppColors.textPrimary)),
+                                            style: TextStyle(
+                                                color: Color(0xFF0F172A))),
                                         TextSpan(
                                             text: 'tee',
-                                            style: TextStyle(color: AppColors.orange)),
+                                            style: TextStyle(
+                                                color: Color(0xFF0F172A))),
                                         TextSpan(
                                             text: 'el',
                                             style: TextStyle(
-                                                color: AppColors.textPrimary,
+                                                color: Color(0xFF0F172A),
                                                 fontWeight: FontWeight.w300)),
                                       ],
                                     ),
@@ -172,14 +174,15 @@ class _LoginScreenState extends State<LoginScreen>
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: AppColors.orangeDim, width: 1),
+                                      border: Border.all(
+                                          color: const Color(0xFFE2E8F0),
+                                          width: 1),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
                                       'FOOD DEALS · NEAR YOU',
                                       style: TextStyle(
-                                        color: AppColors.orange,
+                                        color: Color(0xFF334155),
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.6,
@@ -193,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   const Text(
                                     'Welcome\nto ZTEEEL',
                                     style: TextStyle(
-                                      color: AppColors.textPrimary,
+                                      color: Color(0xFF0F172A),
                                       fontSize: 44,
                                       fontWeight: FontWeight.w800,
                                       height: 1.08,
@@ -206,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   const Text(
                                     'Find the best food deals near you.\nLet\'s get started.',
                                     style: TextStyle(
-                                      color: AppColors.textSecondary,
+                                      color: Color(0xFF94A3B8),
                                       fontSize: 15,
                                       height: 1.65,
                                     ),
@@ -223,8 +226,14 @@ class _LoginScreenState extends State<LoginScreen>
                               padding: const EdgeInsets.fromLTRB(28, 40, 0, 0),
                               child: Row(
                                 children: [
-                                  Container(width: 28, height: 2, color: AppColors.orange),
-                                  Container(width: 72, height: 2, color: AppColors.border),
+                                  Container(
+                                      width: 28,
+                                      height: 2,
+                                      color: const Color(0xFF0F172A)),
+                                  Container(
+                                      width: 72,
+                                      height: 2,
+                                      color: const Color(0xFFE2E8F0)),
                                 ],
                               ),
                             ),
@@ -237,88 +246,98 @@ class _LoginScreenState extends State<LoginScreen>
                               padding: const EdgeInsets.fromLTRB(28, 38, 28, 0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'PHONE NUMBER',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.4,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 18),
-
-                                // Inline country code + bare field
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    const Text(
-                                      '+91',
-                                      style: TextStyle(
-                                        color: AppColors.orange,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                children: [
+                                  const Text(
+                                    'PHONE NUMBER',
+                                    style: TextStyle(
+                                      color: Color(0xFF94A3B8),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.4,
                                     ),
-                                    const SizedBox(width: 6),
-                                    Container(
-                                        width: 1, height: 26, color: AppColors.border),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _phoneCtrl,
-                                        focusNode: _focusNode,
-                                        keyboardType: TextInputType.phone,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter
-                                              .digitsOnly,
-                                          LengthLimitingTextInputFormatter(10),
-                                        ],
-                                        onChanged: (_) => setState(() {}),
-                                        style: const TextStyle(
-                                          color: AppColors.textPrimary,
+                                  ),
+
+                                  const SizedBox(height: 18),
+
+                                  // Inline country code + bare field
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        '+91',
+                                        style: TextStyle(
+                                          color: Color(0xFF0F172A),
                                           fontSize: 24,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 2.5,
+                                          fontWeight: FontWeight.w700,
                                         ),
-                                        cursorColor: AppColors.orange,
-                                        cursorWidth: 2,
-                                        decoration: const InputDecoration(
-                                          hintText: '00000 00000',
-                                          hintStyle: TextStyle(
-                                            color: AppColors.border,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                          width: 1,
+                                          height: 26,
+                                          color: const Color(0xFFE2E8F0)),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _phoneCtrl,
+                                          focusNode: _focusNode,
+                                          keyboardType: TextInputType.phone,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly,
+                                            LengthLimitingTextInputFormatter(
+                                                10),
+                                          ],
+                                          onChanged: (_) => setState(() {}),
+                                          style: const TextStyle(
+                                            color: Color(0xFF0F172A),
                                             fontSize: 24,
                                             fontWeight: FontWeight.w600,
                                             letterSpacing: 2.5,
                                           ),
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
+                                          cursorColor: const Color(0xFF0F172A),
+                                          cursorWidth: 2,
+                                          decoration: const InputDecoration(
+                                            hintText: '00000 00000',
+                                            hintStyle: TextStyle(
+                                              color: Color(0xFFE2E8F0),
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 2.5,
+                                            ),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
 
-                                const SizedBox(height: 12),
+                                  const SizedBox(height: 12),
 
-                                // Animated underline
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
-                                  height: 1.5,
-                                  color: _focused ? AppColors.orange : AppColors.border,
-                                ),
-                              ],
+                                  // Animated underline
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    height: 1.5,
+                                    color: _focused
+                                        ? const Color(0xFF0F172A)
+                                        : const Color(0xFFE2E8F0),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
                           const Expanded(child: SizedBox(height: 48)),
 
                           // ── Footer ─────────────────────────
-                          _reveal(4, _Footer(onContinue: _onSendOtp, isLoading: _isLoading)),
+                          _reveal(
+                              4,
+                              _Footer(
+                                  onContinue: _onSendOtp,
+                                  isLoading: _isLoading)),
                         ],
                       ),
                     ),
@@ -343,9 +362,10 @@ class _Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(
-            top: BorderSide(color: AppColors.border, width: 1)),
+          top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -355,9 +375,10 @@ class _Footer extends StatelessWidget {
             child: ElevatedButton(
               onPressed: isLoading ? null : onContinue,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.orange,
-                foregroundColor: AppColors.textWhite,
-                disabledBackgroundColor: AppColors.orange.withOpacity(0.6),
+                backgroundColor: const Color(0xFF0F172A),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor:
+                    const Color(0xFF0F172A).withOpacity(0.6),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -368,7 +389,7 @@ class _Footer extends StatelessWidget {
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: AppColors.textWhite,
+                        color: Colors.white,
                       ),
                     )
                   : const Text(
@@ -385,19 +406,21 @@ class _Footer extends StatelessWidget {
             textAlign: TextAlign.center,
             text: TextSpan(
               style: TextStyle(
-                  color: AppColors.textSecondary.withOpacity(.75), fontSize: 11.5, height: 1.5),
+                  color: const Color(0xFF94A3B8).withOpacity(.75),
+                  fontSize: 11.5,
+                  height: 1.5),
               children: [
                 const TextSpan(text: 'By continuing, you agree to our '),
                 TextSpan(
                     text: 'Terms',
                     style: TextStyle(
-                        color: AppColors.orange.withOpacity(.9),
+                        color: const Color(0xFF0F172A).withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: ' and '),
                 TextSpan(
                     text: 'Privacy Policy',
                     style: TextStyle(
-                        color: AppColors.orange.withOpacity(.9),
+                        color: const Color(0xFF0F172A).withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: '.'),
               ],

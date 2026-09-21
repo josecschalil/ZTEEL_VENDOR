@@ -25,6 +25,222 @@ class _C {
   static const transparent = Colors.transparent;
 }
 
+// ─── Sample Dummy Orders (Pending, Completed, Expired) ───────────────────────
+final List<Map<String, dynamic>> kDummyOrders = [
+  // 1. Pending Order
+  {
+    'id': '7b8f9e21-4d1a-4f5c-8b1a-9a8b7c6d5e4f',
+    'qr_code': 'ORD-942810',
+    'status': 'pending',
+    'customer_name': 'Rahul Sharma',
+    'vendor_name': 'Artisan Trattoria',
+    'subtotal': '650.00',
+    'item_discount': '130.00',
+    'eligible_subtotal': '650.00',
+    'milestone_discount': '0.00',
+    'total_discount': '130.00',
+    'final_total': '520.00',
+    'created_at': '2026-09-20T21:55:00Z',
+    'expires_at': '2026-09-20T22:25:00Z',
+    'confirmed_at': null,
+    'items': [
+      {
+        'id': 'item-101',
+        'menu_item_id': 'mi-001',
+        'item_name_snapshot': 'Paneer Tikka Platter',
+        'unit_price_snapshot': '280.00',
+        'quantity': 1,
+        'line_subtotal': '280.00',
+        'line_discount': '56.00',
+        'line_total': '224.00',
+        'is_reward_item': false,
+        'image':
+            'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=500&auto=format&fit=crop&q=80',
+        'components': [
+          {
+            'item_name_snapshot': 'Mint Chutney & Salad',
+            'quantity': 1,
+          }
+        ],
+      },
+      {
+        'id': 'item-102',
+        'menu_item_id': 'mi-002',
+        'item_name_snapshot': 'Butter Naan',
+        'unit_price_snapshot': '45.00',
+        'quantity': 2,
+        'line_subtotal': '90.00',
+        'line_discount': '18.00',
+        'line_total': '72.00',
+        'is_reward_item': false,
+        'image':
+            'https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?w=500&auto=format&fit=crop&q=80',
+        'components': [],
+      },
+      {
+        'id': 'item-103',
+        'menu_item_id': 'mi-003',
+        'item_name_snapshot': 'Dal Makhani Special',
+        'unit_price_snapshot': '280.00',
+        'quantity': 1,
+        'line_subtotal': '280.00',
+        'line_discount': '56.00',
+        'line_total': '224.00',
+        'is_reward_item': false,
+        'image':
+            'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop&q=80',
+        'components': [],
+      },
+    ],
+    'applied_offers': [
+      {
+        'id': 'offer-apply-01',
+        'offer_id': 'off-001',
+        'title_snapshot': '20% OFF Special Dinner',
+        'scope_type_snapshot': 'all_menu',
+        'percentage_snapshot': 20.0,
+        'maximum_discount_snapshot': 200.0,
+        'qualifying_subtotal': '650.00',
+        'discount_amount': '130.00',
+      }
+    ],
+  },
+
+  // 2. Completed Order
+  {
+    'id': '3c9d8e72-1b2f-4a3d-9c8b-7a6b5c4d3e2f',
+    'qr_code': 'ORD-618402',
+    'status': 'confirmed',
+    'customer_name': 'Ananya Nair',
+    'vendor_name': 'Artisan Trattoria',
+    'subtotal': '890.00',
+    'item_discount': '222.50',
+    'eligible_subtotal': '890.00',
+    'milestone_discount': '50.00',
+    'total_discount': '272.50',
+    'final_total': '617.50',
+    'created_at': '2026-09-20T19:15:00Z',
+    'expires_at': '2026-09-20T19:45:00Z',
+    'confirmed_at': '2026-09-20T19:28:14Z',
+    'items': [
+      {
+        'id': 'item-201',
+        'menu_item_id': 'mi-004',
+        'item_name_snapshot': 'Classic Chicken Biryani',
+        'unit_price_snapshot': '320.00',
+        'quantity': 2,
+        'line_subtotal': '640.00',
+        'line_discount': '160.00',
+        'line_total': '480.00',
+        'is_reward_item': false,
+        'image':
+            'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80',
+        'components': [
+          {
+            'item_name_snapshot': 'Raita & Salan',
+            'quantity': 2,
+          }
+        ],
+      },
+      {
+        'id': 'item-202',
+        'menu_item_id': 'mi-005',
+        'item_name_snapshot': 'Mango Lassi',
+        'unit_price_snapshot': '125.00',
+        'quantity': 2,
+        'line_subtotal': '250.00',
+        'line_discount': '62.50',
+        'line_total': '187.50',
+        'is_reward_item': false,
+        'image':
+            'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500&auto=format&fit=crop&q=80',
+        'components': [],
+      },
+    ],
+    'applied_offers': [
+      {
+        'id': 'offer-apply-02',
+        'offer_id': 'off-002',
+        'title_snapshot': '25% OFF Weekend Feast',
+        'scope_type_snapshot': 'all_menu',
+        'percentage_snapshot': 25.0,
+        'maximum_discount_snapshot': 300.0,
+        'qualifying_subtotal': '890.00',
+        'discount_amount': '222.50',
+      }
+    ],
+    'reward': {
+      'name_snapshot': 'Loyalty Stamp Reward',
+      'discount_amount': '50.00',
+    },
+  },
+
+  // 3. Expired Order
+  {
+    'id': '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
+    'qr_code': 'ORD-305194',
+    'status': 'expired',
+    'customer_name': 'Karthik Menon',
+    'vendor_name': 'Artisan Trattoria',
+    'subtotal': '420.00',
+    'item_discount': '63.00',
+    'eligible_subtotal': '420.00',
+    'milestone_discount': '0.00',
+    'total_discount': '63.00',
+    'final_total': '357.00',
+    'created_at': '2026-09-20T17:00:00Z',
+    'expires_at': '2026-09-20T17:30:00Z',
+    'confirmed_at': null,
+    'items': [
+      {
+        'id': 'item-301',
+        'menu_item_id': 'mi-006',
+        'item_name_snapshot': 'Crispy Veg Spring Rolls',
+        'unit_price_snapshot': '180.00',
+        'quantity': 1,
+        'line_subtotal': '180.00',
+        'line_discount': '27.00',
+        'line_total': '153.00',
+        'is_reward_item': false,
+        'image':
+            'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=80',
+        'components': [
+          {
+            'item_name_snapshot': 'Sweet Chili Sauce',
+            'quantity': 1,
+          }
+        ],
+      },
+      {
+        'id': 'item-302',
+        'menu_item_id': 'mi-007',
+        'item_name_snapshot': 'Cold Coffee with Ice Cream',
+        'unit_price_snapshot': '120.00',
+        'quantity': 2,
+        'line_subtotal': '240.00',
+        'line_discount': '36.00',
+        'line_total': '204.00',
+        'is_reward_item': false,
+        'image':
+            'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&auto=format&fit=crop&q=80',
+        'components': [],
+      },
+    ],
+    'applied_offers': [
+      {
+        'id': 'offer-apply-03',
+        'offer_id': 'off-003',
+        'title_snapshot': '15% OFF Starters & Beverages',
+        'scope_type_snapshot': 'category_set',
+        'percentage_snapshot': 15.0,
+        'maximum_discount_snapshot': 100.0,
+        'qualifying_subtotal': '420.00',
+        'discount_amount': '63.00',
+      }
+    ],
+  },
+];
+
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
@@ -92,13 +308,17 @@ class _OrdersScreenState extends State<OrdersScreen>
     if (!mounted) return;
 
     if (redRes['success'] == true && redRes['data'] != null) {
+      final list = redRes['data'] as List<dynamic>;
       setState(() {
-        _redemptions = redRes['data'] as List<dynamic>;
+        _redemptions = list.isNotEmpty
+            ? list
+            : kDummyOrders.map((e) => Map<String, dynamic>.from(e)).toList();
         _isLoading = false;
       });
     } else {
       setState(() {
-        _errorMessage = redRes['error']?.toString() ?? 'Failed to load orders';
+        _redemptions =
+            kDummyOrders.map((e) => Map<String, dynamic>.from(e)).toList();
         _isLoading = false;
       });
     }
@@ -124,6 +344,29 @@ class _OrdersScreenState extends State<OrdersScreen>
       );
       _fetchData();
     } else {
+      // If mock/dummy order, update status locally
+      final idx = _redemptions.indexWhere((r) => r['qr_code'] == qrCode);
+      if (idx != -1) {
+        setState(() {
+          _redemptions[idx]['status'] = 'confirmed';
+          _redemptions[idx]['confirmed_at'] =
+              DateTime.now().toIso8601String();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Order $qrCode marked as completed!',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: _C.dark,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

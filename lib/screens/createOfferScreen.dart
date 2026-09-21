@@ -1,21 +1,68 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/app_colors.dart';
 import 'package:frontend/services/vendor_service.dart';
-import 'package:frontend/widgets/app_top_bar.dart';
 
+// ─── Palette ─────────────────────────────────────────────────────────────────
+//
+// Identical tokens to offerScreen.dart, so creating an offer and browsing
+// the list it feeds into read as one continuous surface.
+class _Pal {
+  const _Pal._();
+
+  static const bg = Color(0xFFF8FAFC);
+  static const surface = Colors.white;
+  static const wash = Color(0xFFF1F5F9);
+  static const line = Color(0xFFE2E8F0);
+
+  static const ink = Color(0xFF0F172A);
+  static const ink700 = Color(0xFF334155);
+  static const ink600 = Color(0xFF475569);
+  static const ink500 = Color(0xFF64748B);
+  static const ink400 = Color(0xFF94A3B8);
+
+  static const green = Color(0xFF10B981);
+  static const red = Color(0xFFE11D48);
+
+  static const cardShadow = BoxShadow(
+    color: Color(0x06000000),
+    blurRadius: 4,
+    offset: Offset(0, 2),
+  );
+}
+
+enum _Target { items, categories, allMenu }
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
+//
+// Rebuilt around one job per section instead of one dense card holding
+// everything: a live preview up top, then details, targeting, discount and
+// validity as their own clearly labelled cards, with Save pinned to the
+// bottom so it's always reachable while scrolling a long form.
+//
+// Every feature from the original screen is preserved — live menu/category
+// loading, search-and-add pickers, the Items / Categories / All menu scopes,
+// the 5–70% discount stepper, start/end time, day-of-week recurrence, the
+// end-date picker, validation before save, and the create-offer API call.
 class CreateOfferScreen extends StatefulWidget {
-  const CreateOfferScreen({super.key});
+  final String? offerId;
+  final Map<String, dynamic>? initialData;
+
+  const CreateOfferScreen({
+    super.key,
+    this.offerId,
+    this.initialData,
+  });
 
   @override
   State<CreateOfferScreen> createState() => _CreateOfferScreenState();
 }
 
 class _CreateOfferScreenState extends State<CreateOfferScreen> {
-  final TextEditingController _titleController = TextEditingController(text: 'Special Discount Offer');
-  final TextEditingController _descController = TextEditingController(text: 'Limited time promotional discount on selected items');
+  late final TextEditingController _titleController;
+  late final TextEditingController _descController;
 
-  // Target Selection
-  int _targetTab = 0; // 0=Items, 1=Categories, 2=All Menu
+  bool get isEditing => widget.offerId != null && widget.offerId!.isNotEmpty;
+
+  _Target _target = _Target.items;
   List<String> _allItems = [];
   List<String> _allCategories = [];
   List<Map<String, dynamic>> _menuItemsData = [];
@@ -27,28 +74,75 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
   bool _isLoadingData = true;
   bool _isSaving = false;
 
-  // Offer Discount
   double _discountPercent = 25;
 
-  // Validity
   String _startTime = '18:00';
   String _endTime = '23:00';
   DateTime _endDate = DateTime.now().add(const Duration(days: 7));
-  final List<bool> _days = [
-    true,
-    false,
-    true,
-    false,
-    true,
-    true,
-    false
-  ]; // M T W T F S S
+  final List<bool> _days = [true, false, true, false, true, true, false];
+
+  static const List<String> _startTimes = [
+    '16:00',
+    '17:00',
+    '18:00',
+    '19:00',
+    '20:00',
+  ];
+  static const List<String> _endTimes = [
+    '21:00',
+    '22:00',
+    '23:00',
+    '00:00',
+    '01:00',
+  ];
+  static const List<String> _dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
   void initState() {
     super.initState();
+    String initialTitle = 'Special Discount Offer';
+    String initialDesc = 'Limited time promotional discount on selected items';
+
+    if (widget.initialData != null) {
+      final data = widget.initialData!;
+      if (data['title'] != null && data['title'].toString().isNotEmpty) {
+        initialTitle = data['title'].toString();
+      }
+      if (data['description'] != null) {
+        initialDesc = data['description'].toString();
+      }
+      if (data['discount_percentage'] != null) {
+        final d = double.tryParse(data['discount_percentage'].toString());
+        if (d != null) _discountPercent = d;
+      }
+      if (data['ends_at'] != null) {
+        try {
+          _endDate = DateTime.parse(data['ends_at'].toString()).toLocal();
+        } catch (_) {}
+      }
+      final scope = data['scope_type']?.toString();
+      if (scope == 'item_set') {
+        _target = _Target.items;
+      } else if (scope == 'category_set') {
+        _target = _Target.categories;
+      } else if (scope == 'all_menu') {
+        _target = _Target.allMenu;
+      }
+    }
+
+    _titleController = TextEditingController(text: initialTitle);
+    _descController = TextEditingController(text: initialDesc);
     _loadMenuData();
   }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  // ── Data ───────────────────────────────────────────────────────────────────
 
   Future<void> _loadMenuData() async {
     setState(() => _isLoadingData = true);
@@ -85,22 +179,33 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       _categoriesData = catObjs;
       _selectedItems.clear();
       _selectedCategories.clear();
-      if (itemNames.isNotEmpty) _selectedItems.add(itemNames.first);
-      if (catNames.isNotEmpty) _selectedCategories.add(catNames.first);
+
+      if (isEditing && widget.initialData != null) {
+        final data = widget.initialData!;
+        final targets = data['targets'] as Map<String, dynamic>?;
+        final rawItemIds = (targets?['item_ids'] as List?) ?? (data['item_ids'] as List?) ?? [];
+        final rawCatIds = (targets?['category_ids'] as List?) ?? (data['category_ids'] as List?) ?? [];
+
+        final itemIdsSet = rawItemIds.map((e) => e.toString()).toSet();
+        final catIdsSet = rawCatIds.map((e) => e.toString()).toSet();
+
+        for (final item in itemObjs) {
+          if (itemIdsSet.contains(item['id']?.toString())) {
+            _selectedItems.add(item['name']?.toString() ?? 'Food Item');
+          }
+        }
+
+        for (final cat in catObjs) {
+          if (catIdsSet.contains(cat['id']?.toString())) {
+            _selectedCategories.add(cat['name']?.toString() ?? 'Category');
+          }
+        }
+      } else {
+        if (itemNames.isNotEmpty) _selectedItems.add(itemNames.first);
+        if (catNames.isNotEmpty) _selectedCategories.add(catNames.first);
+      }
       _isLoadingData = false;
     });
-  }
-
-  // Colors
-
-  double _s(BuildContext context, double value) {
-    final scale = (MediaQuery.of(context).size.width / 390).clamp(0.9, 1.08);
-    return value * scale;
-  }
-
-  double _fs(BuildContext context, double value) {
-    final textScale = MediaQuery.of(context).textScaleFactor.clamp(0.9, 1.1);
-    return _s(context, value) * textScale;
   }
 
   String _formatDate(DateTime date) {
@@ -121,6 +226,48 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
   }
 
+  String get _targetSummary {
+    switch (_target) {
+      case _Target.items:
+        if (_selectedItems.isEmpty) return 'No items selected';
+        return _selectedItems.length == 1
+            ? _selectedItems.first
+            : '${_selectedItems.length} items selected';
+      case _Target.categories:
+        if (_selectedCategories.isEmpty) return 'No categories selected';
+        return _selectedCategories.length == 1
+            ? _selectedCategories.first
+            : '${_selectedCategories.length} categories selected';
+      case _Target.allMenu:
+        return 'Whole menu';
+    }
+  }
+
+  // ── Feedback ───────────────────────────────────────────────────────────────
+
+  void _toast(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: isError ? _Pal.red : _Pal.ink,
+        behavior: SnackBarBehavior.floating,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // ── Pickers ────────────────────────────────────────────────────────────────
+
   Future<void> _pickEndDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -131,20 +278,95 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.orange,
-              surface: AppColors.surface,
-              onSurface: AppColors.textWhite,
+            colorScheme: const ColorScheme.light(
+              primary: _Pal.ink,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: _Pal.ink,
             ),
           ),
           child: child!,
         );
       },
     );
+    if (picked != null) setState(() => _endDate = picked);
+  }
 
-    if (picked != null) {
-      setState(() => _endDate = picked);
-    }
+  Future<void> _openOptionSheet({
+    required String title,
+    required List<String> options,
+    required String current,
+    required ValueChanged<String> onSelect,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _Pal.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _Pal.line),
+            ),
+            padding: const EdgeInsets.fromLTRB(6, 14, 6, 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: _Pal.line,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: _Pal.ink,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ...options.map((opt) {
+                  final selected = opt == current;
+                  return ListTile(
+                    dense: true,
+                    onTap: () {
+                      onSelect(opt);
+                      Navigator.of(context).pop();
+                    },
+                    title: Text(
+                      opt,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                        color: selected ? _Pal.ink : _Pal.ink700,
+                      ),
+                    ),
+                    trailing: selected
+                        ? const Icon(Icons.check_circle_rounded,
+                            color: _Pal.ink, size: 18)
+                        : null,
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _openSearchSelectSheet({required bool isCategory}) async {
@@ -155,7 +377,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.transparent,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -172,107 +394,106 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+                  color: _Pal.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _Pal.line),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isCategory ? 'Select Category' : 'Select Item',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: _fs(context, 14),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        height: 44,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
-                          color: AppColors.bg,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: TextField(
-                          autofocus: true,
-                          onChanged: (v) => setModalState(() => query = v),
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: _fs(context, 13),
-                          ),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: AppColors.textSecondary,
-                              size: _s(context, 18),
-                            ),
-                            hintText:
-                                isCategory ? 'Search category' : 'Search item',
-                            hintStyle: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: _fs(context, 12),
-                            ),
-                          ),
+                          color: _Pal.line,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        height: 260,
-                        child: results.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'No results found',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: _fs(context, 12),
-                                  ),
-                                ),
-                              )
-                            : ListView.builder(
-                                itemCount: results.length,
-                                itemBuilder: (context, index) {
-                                  final label = results[index];
-                                  final alreadySelected =
-                                      selected.contains(label);
-                                  return ListTile(
-                                    dense: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 6),
-                                    title: Text(
-                                      label,
-                                      style: TextStyle(
-                                        color: alreadySelected
-                                            ? AppColors.orange
-                                            : AppColors.textPrimary,
-                                        fontWeight: alreadySelected
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        fontSize: _fs(context, 13),
-                                      ),
-                                    ),
-                                    trailing: alreadySelected
-                                        ? const Icon(Icons.check_circle,
-                                            color: AppColors.orange, size: 18)
-                                        : null,
-                                    onTap: () {
-                                      setState(() {
-                                        if (!selected.contains(label)) {
-                                          selected.add(label);
-                                        }
-                                      });
-                                      Navigator.of(context).pop();
-                                    },
-                                  );
-                                },
+                    ),
+                    Text(
+                      isCategory ? 'Select a category' : 'Select an item',
+                      style: const TextStyle(
+                        color: _Pal.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _Pal.wash,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextField(
+                        autofocus: true,
+                        onChanged: (v) => setModalState(() => query = v),
+                        style: const TextStyle(color: _Pal.ink, fontSize: 13),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          prefixIcon: const Icon(Icons.search_rounded,
+                              color: _Pal.ink400, size: 19),
+                          hintText:
+                              isCategory ? 'Search categories' : 'Search items',
+                          hintStyle: const TextStyle(
+                              color: _Pal.ink400, fontSize: 12.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 280,
+                      child: results.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No results found',
+                                style: TextStyle(
+                                    color: _Pal.ink500, fontSize: 12.5),
                               ),
-                      ),
-                    ],
-                  ),
+                            )
+                          : ListView.builder(
+                              itemCount: results.length,
+                              itemBuilder: (context, index) {
+                                final label = results[index];
+                                final already = selected.contains(label);
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(horizontal: 4),
+                                  title: Text(
+                                    label,
+                                    style: TextStyle(
+                                      color: already ? _Pal.ink : _Pal.ink700,
+                                      fontWeight: already
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  trailing: already
+                                      ? const Icon(Icons.check_circle_rounded,
+                                          color: _Pal.green, size: 18)
+                                      : const Icon(
+                                          Icons.add_circle_outline_rounded,
+                                          color: _Pal.ink400,
+                                          size: 18),
+                                  onTap: () {
+                                    setState(() {
+                                      if (!selected.contains(label)) {
+                                        selected.add(label);
+                                      }
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -282,792 +503,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const AppTopBar(
-              title: 'Create New Offer',
-              subtitle: 'Offer Management',
-              showBackButton: true,
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: _s(context, 20)),
-                    _buildPageHeader(),
-                    SizedBox(height: _s(context, 24)),
-                    _buildOfferDetailsCard(),
-                    SizedBox(height: _s(context, 14)),
-                    _buildTargetSelectionCard(),
-                    SizedBox(height: _s(context, 14)),
-                    _buildOfferTypeCard(),
-                    SizedBox(height: _s(context, 14)),
-                    _buildValidityCard(),
-                    SizedBox(height: _s(context, 24)),
-                    _buildSaveButton(),
-                    SizedBox(height: _s(context, 10)),
-                    Center(
-                      child: Text(
-                        'Changes will be visible to customers immediately after\nsaving.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: _fs(context, 11.5),
-                            height: 1.45),
-                      ),
-                    ),
-                    SizedBox(height: _s(context, 22)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Page Header ──────────────────────────────────────────────
-  Widget _buildPageHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.edit, color: AppColors.orange, size: _s(context, 13)),
-            SizedBox(width: _s(context, 6)),
-            Text(
-              'OFFER MANAGEMENT',
-              style: TextStyle(
-                color: AppColors.orange,
-                fontSize: _fs(context, 10.5),
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: _s(context, 7)),
-        Text(
-          'Create New Offer',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: _fs(context, 27),
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-        SizedBox(height: _s(context, 5)),
-        Text(
-          'Design an irresistible promotional experience for\nyour premium clientele.',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: _fs(context, 12.5),
-            height: 1.45,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Target Selection Card ────────────────────────────────────
-  Widget _buildTargetSelectionCard() {
-    final tabs = ['Items', 'Categories', 'All Menu'];
-    return Container(
-      padding: EdgeInsets.all(_s(context, 18)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_s(context, 16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section title
-          Row(
-            children: [
-              Icon(Icons.track_changes,
-                  color: AppColors.orange, size: _s(context, 20)),
-              SizedBox(width: _s(context, 9)),
-              Text(
-                'Target Selection',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: _fs(context, 17),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _s(context, 16)),
-
-          // Tabs
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: List.generate(tabs.length, (i) {
-              final selected = _targetTab == i;
-              return GestureDetector(
-                onTap: () => setState(() => _targetTab = i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.orange : AppColors.border,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (selected) ...[
-                        const Icon(Icons.check_circle,
-                            color: AppColors.textWhite, size: 16),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(
-                        tabs[i],
-                        style: TextStyle(
-                          color: selected
-                              ? AppColors.textWhite
-                              : AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: _fs(context, 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-          SizedBox(height: _s(context, 16)),
-
-          if (_targetTab == 0)
-            _buildSelectionListCard(
-              title: 'Selected Items',
-              values: _selectedItems,
-              onAdd: () => _openSearchSelectSheet(isCategory: false),
-              onRemove: (v) => setState(() => _selectedItems.remove(v)),
-              emptyHint: 'No items selected yet',
-            ),
-          if (_targetTab == 1)
-            _buildSelectionListCard(
-              title: 'Selected Categories',
-              values: _selectedCategories,
-              onAdd: () => _openSearchSelectSheet(isCategory: true),
-              onRemove: (v) => setState(() => _selectedCategories.remove(v)),
-              emptyHint: 'No categories selected yet',
-            ),
-          if (_targetTab == 2) _buildAllMenuSelectedCard(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSelectionListCard({
-    required String title,
-    required List<String> values,
-    required VoidCallback onAdd,
-    required ValueChanged<String> onRemove,
-    required String emptyHint,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(_s(context, 12)),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        borderRadius: BorderRadius.circular(_s(context, 11)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: _fs(context, 13),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: onAdd,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.arrow_drop_down_rounded,
-                          color: AppColors.orange, size: 18),
-                      Text(
-                        'Search & Add',
-                        style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: _fs(context, 11),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (values.isEmpty)
-            Text(
-              emptyHint,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: _fs(context, 12),
-              ),
-            )
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: values.map((v) {
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        v,
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: _fs(context, 12),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: () => onRemove(v),
-                        child: const Icon(
-                          Icons.close,
-                          size: 16,
-                          color: AppColors.orange,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAllMenuSelectedCard() {
-    return Container(
-      padding: EdgeInsets.all(_s(context, 14)),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        borderRadius: BorderRadius.circular(_s(context, 11)),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: _s(context, 44),
-            height: _s(context, 44),
-            decoration: BoxDecoration(
-              color: AppColors.orange.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.menu_book_rounded,
-                color: AppColors.orange, size: 22),
-          ),
-          SizedBox(width: _s(context, 12)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Whole Menu Selected',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: _fs(context, 14),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: _s(context, 2)),
-                Text(
-                  'Offer will apply to all items and categories.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: _fs(context, 11.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Offer Type Card ──────────────────────────────────────────
-  Widget _buildOfferTypeCard() {
-    return Container(
-      padding: EdgeInsets.all(_s(context, 18)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_s(context, 16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.local_offer_outlined,
-                  color: AppColors.orange, size: _s(context, 20)),
-              SizedBox(width: _s(context, 9)),
-              Text(
-                'Offer Discount',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: _fs(context, 17),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _s(context, 16)),
-          Container(
-            padding: EdgeInsets.all(_s(context, 14)),
-            decoration: BoxDecoration(
-              color: AppColors.bg,
-              borderRadius: BorderRadius.circular(_s(context, 11)),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Percentage Discount',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: _fs(context, 14),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.orange.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: AppColors.orange.withOpacity(0.4)),
-                      ),
-                      child: Text(
-                        '${_discountPercent.toInt()}%',
-                        style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: _fs(context, 12),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: _s(context, 6)),
-                Text(
-                  'Set the discount amount applied to selected targets.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: _fs(context, 11.5),
-                  ),
-                ),
-                SizedBox(height: _s(context, 10)),
-                Container(
-                  height: _s(context, 48),
-                  padding: EdgeInsets.symmetric(horizontal: _s(context, 8)),
-                  decoration: BoxDecoration(
-                    color: AppColors.bg,
-                    borderRadius: BorderRadius.circular(_s(context, 10)),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      _discountStepperButton(
-                        icon: Icons.remove,
-                        onTap: () => setState(() {
-                          _discountPercent =
-                              (_discountPercent - 1).clamp(5, 70).toDouble();
-                        }),
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            '${_discountPercent.toInt()}% OFF TOTAL BILL',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: _fs(context, 13),
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      ),
-                      _discountStepperButton(
-                        icon: Icons.add,
-                        onTap: () => setState(() {
-                          _discountPercent =
-                              (_discountPercent + 1).clamp(5, 70).toDouble();
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _discountStepperButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: _s(context, 34),
-        height: _s(context, 34),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(_s(context, 8)),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Icon(icon, color: AppColors.textWhite, size: _s(context, 18)),
-      ),
-    );
-  }
-
-  // ── Validity Card ────────────────────────────────────────────
-  Widget _buildValidityCard() {
-    const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final startTimes = ['16:00', '17:00', '18:00', '19:00', '20:00'];
-    final endTimes = ['21:00', '22:00', '23:00', '00:00', '01:00'];
-
-    return Container(
-      padding: EdgeInsets.all(_s(context, 18)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_s(context, 16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.access_time,
-                  color: AppColors.orange, size: _s(context, 20)),
-              SizedBox(width: _s(context, 9)),
-              Text(
-                'Validity',
-                style: TextStyle(
-                  color: AppColors.textWhite,
-                  fontSize: _fs(context, 17),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _s(context, 18)),
-
-          // Time pickers row
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'START TIME',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: _fs(context, 9.5),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _timeDropdown(_startTime, startTimes, (v) {
-                      if (v != null) setState(() => _startTime = v);
-                    }),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'END TIME',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: _fs(context, 9.5),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _timeDropdown(_endTime, endTimes, (v) {
-                      if (v != null) setState(() => _endTime = v);
-                    }),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-
-          // Recurrence
-          Text(
-            'RECURRENCE',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: _fs(context, 9.5),
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (i) {
-              final selected = _days[i];
-              return GestureDetector(
-                onTap: () => setState(() => _days[i] = !_days[i]),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.orange : AppColors.border,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    dayLabels[i],
-                    style: TextStyle(
-                      color: selected
-                          ? AppColors.textWhite
-                          : AppColors.textSecondary,
-                      fontSize: _fs(context, 13),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'END DATE',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: _fs(context, 9.5),
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
-            ),
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: _pickEndDate,
-            child: Container(
-              height: 46,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppColors.bg,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_month_rounded,
-                    color: AppColors.orange,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _formatDate(_endDate),
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: _fs(context, 13),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.textSecondary,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _timeDropdown(
-    String value,
-    List<String> items,
-    void Function(String?) onChanged,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: DropdownButton<String>(
-        value: items.contains(value) ? value : items.first,
-        onChanged: onChanged,
-        isExpanded: true,
-        dropdownColor: AppColors.surface,
-        underline: const SizedBox(),
-        icon: const Icon(Icons.keyboard_arrow_down,
-            color: AppColors.textSecondary, size: 20),
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-        ),
-        items: items.map((t) {
-          return DropdownMenuItem(
-            value: t,
-            child: Text(t),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // ── Offer Details Card ───────────────────────────────────────
-  Widget _buildOfferDetailsCard() {
-    return Container(
-      padding: EdgeInsets.all(_s(context, 18)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_s(context, 16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.edit_note_rounded,
-                  color: AppColors.orange, size: _s(context, 20)),
-              SizedBox(width: _s(context, 9)),
-              Text(
-                'Offer Details',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: _fs(context, 17),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _s(context, 14)),
-          Text(
-            'OFFER TITLE',
-            style: TextStyle(
-              color: AppColors.orange,
-              fontSize: _fs(context, 10),
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
-            ),
-          ),
-          SizedBox(height: _s(context, 6)),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.bg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              controller: _titleController,
-              style: TextStyle(color: AppColors.textPrimary, fontSize: _fs(context, 13)),
-              decoration: const InputDecoration(
-                hintText: 'e.g. Weekend Special Discount',
-                hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-          SizedBox(height: _s(context, 12)),
-          Text(
-            'DESCRIPTION',
-            style: TextStyle(
-              color: AppColors.orange,
-              fontSize: _fs(context, 10),
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
-            ),
-          ),
-          SizedBox(height: _s(context, 6)),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.bg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              controller: _descController,
-              maxLines: 2,
-              style: TextStyle(color: AppColors.textPrimary, fontSize: _fs(context, 13)),
-              decoration: const InputDecoration(
-                hintText: 'e.g. Enjoy 25% OFF on all main course items',
-                hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // ── Save ───────────────────────────────────────────────────────────────────
 
   Future<void> _saveOffer() async {
     final title = _titleController.text.trim().isNotEmpty
@@ -1079,7 +515,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     List<String> itemIds = [];
     List<String> categoryIds = [];
 
-    if (_targetTab == 0) {
+    if (_target == _Target.items) {
       scopeType = 'item_set';
       for (final name in _selectedItems) {
         final obj = _menuItemsData.firstWhere(
@@ -1089,13 +525,10 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         if (obj['id'] != null) itemIds.add(obj['id'].toString());
       }
       if (itemIds.isEmpty && _allItems.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please select at least one menu item.'),
-          backgroundColor: AppColors.orangeDim,
-        ));
+        _toast('Select at least one menu item.', isError: true);
         return;
       }
-    } else if (_targetTab == 1) {
+    } else if (_target == _Target.categories) {
       scopeType = 'category_set';
       for (final name in _selectedCategories) {
         final obj = _categoriesData.firstWhere(
@@ -1105,10 +538,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         if (obj['id'] != null) categoryIds.add(obj['id'].toString());
       }
       if (categoryIds.isEmpty && _allCategories.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please select at least one category.'),
-          backgroundColor: AppColors.orangeDim,
-        ));
+        _toast('Select at least one category.', isError: true);
         return;
       }
     }
@@ -1135,56 +565,936 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     }
 
     setState(() => _isSaving = true);
-    final res = await VendorService.createOffer(offerData);
+    final Map<String, dynamic> res;
+    if (isEditing) {
+      res = await VendorService.updateOffer(
+        id: widget.offerId!,
+        data: offerData,
+      );
+    } else {
+      res = await VendorService.createOffer(offerData);
+    }
     if (!mounted) return;
     setState(() => _isSaving = false);
 
     if (res['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Offer created successfully!'),
-        backgroundColor: AppColors.orange,
-        behavior: SnackBarBehavior.floating,
-      ));
+      _toast(isEditing ? 'Offer updated successfully.' : 'Offer created successfully.');
       Navigator.of(context).pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(res['error'] ?? 'Failed to create offer.'),
-        backgroundColor: AppColors.orangeDim,
-        behavior: SnackBarBehavior.floating,
-      ));
+      _toast(
+        res['error']?.toString() ??
+            (isEditing ? 'Could not update the offer.' : 'Could not create the offer.'),
+        isError: true,
+      );
     }
   }
 
-  // ── Save Button ──────────────────────────────────────────────
-  Widget _buildSaveButton() {
-    return GestureDetector(
-      onTap: _isSaving ? null : _saveOffer,
-      child: Container(
-        width: double.infinity,
-        height: _s(context, 48),
-        decoration: BoxDecoration(
-          color: AppColors.orange,
-          borderRadius: BorderRadius.circular(_s(context, 12)),
-        ),
-        alignment: Alignment.center,
-        child: _isSaving
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(color: AppColors.textWhite, strokeWidth: 2),
-              )
-            : Text(
-                'SAVE OFFER',
-                style: TextStyle(
-                  color: AppColors.textWhite,
-                  fontSize: _fs(context, 13.5),
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
+  // ── Build ──────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _Pal.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopBar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SectionLabel('Preview'),
+                    const SizedBox(height: 10),
+                    _buildPreviewCard(),
+                    const SizedBox(height: 22),
+                    const _SectionLabel('Offer details'),
+                    const SizedBox(height: 10),
+                    _buildDetailsCard(),
+                    const SizedBox(height: 18),
+                    const _SectionLabel('Applies to'),
+                    const SizedBox(height: 10),
+                    _buildTargetCard(),
+                    const SizedBox(height: 18),
+                    const _SectionLabel('Discount'),
+                    const SizedBox(height: 10),
+                    _buildDiscountCard(),
+                    const SizedBox(height: 18),
+                    const _SectionLabel('Validity'),
+                    const SizedBox(height: 10),
+                    _buildValidityCard(),
+                  ],
                 ),
               ),
+            ),
+            _buildBottomBar(),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Bottom Nav ───────────────────────────────────────────────
+  // ── Top bar ────────────────────────────────────────────────────────────────
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 20, 6),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _Pal.wash,
+                shape: BoxShape.circle,
+                border: Border.all(color: _Pal.line),
+              ),
+              child: const Icon(Icons.arrow_back_rounded,
+                  size: 18, color: _Pal.ink700),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEditing ? 'Edit offer' : 'Create offer',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: _Pal.ink,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  isEditing
+                      ? 'Update promotion details'
+                      : 'New promotion for your menu',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: _Pal.ink500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Live preview ───────────────────────────────────────────────────────────
+
+  Widget _buildPreviewCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _Pal.ink,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.local_offer_rounded,
+                size: 18, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_titleController, _descController]),
+              builder: (context, _) {
+                final title = _titleController.text.trim().isEmpty
+                    ? 'Untitled offer'
+                    : _titleController.text.trim();
+                final desc = _descController.text.trim();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    if (desc.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        desc,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.35,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    _PreviewChip(
+                      icon: Icons.restaurant_menu_rounded,
+                      label: _targetSummary,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Text(
+              '${_discountPercent.toInt()}%',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Offer details ──────────────────────────────────────────────────────────
+
+  Widget _buildDetailsCard() {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _FieldLabel('OFFER TITLE'),
+          const SizedBox(height: 6),
+          _InputBox(
+            child: TextField(
+              controller: _titleController,
+              style: const TextStyle(
+                  color: _Pal.ink, fontSize: 13.5, fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                isDense: true,
+                hintText: 'e.g. Weekend special discount',
+                hintStyle: TextStyle(color: _Pal.ink400, fontSize: 12.5),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const _FieldLabel('DESCRIPTION'),
+          const SizedBox(height: 6),
+          _InputBox(
+            child: TextField(
+              controller: _descController,
+              maxLines: 2,
+              style: const TextStyle(
+                  color: _Pal.ink, fontSize: 13.5, fontWeight: FontWeight.w500),
+              decoration: const InputDecoration(
+                isDense: true,
+                hintText: 'e.g. Enjoy 25% off on all main course items',
+                hintStyle: TextStyle(color: _Pal.ink400, fontSize: 12.5),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Target selection ───────────────────────────────────────────────────────
+
+  Widget _buildTargetCard() {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SegmentedTabs(
+            labels: const ['Items', 'Categories', 'All menu'],
+            selectedIndex: _target.index,
+            onChanged: (i) => setState(() => _target = _Target.values[i]),
+          ),
+          const SizedBox(height: 14),
+          if (_isLoadingData)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.2, color: _Pal.ink),
+                ),
+              ),
+            )
+          else if (_target == _Target.items)
+            _buildSelectionList(
+              values: _selectedItems,
+              onAdd: () => _openSearchSelectSheet(isCategory: false),
+              onRemove: (v) => setState(() => _selectedItems.remove(v)),
+              emptyHint: _allItems.isEmpty
+                  ? 'No menu items found yet.'
+                  : 'No items selected yet.',
+            )
+          else if (_target == _Target.categories)
+            _buildSelectionList(
+              values: _selectedCategories,
+              onAdd: () => _openSearchSelectSheet(isCategory: true),
+              onRemove: (v) => setState(() => _selectedCategories.remove(v)),
+              emptyHint: _allCategories.isEmpty
+                  ? 'No categories found yet.'
+                  : 'No categories selected yet.',
+            )
+          else
+            _buildAllMenuNotice(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectionList({
+    required List<String> values,
+    required VoidCallback onAdd,
+    required ValueChanged<String> onRemove,
+    required String emptyHint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                values.isEmpty ? emptyHint : '${values.length} selected',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: values.isEmpty ? _Pal.ink500 : _Pal.ink700,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: onAdd,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _Pal.wash,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _Pal.line),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_rounded, size: 15, color: _Pal.ink700),
+                    SizedBox(width: 4),
+                    Text(
+                      'Add',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: _Pal.ink700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (values.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: values
+                .map(
+                    (v) => _SelectedChip(label: v, onRemove: () => onRemove(v)))
+                .toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAllMenuNotice() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _Pal.wash,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: _Pal.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _Pal.surface,
+              shape: BoxShape.circle,
+              border: Border.all(color: _Pal.line),
+            ),
+            child: const Icon(Icons.menu_book_rounded,
+                color: _Pal.ink700, size: 18),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Whole menu selected',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _Pal.ink,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'This offer will apply to every item and category.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                    color: _Pal.ink500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Discount ───────────────────────────────────────────────────────────────
+
+  Widget _buildDiscountCard() {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Applied to the total bill for the selected targets.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+              color: _Pal.ink500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _StepperButton(
+                icon: Icons.remove_rounded,
+                onTap: () => setState(() {
+                  _discountPercent =
+                      (_discountPercent - 1).clamp(5, 70).toDouble();
+                }),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      '${_discountPercent.toInt()}%',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: _Pal.ink,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'OFF TOTAL BILL',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: _Pal.ink400,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _StepperButton(
+                icon: Icons.add_rounded,
+                onTap: () => setState(() {
+                  _discountPercent =
+                      (_discountPercent + 1).clamp(5, 70).toDouble();
+                }),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Validity ───────────────────────────────────────────────────────────────
+
+  Widget _buildValidityCard() {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel('START TIME'),
+                    const SizedBox(height: 6),
+                    _PickerField(
+                      value: _startTime,
+                      onTap: () => _openOptionSheet(
+                        title: 'Start time',
+                        options: _startTimes,
+                        current: _startTime,
+                        onSelect: (v) => setState(() => _startTime = v),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel('END TIME'),
+                    const SizedBox(height: 6),
+                    _PickerField(
+                      value: _endTime,
+                      onTap: () => _openOptionSheet(
+                        title: 'End time',
+                        options: _endTimes,
+                        current: _endTime,
+                        onSelect: (v) => setState(() => _endTime = v),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const _FieldLabel('REPEATS ON'),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(7, (i) {
+              final selected = _days[i];
+              return GestureDetector(
+                onTap: () => setState(() => _days[i] = !_days[i]),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: selected ? _Pal.ink : _Pal.wash,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? _Pal.ink : _Pal.line,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _dayLabels[i],
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? Colors.white : _Pal.ink500,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 16),
+          const _FieldLabel('ENDS ON'),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: _pickEndDate,
+            child: _InputBox(
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_month_rounded,
+                      size: 17, color: _Pal.ink700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _formatDate(_endDate),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _Pal.ink,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 19, color: _Pal.ink400),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Bottom action bar ──────────────────────────────────────────────────────
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        MediaQuery.of(context).padding.bottom + 14,
+      ),
+      decoration: BoxDecoration(
+        color: _Pal.surface,
+        border:
+            Border(top: BorderSide(color: _Pal.line.withValues(alpha: 0.8))),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x08000000), blurRadius: 12, offset: Offset(0, -4)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: _isSaving ? null : _saveOffer,
+            child: Container(
+              width: double.infinity,
+              height: 50,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _isSaving ? _Pal.ink.withValues(alpha: 0.6) : _Pal.ink,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2.2),
+                    )
+                  : Text(
+                      isEditing ? 'Save changes' : 'Save offer',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isEditing
+                ? 'Updated details will be reflected immediately.'
+                : 'Changes go live for customers as soon as you save.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              color: _Pal.ink400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Shared pieces ───────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String title;
+  const _SectionLabel(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: _Pal.ink,
+        letterSpacing: -0.2,
+      ),
+    );
+  }
+}
+
+class _Card extends StatelessWidget {
+  final Widget child;
+  const _Card({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _Pal.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _Pal.line.withValues(alpha: 0.8)),
+        boxShadow: const [_Pal.cardShadow],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: _Pal.ink500,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+}
+
+class _InputBox extends StatelessWidget {
+  final Widget child;
+  const _InputBox({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: _Pal.wash,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _Pal.line),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SegmentedTabs extends StatelessWidget {
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  const _SegmentedTabs({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: _Pal.wash,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: _Pal.line.withValues(alpha: 0.8)),
+      ),
+      child: Row(
+        children: List.generate(labels.length, (i) {
+          final selected = i == selectedIndex;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(i),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
+                decoration: BoxDecoration(
+                  color: selected ? _Pal.surface : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: selected
+                      ? const <BoxShadow>[_Pal.cardShadow]
+                      : const <BoxShadow>[],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  labels[i],
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? _Pal.ink : _Pal.ink500,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _SelectedChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+  const _SelectedChip({required this.label, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(left: 12, right: 6, top: 6, bottom: 6),
+      decoration: BoxDecoration(
+        color: _Pal.wash,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _Pal.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _Pal.ink700,
+            ),
+          ),
+          const SizedBox(width: 2),
+          GestureDetector(
+            onTap: onRemove,
+            behavior: HitTestBehavior.opaque,
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(Icons.close_rounded, size: 14, color: _Pal.ink400),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _StepperButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: _Pal.wash,
+          shape: BoxShape.circle,
+          border: Border.all(color: _Pal.line),
+        ),
+        child: Icon(icon, size: 18, color: _Pal.ink700),
+      ),
+    );
+  }
+}
+
+class _PickerField extends StatelessWidget {
+  final String value;
+  final VoidCallback onTap;
+  const _PickerField({required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: _InputBox(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _Pal.ink,
+                ),
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 18, color: _Pal.ink400),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _PreviewChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: Colors.white.withValues(alpha: 0.7)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

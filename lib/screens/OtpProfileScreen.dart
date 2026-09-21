@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/setupShopScreen.dart';
 import 'package:frontend/screens/vendor_home.dart';
-import 'package:frontend/app_colors.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 
@@ -21,17 +20,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _fn = List.generate(6, (_) => FocusNode());
 
-  // which box is active
   int _active = 0;
   bool _isLoading = false;
 
-  // shake animation for wrong code
   late final AnimationController _shakeAc = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 480));
   late final Animation<double> _shakeAnim = Tween<double>(begin: 0, end: 1)
       .animate(CurvedAnimation(parent: _shakeAc, curve: Curves.elasticIn));
 
-  // entry stagger
   late final AnimationController _entryAc = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 900));
 
@@ -48,7 +44,6 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       opacity: _fade(i),
       child: SlideTransition(position: _slide(i), child: child));
 
-  // resend countdown
   int _countdown = 30;
   bool _canResend = false;
 
@@ -64,7 +59,6 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     }
     _startCountdown();
 
-    // Auto-fill OTP if provided from backend response
     if (widget.initialOtp != null && widget.initialOtp!.isNotEmpty) {
       final otpStr = widget.initialOtp!;
       for (int i = 0; i < otpStr.length && i < 6; i++) {
@@ -104,7 +98,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('OTP resent successfully'),
-        backgroundColor: AppColors.orange,
+        backgroundColor: const Color(0xFF0F172A),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -142,7 +136,6 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
 
     setState(() => _isLoading = true);
 
-    // Wait 3 seconds in otp verification page on clicking submit button onloading
     await Future.delayed(const Duration(seconds: 3));
 
     final res = await AuthService.verifyVendorOtp(
@@ -158,7 +151,8 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => hasShop ? const VendorHome() : const SetupShopScreen(),
+          builder: (_) =>
+              hasShop ? const VendorHome() : const SetupShopScreen(),
         ),
         (route) => false,
       );
@@ -167,7 +161,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       final errorMsg = res['error'] ?? 'Verification failed';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(errorMsg),
-        backgroundColor: AppColors.orangeDim,
+        backgroundColor: const Color(0xFF334155),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -178,9 +172,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: AppColors.bg,
+        backgroundColor: const Color(0xFFF8FAFC),
         resizeToAvoidBottomInset: true,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -190,7 +184,8 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                 return SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
                     child: IntrinsicHeight(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,23 +197,24 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                               padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
                               child: Row(
                                 children: [
-                                  // Back button
                                   GestureDetector(
                                     onTap: () => Navigator.maybePop(context),
                                     child: Container(
                                       width: 38,
                                       height: 38,
                                       decoration: BoxDecoration(
-                                        border:
-                                            Border.all(color: AppColors.border, width: 1.2),
+                                        border: Border.all(
+                                            color: const Color(0xFFE2E8F0),
+                                            width: 1.2),
                                         borderRadius: BorderRadius.circular(9),
                                       ),
-                                      child: const Icon(Icons.arrow_back_ios_new,
-                                          color: AppColors.textSecondary, size: 15),
+                                      child: const Icon(
+                                          Icons.arrow_back_ios_new,
+                                          color: Color(0xFF94A3B8),
+                                          size: 15),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  // Wordmark
                                   RichText(
                                     text: const TextSpan(
                                       style: TextStyle(
@@ -228,14 +224,16 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                       children: [
                                         TextSpan(
                                             text: 'Z',
-                                            style: TextStyle(color: AppColors.textPrimary)),
+                                            style: TextStyle(
+                                                color: Color(0xFF0F172A))),
                                         TextSpan(
                                             text: 'tee',
-                                            style: TextStyle(color: AppColors.orange)),
+                                            style: TextStyle(
+                                                color: Color(0xFF0F172A))),
                                         TextSpan(
                                             text: 'el',
                                             style: TextStyle(
-                                                color: AppColors.textPrimary,
+                                                color: Color(0xFF0F172A),
                                                 fontWeight: FontWeight.w300)),
                                       ],
                                     ),
@@ -257,14 +255,15 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: AppColors.orangeDim, width: 1),
+                                      border: Border.all(
+                                          color: const Color(0xFFE2E8F0),
+                                          width: 1),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
                                       'VERIFICATION',
                                       style: TextStyle(
-                                        color: AppColors.orange,
+                                        color: Color(0xFF334155),
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.6,
@@ -275,7 +274,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                   const Text(
                                     'Enter the\ncode',
                                     style: TextStyle(
-                                      color: AppColors.textPrimary,
+                                      color: Color(0xFF0F172A),
                                       fontSize: 44,
                                       fontWeight: FontWeight.w800,
                                       height: 1.08,
@@ -286,16 +285,17 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                   RichText(
                                     text: TextSpan(
                                       style: const TextStyle(
-                                          color: AppColors.textSecondary,
+                                          color: Color(0xFF94A3B8),
                                           fontSize: 15,
                                           height: 1.65),
                                       children: [
                                         const TextSpan(
-                                            text: 'A 6-digit OTP was sent to\n'),
+                                            text:
+                                                'A 6-digit OTP was sent to\n'),
                                         TextSpan(
                                           text: widget.phone,
                                           style: const TextStyle(
-                                            color: AppColors.textPrimary,
+                                            color: Color(0xFF0F172A),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -314,8 +314,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                               padding: const EdgeInsets.fromLTRB(28, 40, 0, 0),
                               child: Row(
                                 children: [
-                                  Container(width: 28, height: 2, color: AppColors.orange),
-                                  Container(width: 72, height: 2, color: AppColors.border),
+                                  Container(
+                                      width: 28,
+                                      height: 2,
+                                      color: const Color(0xFF0F172A)),
+                                  Container(
+                                      width: 72,
+                                      height: 2,
+                                      color: const Color(0xFFE2E8F0)),
                                 ],
                               ),
                             ),
@@ -332,7 +338,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                   const Text(
                                     'OTP CODE',
                                     style: TextStyle(
-                                      color: AppColors.textSecondary,
+                                      color: Color(0xFF94A3B8),
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 1.4,
@@ -341,7 +347,6 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
 
                                   const SizedBox(height: 22),
 
-                                  // 6 digit boxes with shake
                                   AnimatedBuilder(
                                     animation: _shakeAnim,
                                     builder: (_, child) {
@@ -349,7 +354,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                           ? 0.0
                                           : 8.0 *
                                               (0.5 -
-                                                  (_shakeAnim.value % .15 / .15));
+                                                  (_shakeAnim.value %
+                                                      .15 /
+                                                      .15));
                                       return Transform.translate(
                                         offset: Offset(dx, 0),
                                         child: child,
@@ -366,7 +373,8 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                               controller: _ctrl[i],
                                               focusNode: _fn[i],
                                               isActive: _active == i,
-                                              isFilled: _ctrl[i].text.isNotEmpty,
+                                              isFilled:
+                                                  _ctrl[i].text.isNotEmpty,
                                               onChanged: (v) => _onKey(v, i),
                                             ),
                                           ),
@@ -385,7 +393,8 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                             ? "Didn't receive it?"
                                             : 'Resend in  ${_countdown}s',
                                         style: const TextStyle(
-                                            color: AppColors.textSecondary, fontSize: 13),
+                                            color: Color(0xFF94A3B8),
+                                            fontSize: 13),
                                       ),
                                       if (_canResend) ...[
                                         const SizedBox(width: 6),
@@ -394,7 +403,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                           child: const Text(
                                             'Resend OTP',
                                             style: TextStyle(
-                                              color: AppColors.orange,
+                                              color: Color(0xFF0F172A),
                                               fontSize: 13,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -411,7 +420,12 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                           const Expanded(child: SizedBox(height: 48)),
 
                           // ── Sticky footer ──────────────────────
-                          _reveal(4, _Footer(filled: _filled, isLoading: _isLoading, onVerify: _verify)),
+                          _reveal(
+                              4,
+                              _Footer(
+                                  filled: _filled,
+                                  isLoading: _isLoading,
+                                  onVerify: _verify)),
                         ],
                       ),
                     ),
@@ -448,14 +462,16 @@ class _OtpDigit extends StatelessWidget {
       duration: const Duration(milliseconds: 200),
       height: 56,
       decoration: BoxDecoration(
-        color: isFilled ? AppColors.orange.withOpacity(.10) : AppColors.border.withOpacity(.6),
+        color: isFilled
+            ? const Color(0xFF0F172A).withOpacity(.08)
+            : const Color(0xFFE2E8F0).withOpacity(.6),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isActive
-              ? AppColors.orange
+              ? const Color(0xFF0F172A)
               : isFilled
-                  ? AppColors.orangeDim
-                  : AppColors.border,
+                  ? const Color(0xFF334155)
+                  : const Color(0xFFE2E8F0),
           width: isActive ? 1.8 : 1.2,
         ),
       ),
@@ -471,12 +487,12 @@ class _OtpDigit extends StatelessWidget {
             LengthLimitingTextInputFormatter(1),
           ],
           style: TextStyle(
-            color: isFilled ? AppColors.orange : AppColors.textSecondary,
+            color: isFilled ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
             fontSize: 22,
             fontWeight: FontWeight.w700,
             letterSpacing: 0,
           ),
-          cursorColor: AppColors.orange,
+          cursorColor: const Color(0xFF0F172A),
           cursorWidth: 1.5,
           maxLength: 1,
           decoration: const InputDecoration(
@@ -506,9 +522,10 @@ class _Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(
-            top: BorderSide(color: AppColors.border, width: 1)),
+          top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -519,10 +536,14 @@ class _Footer extends StatelessWidget {
             child: ElevatedButton(
               onPressed: (filled && !isLoading) ? onVerify : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: filled ? AppColors.orange : AppColors.border,
-                foregroundColor: filled ? AppColors.textWhite : AppColors.textSecondary,
-                disabledBackgroundColor: filled && isLoading ? AppColors.orange.withOpacity(0.6) : AppColors.border,
-                disabledForegroundColor: AppColors.textSecondary,
+                backgroundColor:
+                    filled ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+                foregroundColor:
+                    filled ? Colors.white : const Color(0xFF94A3B8),
+                disabledBackgroundColor: filled && isLoading
+                    ? const Color(0xFF0F172A).withOpacity(0.6)
+                    : const Color(0xFFE2E8F0),
+                disabledForegroundColor: const Color(0xFF94A3B8),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -533,7 +554,7 @@ class _Footer extends StatelessWidget {
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: AppColors.textWhite,
+                        color: Colors.white,
                       ),
                     )
                   : const Text(
@@ -550,19 +571,21 @@ class _Footer extends StatelessWidget {
             textAlign: TextAlign.center,
             text: TextSpan(
               style: TextStyle(
-                  color: AppColors.textSecondary.withOpacity(.75), fontSize: 11.5, height: 1.5),
+                  color: const Color(0xFF94A3B8).withOpacity(.75),
+                  fontSize: 11.5,
+                  height: 1.5),
               children: [
                 const TextSpan(text: 'By continuing, you agree to our '),
                 TextSpan(
                     text: 'Terms',
                     style: TextStyle(
-                        color: AppColors.orange.withOpacity(.9),
+                        color: const Color(0xFF0F172A).withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: ' and '),
                 TextSpan(
                     text: 'Privacy Policy',
                     style: TextStyle(
-                        color: AppColors.orange.withOpacity(.9),
+                        color: const Color(0xFF0F172A).withOpacity(.9),
                         fontWeight: FontWeight.w600)),
                 const TextSpan(text: '.'),
               ],

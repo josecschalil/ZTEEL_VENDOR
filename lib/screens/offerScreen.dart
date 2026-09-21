@@ -64,6 +64,8 @@ class Offer {
   final bool isBestseller;
   bool isFeatured;
   final Color categoryColor;
+  final int? discountPercent;
+  final Map<String, dynamic>? rawData;
 
   Offer({
     required this.id,
@@ -76,6 +78,8 @@ class Offer {
     this.isBestseller = false,
     this.isFeatured = false,
     this.categoryColor = _Pal.amber,
+    this.discountPercent,
+    this.rawData,
   });
 }
 
@@ -90,6 +94,7 @@ final List<Offer> kOffers = [
     isActive: true,
     isBestseller: true,
     isFeatured: true,
+    discountPercent: 40,
   ),
   Offer(
     id: '2',
@@ -248,6 +253,8 @@ class _OffersScreenState extends State<OffersScreen>
             isActive: isActive,
             isBestseller: i == 0,
             isFeatured: isFeatured,
+            discountPercent: discount > 0 ? discount : null,
+            rawData: item,
           ));
         }
       }
@@ -298,6 +305,21 @@ class _OffersScreenState extends State<OffersScreen>
       MaterialPageRoute(builder: (_) => const CreateOfferScreen()),
     );
     if (created == true && mounted) {
+      _fetchOffers();
+    }
+  }
+
+  Future<void> _goToEditOffer(Offer offer) async {
+    final updated = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateOfferScreen(
+          offerId: offer.id,
+          initialData: offer.rawData,
+        ),
+      ),
+    );
+    if (updated == true && mounted) {
       _fetchOffers();
     }
   }
@@ -1277,7 +1299,41 @@ class _OffersScreenState extends State<OffersScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _goToEditOffer(offer);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: _Pal.ink,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Edit Offer',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -1313,10 +1369,10 @@ class _OffersScreenState extends State<OffersScreen>
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: offer.isActive ? _Pal.redSoft : _Pal.ink,
+                          color: offer.isActive ? _Pal.redSoft : _Pal.wash,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: offer.isActive ? _Pal.red : _Pal.ink,
+                            color: offer.isActive ? _Pal.red : _Pal.line,
                           ),
                         ),
                         child: Text(
@@ -1324,7 +1380,7 @@ class _OffersScreenState extends State<OffersScreen>
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: offer.isActive ? _Pal.red : Colors.white,
+                            color: offer.isActive ? _Pal.red : _Pal.ink,
                           ),
                         ),
                       ),
@@ -1534,6 +1590,17 @@ class _StatusPill extends StatelessWidget {
 
 // ─── Offer card ──────────────────────────────────────────────────────────────
 
+// _OfferCard — built around the one thing that's actually different from
+// row to row: the deal itself. A solid tag carries the discount number (or
+// a gift icon when there isn't one) and doubles as the feature toggle —
+// tapping the tag is tapping "make this the featured deal", so its colour
+// is the toggle's own state, not a separate control bolted beside the
+// title. A hairline splits what the offer IS (title, description) from
+// what you can DO to it (status, category, duration, the on/off switch),
+// and a paused offer dims as a whole card instead of being flagged by a
+// border colour or an icon tint — one signal, read at a glance, and it
+// makes the active and paused rows in a list actually look different from
+// each other instead of identical boxes with a different icon inside.
 class _OfferCard extends StatelessWidget {
   final Offer offer;
   final VoidCallback onTap;
@@ -1555,151 +1622,236 @@ class _OfferCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: _Pal.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive
-                ? _Pal.greenLine.withValues(alpha: 0.7)
-                : _Pal.line.withValues(alpha: 0.8),
-          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _Pal.line.withValues(alpha: 0.7)),
           boxShadow: const [_Pal.cardShadow],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: isActive ? _Pal.greenSoft : _Pal.wash,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isActive
-                      ? _Pal.greenLine.withValues(alpha: 0.7)
-                      : _Pal.line,
-                ),
-              ),
-              child: Icon(
-                Icons.local_offer_outlined,
-                size: 18,
-                color: isActive ? _Pal.greenInk : _Pal.ink600,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: isActive ? 1 : 0.55,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    offer.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: _Pal.ink,
-                      letterSpacing: -0.2,
-                    ),
+                  _DiscountTag(
+                    percent: offer.discountPercent,
+                    isFeatured: offer.isFeatured,
+                    onTap: onSetFeatured,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    offer.subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      height: 1.35,
-                      fontWeight: FontWeight.w500,
-                      color: _Pal.ink600,
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            offer.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: _Pal.ink,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            offer.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              height: 1.35,
+                              fontWeight: FontWeight.w500,
+                              color: _Pal.ink600,
+                            ),
+                          ),
+                          const SizedBox(height: 11),
+                          Container(
+                            height: 1,
+                            color: _Pal.line.withValues(alpha: 0.8),
+                          ),
+                          const SizedBox(height: 9),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Wrap(
+                                  spacing: 10,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    _MetaChip(
+                                      icon: Icons.restaurant_menu_rounded,
+                                      label: offer.category,
+                                    ),
+                                    _MetaChip(
+                                      icon: Icons.schedule_rounded,
+                                      label: offer.duration,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _StatusSwitch(
+                                value: isActive,
+                                onChanged: onToggleActive,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 9),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      _StatusPill(style: style),
-                      _MetaChip(
-                        icon: Icons.restaurant_menu_rounded,
-                        label: offer.category,
-                      ),
-                      _MetaChip(
-                        icon: Icons.schedule_rounded,
-                        label: offer.duration,
-                      ),
-                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            Column(
-              children: [
-                _CircleAction(
-                  icon: offer.isFeatured
-                      ? Icons.star_rounded
-                      : Icons.star_outline_rounded,
-                  onTap: onSetFeatured,
-                  bg: offer.isFeatured ? _Pal.amberSoft : _Pal.wash,
-                  border: offer.isFeatured ? _Pal.amberLine : _Pal.line,
-                  iconColor: offer.isFeatured ? _Pal.amber : _Pal.ink400,
-                  tooltip: 'Feature this offer',
-                ),
-                const SizedBox(height: 8),
-                _CircleAction(
-                  icon: Icons.power_settings_new_rounded,
-                  onTap: onToggleActive,
-                  bg: isActive ? _Pal.greenSoft : _Pal.wash,
-                  border: isActive ? _Pal.greenLine : _Pal.line,
-                  iconColor: isActive ? _Pal.greenInk : _Pal.ink400,
-                  tooltip: isActive ? 'Pause offer' : 'Activate offer',
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _CircleAction extends StatelessWidget {
-  final IconData icon;
+/// The card's focal point. Amber when this is the featured offer, ink
+/// otherwise — tapping the tag IS setting it as featured, so there's no
+/// second star icon anywhere on the card asking to be noticed separately.
+/// Shows the discount as a real number when there is one (which covers
+/// every offer this app currently lets a vendor create) and falls back to
+/// a plain gift icon for anything without a percentage, like a BOGO deal.
+class _DiscountTag extends StatelessWidget {
+  final int? percent;
+  final bool isFeatured;
   final VoidCallback onTap;
-  final Color bg;
-  final Color border;
-  final Color iconColor;
-  final String tooltip;
 
-  const _CircleAction({
-    required this.icon,
+  const _DiscountTag({
+    required this.percent,
+    required this.isFeatured,
     required this.onTap,
-    required this.bg,
-    required this.border,
-    required this.iconColor,
-    required this.tooltip,
   });
 
   @override
   Widget build(BuildContext context) {
+    final fill = isFeatured ? _Pal.amber : _Pal.ink;
+    final fg = isFeatured ? _Pal.amberDeep : Colors.white;
+    final fgMuted = isFeatured
+        ? _Pal.amberDeep.withValues(alpha: 0.75)
+        : Colors.white.withValues(alpha: 0.6);
+
     return Tooltip(
-      message: tooltip,
+      message: isFeatured ? 'Featured offer' : 'Tap to feature this offer',
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: bg,
-            shape: BoxShape.circle,
-            border: Border.all(color: border),
+          width: 78,
+          color: fill,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isFeatured) ...[
+                Icon(Icons.star_rounded, size: 14, color: fg),
+                const SizedBox(height: 6),
+              ],
+              if (percent != null) ...[
+                Text(
+                  '$percent%',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    color: fg,
+                    letterSpacing: -0.5,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'OFF',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: fgMuted,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ] else ...[
+                Icon(Icons.card_giftcard_rounded, size: 21, color: fg),
+                const SizedBox(height: 4),
+                Text(
+                  'DEAL',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: fgMuted,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ],
           ),
-          child: Icon(icon, size: 16, color: iconColor),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact on/off switch for active state. Unlike a power icon — which
+/// can read as either "this is on" or "tap to turn on" — a switch shows
+/// the current state and the action in the same glance.
+class _StatusSwitch extends StatelessWidget {
+  final bool value;
+  final VoidCallback onChanged;
+
+  const _StatusSwitch({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: value ? 'Pause offer' : 'Activate offer',
+      child: GestureDetector(
+        onTap: onChanged,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            width: 36,
+            height: 21,
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
+              color: value ? _Pal.green : _Pal.line,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x26000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
