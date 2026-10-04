@@ -1253,5 +1253,4 @@ class _C {
   static const redBg = Color(0xFFFEF2F2);
 
   static const amber = Color(0xFFF59E0B);
-  static const amberBg = Color(0xFFFFFBEB);
 }

@@ -1,11 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:frontend/app_colors.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/orderDetailScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
-import 'package:frontend/widgets/app_top_bar.dart';
 
 // ─── Color tokens (mirrors profile_edit_screen.dart _Dt) ─────────────────────
 class _C {
@@ -16,12 +15,9 @@ class _C {
   static const border = Color(0xFFE2E8F0); // slate-200
   static const textPrimary = Color(0xFF0F172A); // slate-900
   static const textSecondary = Color(0xFF64748B); // slate-500
-  static const textMuted = Color(0xFF94A3B8); // slate-400
   static const emerald = Color(0xFF10B981); // emerald-500
-  static const emeraldLight = Color(0xFF6EE7B7); // emerald-300
   static const emeraldBg = Color(0xFFECFDF5); // emerald-50
   static const red = Color(0xFFEF4444);
-  static const redBg = Color(0xFFFEF2F2);
   static const transparent = Colors.transparent;
 }
 
@@ -242,7 +238,8 @@ final List<Map<String, dynamic>> kDummyOrders = [
 ];
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({super.key});
+  final int initialTabIndex;
+  const OrdersScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -252,21 +249,23 @@ class _OrdersScreenState extends State<OrdersScreen>
     with TickerProviderStateMixin {
   late final TabController _tabController;
   late final PageController _pageController;
-  int _selectedTab = 0;
+  late int _selectedTab;
 
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _redemptions = [];
   String _vendorName = '';
   String? _vendorIconUrl;
+  Timer? _poller;
 
   final _shopStatus = ShopStatusService.instance;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _pageController = PageController();
+    _selectedTab = widget.initialTabIndex;
+    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
+    _pageController = PageController(initialPage: widget.initialTabIndex);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) return;
       _pageController.animateToPage(
@@ -277,21 +276,47 @@ class _OrdersScreenState extends State<OrdersScreen>
       setState(() => _selectedTab = _tabController.index);
     });
     _fetchData();
+    _startPolling();
     _shopStatus.ensureLoaded();
+  }
+
+  void _switchToTab(int index) {
+    if (index >= 0 && index < 3 && mounted) {
+      setState(() => _selectedTab = index);
+      _tabController.animateTo(index);
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
+
+  void _startPolling() {
+    _poller?.cancel();
+    _poller = Timer.periodic(const Duration(milliseconds: 2000), (_) {
+      if (!mounted) return;
+      _fetchData(silent: true);
+    });
   }
 
   @override
   void dispose() {
+    _poller?.cancel();
     _tabController.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _fetchData({bool silent = false}) async {
+    if (!silent && _redemptions.isEmpty) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     final profileRes = await VendorService.getVendorProfile();
     if (profileRes['success'] == true && profileRes['data'] != null) {
@@ -310,12 +335,10 @@ class _OrdersScreenState extends State<OrdersScreen>
     if (redRes['success'] == true && redRes['data'] != null) {
       final list = redRes['data'] as List<dynamic>;
       setState(() {
-        _redemptions = list.isNotEmpty
-            ? list
-            : kDummyOrders.map((e) => Map<String, dynamic>.from(e)).toList();
+        _redemptions = list;
         _isLoading = false;
       });
-    } else {
+    } else if (_redemptions.isEmpty) {
       setState(() {
         _redemptions =
             kDummyOrders.map((e) => Map<String, dynamic>.from(e)).toList();
@@ -329,11 +352,13 @@ class _OrdersScreenState extends State<OrdersScreen>
     final res = await VendorService.scanVendorRedemption(qrCode);
     if (!mounted) return;
 
+    final orderNum = _formatOrderNumber({'qr_code': qrCode});
+
     if (res['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Order $qrCode marked as completed!',
+            'Order $orderNum marked as completed!',
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: _C.dark,
@@ -342,29 +367,30 @@ class _OrdersScreenState extends State<OrdersScreen>
           margin: const EdgeInsets.all(16),
         ),
       );
-      _fetchData();
+      await _fetchData(silent: true);
+      _switchToTab(1);
     } else {
       // If mock/dummy order, update status locally
       final idx = _redemptions.indexWhere((r) => r['qr_code'] == qrCode);
       if (idx != -1) {
         setState(() {
           _redemptions[idx]['status'] = 'confirmed';
-          _redemptions[idx]['confirmed_at'] =
-              DateTime.now().toIso8601String();
+          _redemptions[idx]['confirmed_at'] = DateTime.now().toIso8601String();
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Order $qrCode marked as completed!',
+              'Order $orderNum marked as completed!',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             backgroundColor: _C.dark,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             margin: const EdgeInsets.all(16),
           ),
         );
+        _switchToTab(1);
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
@@ -382,23 +408,64 @@ class _OrdersScreenState extends State<OrdersScreen>
     }
   }
 
+  bool _isExpiredSession(Map<String, dynamic> r) {
+    final status = (r['status'] ?? '').toString().toLowerCase();
+    if (status == 'expired' || status == 'cancelled') return true;
+    if (status == 'pending') {
+      final expiresAtStr = r['expires_at']?.toString();
+      if (expiresAtStr != null && expiresAtStr.isNotEmpty) {
+        final exp = DateTime.tryParse(expiresAtStr);
+        if (exp != null && exp.isBefore(DateTime.now())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _isPendingSession(Map<String, dynamic> r) {
+    final status = (r['status'] ?? '').toString().toLowerCase();
+    if (status != 'pending') return false;
+    return !_isExpiredSession(r);
+  }
+
+  bool _isCompletedSession(Map<String, dynamic> r) {
+    final status = (r['status'] ?? '').toString().toLowerCase();
+    return status == 'confirmed' || status == 'completed' || status == 'delivered';
+  }
+
   List<dynamic> get _pendingOrders => _redemptions
-      .where((r) => (r['status'] ?? '').toString().toLowerCase() == 'pending')
+      .where((r) => _isPendingSession(r as Map<String, dynamic>))
       .toList();
 
   List<dynamic> get _completedOrders => _redemptions
-      .where((r) => (r['status'] ?? '').toString().toLowerCase() == 'confirmed')
+      .where((r) => _isCompletedSession(r as Map<String, dynamic>))
       .toList();
 
   List<dynamic> get _expiredOrders => _redemptions
-      .where((r) => ['expired', 'cancelled']
-          .contains((r['status'] ?? '').toString().toLowerCase()))
+      .where((r) => _isExpiredSession(r as Map<String, dynamic>))
       .toList();
 
-  void _openSessionDetails(Map<String, dynamic> session) {
+  String _formatOrderNumber(Map<String, dynamic> session) {
+    final rawOrderNum = session['order_number']?.toString();
+    if (rawOrderNum != null && rawOrderNum.isNotEmpty) {
+      return rawOrderNum.startsWith('#') ? rawOrderNum : '#$rawOrderNum';
+    }
     final qrCode = session['qr_code']?.toString() ?? '';
-    final orderIdStr =
-        qrCode.isNotEmpty ? 'ORDER #$qrCode' : '[Missing Order ID]';
+    if (qrCode.isNotEmpty) {
+      final clean = qrCode.replaceAll('-', '').toUpperCase();
+      final code = clean.length >= 8 ? clean.substring(0, 8) : clean;
+      return '#$code';
+    }
+    return '#C571267D';
+  }
+
+  Future<void> _openSessionDetails(Map<String, dynamic> session) async {
+    final qrCode = session['qr_code']?.toString() ?? '';
+    final orderIdStr = _formatOrderNumber(session);
+
+    final customerName = session['customer_name']?.toString() ?? '';
+    final status = (session['status'] ?? 'pending').toString().toLowerCase();
 
     final finalTotal = session['final_total']?.toString() ??
         session['subtotal']?.toString() ??
@@ -406,12 +473,35 @@ class _OrdersScreenState extends State<OrdersScreen>
     final subtotal = session['subtotal']?.toString() ?? '0.00';
     final discount = session['total_discount']?.toString() ?? '0.00';
 
+    final reward = session['reward'] as Map<String, dynamic>?;
+    final hasReward = reward != null &&
+        (reward['name_snapshot'] != null ||
+            reward['gift_item_name_snapshot'] != null ||
+            reward['discount_amount'] != null);
+    String milestoneMsg = 'No milestone reward applied for this order.';
+    if (hasReward) {
+      final rName = reward['name_snapshot']?.toString() ?? 'Milestone Reward';
+      final rDisc = reward['discount_amount']?.toString();
+      final giftName = reward['gift_item_name_snapshot']?.toString();
+      if (giftName != null && giftName.isNotEmpty) {
+        milestoneMsg = '$rName (Free item: $giftName)';
+      } else if (rDisc != null && double.tryParse(rDisc) != null && double.tryParse(rDisc)! > 0) {
+        milestoneMsg = '$rName (Saved ₹$rDisc)';
+      } else {
+        milestoneMsg = rName;
+      }
+    }
+
     final offersList = (session['applied_offers'] as List<dynamic>?) ?? [];
     final offersSummaryStr = offersList.isNotEmpty
-        ? 'Offers applied: ' +
-            offersList
-                .map((o) => o['title_snapshot']?.toString() ?? 'Offer')
-                .join(', ')
+        ? 'Offers applied: ${offersList.map((o) {
+            final title = o['title_snapshot']?.toString() ?? 'Offer';
+            final dAmount = o['discount_amount']?.toString();
+            if (dAmount != null && double.tryParse(dAmount) != null && double.tryParse(dAmount)! > 0) {
+              return '$title (Saved ₹$dAmount)';
+            }
+            return title;
+          }).join(', ')}'
         : '[No Offers Applied]';
 
     final rawItems = (session['items'] as List<dynamic>?) ?? [];
@@ -439,6 +529,8 @@ class _OrdersScreenState extends State<OrdersScreen>
               .map((c) =>
                   '${c['quantity'] ?? 1}x ${c['item_name_snapshot'] ?? ''}')
               .join(', ');
+        } else if (iMap['is_reward_item'] == true) {
+          noteStr = 'Free Milestone Reward';
         }
         if (noteStr.isEmpty) noteStr = '[No Note / Component]';
 
@@ -463,21 +555,31 @@ class _OrdersScreenState extends State<OrdersScreen>
       }).toList();
     }
 
-    Navigator.of(context).push(
+    final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => OrderDetailScreen(
           orderId: orderIdStr,
+          qrCode: qrCode,
+          status: status,
+          customerName: customerName.isNotEmpty ? customerName : null,
           totalAmount: '₹$finalTotal',
           subtotalAmount: '₹$subtotal',
           savingsAmount: '-₹$discount',
           offersSummary: offersSummaryStr,
-          milestoneUnlocked: false,
-          milestoneMessage:
-              'Order status: ${(session['status'] ?? '').toString().toUpperCase()}',
+          milestoneUnlocked: hasReward,
+          milestoneMessage: milestoneMsg,
           items: mappedItems,
+          onOrderCompleted: () {
+            _fetchData(silent: true);
+            _switchToTab(1);
+          },
         ),
       ),
     );
+    await _fetchData(silent: true);
+    if (result == true && mounted) {
+      _switchToTab(1);
+    }
   }
 
   // ─── Build ──────────────────────────────────────────────────────────────────
@@ -704,7 +806,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _C.red.withOpacity(0.1),
+                        color: _C.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: _C.red),
                       ),
@@ -803,8 +905,8 @@ class _OrdersScreenState extends State<OrdersScreen>
 
   Widget _buildOrderCardFromSession(Map<String, dynamic> session) {
     final qrCode = session['qr_code']?.toString() ?? '';
-    final isQrMissing = qrCode.isEmpty;
-    final orderIdStr = isQrMissing ? '[Missing Order QR]' : 'ORDER #$qrCode';
+    final isQrMissing = qrCode.isEmpty && session['order_number'] == null;
+    final orderIdStr = isQrMissing ? '[Missing Order QR]' : _formatOrderNumber(session);
 
     final status = (session['status'] ?? '').toString().toLowerCase();
     final isConfirmed = status == 'confirmed';
@@ -846,13 +948,34 @@ class _OrdersScreenState extends State<OrdersScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  orderIdStr,
-                  style: TextStyle(
-                    color: isQrMissing ? _C.red : _C.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.8,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        orderIdStr,
+                        style: TextStyle(
+                          color: isQrMissing ? _C.red : _C.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      if (session['customer_name'] != null &&
+                          session['customer_name'].toString().trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          session['customer_name'].toString().trim(),
+                          style: const TextStyle(
+                            color: _C.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 GestureDetector(
@@ -880,7 +1003,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: _C.red.withOpacity(0.12),
+                        color: _C.red.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: _C.red),
                       ),
@@ -904,7 +1027,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                   (item) => _buildSessionItemRow(item as Map<String, dynamic>)),
 
             const SizedBox(height: 18),
-            Divider(color: _C.border, thickness: 1),
+            const Divider(color: _C.border, thickness: 1),
             const SizedBox(height: 14),
 
             // ── Footer row ──────────────────────────────────────────────────
@@ -940,7 +1063,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                     decoration: BoxDecoration(
                       color: isConfirmed
                           ? _C.emeraldBg // was AppColors.surfaceRaised
-                          : _C.red.withOpacity(0.1),
+                          : _C.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isConfirmed ? _C.emerald : _C.red,
@@ -1004,6 +1127,8 @@ class _OrdersScreenState extends State<OrdersScreen>
       noteStr = components
           .map((c) => '${c['quantity'] ?? 1}x ${c['item_name_snapshot'] ?? ''}')
           .join(', ');
+    } else if (item['is_reward_item'] == true) {
+      noteStr = 'Free Milestone Reward';
     }
     final isNoteMissing = noteStr.isEmpty;
 
@@ -1017,7 +1142,7 @@ class _OrdersScreenState extends State<OrdersScreen>
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: isImgMissing ? _C.red.withOpacity(0.12) : _C.border,
+                color: isImgMissing ? _C.red.withValues(alpha: 0.12) : _C.border,
                 borderRadius: BorderRadius.circular(10),
                 border:
                     isImgMissing ? Border.all(color: _C.red, width: 1.2) : null,
@@ -1028,7 +1153,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                       imgUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: _C.red.withOpacity(0.12),
+                        color: _C.red.withValues(alpha: 0.12),
                         child: const Icon(Icons.restaurant,
                             color: _C.red, size: 24),
                       ),

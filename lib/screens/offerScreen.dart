@@ -143,6 +143,8 @@ class _OffersScreenState extends State<OffersScreen>
   int _selectedTab = 0;
   List<Offer> _offers = [];
   bool _isLoading = true;
+  int _activeMilestonesCount = 0;
+  int _totalMilestonesCount = 0;
 
   final _shopStatus = ShopStatusService.instance;
 
@@ -175,7 +177,18 @@ class _OffersScreenState extends State<OffersScreen>
   Future<void> _fetchOffers() async {
     setState(() => _isLoading = true);
     final res = await VendorService.getOffers();
+    final milestoneRes = await VendorService.getRewardMilestones();
     if (!mounted) return;
+
+    int activeM = 0;
+    int totalM = 0;
+    if (milestoneRes['success'] == true && milestoneRes['data'] != null) {
+      final rawM = milestoneRes['data'] as List<dynamic>;
+      totalM = rawM.length;
+      activeM = rawM
+          .where((m) => m is Map<String, dynamic> && m['is_active'] == true)
+          .length;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final savedFeaturedId = prefs.getString('featured_offer_id') ?? '';
@@ -260,10 +273,16 @@ class _OffersScreenState extends State<OffersScreen>
       }
       setState(() {
         _offers = fetched;
+        _activeMilestonesCount = activeM;
+        _totalMilestonesCount = totalM;
         _isLoading = false;
       });
     } else {
-      setState(() => _isLoading = false);
+      setState(() {
+        _activeMilestonesCount = activeM;
+        _totalMilestonesCount = totalM;
+        _isLoading = false;
+      });
     }
   }
 
@@ -279,6 +298,11 @@ class _OffersScreenState extends State<OffersScreen>
   int get _inactiveCount => _offers.length - _activeCount;
   int get _liveCount =>
       _offers.where((o) => o.isActive && o.status == OfferStatus.live).length;
+  int get _maxDiscount =>
+      _offers.where((o) => o.isActive && o.discountPercent != null).fold<int>(
+          0,
+          (max, o) =>
+              (o.discountPercent ?? 0) > max ? (o.discountPercent ?? 0) : max);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -324,10 +348,13 @@ class _OffersScreenState extends State<OffersScreen>
     }
   }
 
-  void _openMilestones() {
-    Navigator.of(context).push(
+  Future<void> _openMilestones() async {
+    final updated = await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const MilestoneRewardsScreen()),
     );
+    if (updated == true && mounted) {
+      _fetchOffers();
+    }
   }
 
   Future<void> _toggleShopStatus(bool nextOpen) async {
@@ -367,6 +394,138 @@ class _OffersScreenState extends State<OffersScreen>
     );
     if (!confirmed || !mounted) return;
     setState(() => offer.isActive = nextValue);
+  }
+
+  void _showOfferRulesModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: _Pal.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(ctx).padding.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _Pal.line,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _Pal.wash,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.rule_rounded,
+                    size: 20,
+                    color: _Pal.ink,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Offer Policies & Rules',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: _Pal.ink,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'How discounts apply on customer orders',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _Pal.ink500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _Pal.wash,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _Pal.line),
+              ),
+              child: const Column(
+                children: [
+                  _RuleRow(
+                    icon: Icons.layers_clear_outlined,
+                    title: 'No Stacking',
+                    subtitle:
+                        'One offer applies per menu item automatically. Highest discount percentage wins.',
+                  ),
+                  _DetailDivider(),
+                  _RuleRow(
+                    icon: Icons.filter_alt_outlined,
+                    title: 'Priority Hierarchy',
+                    subtitle:
+                        'If percentages match: Item offer > Category offer > Storewide All-menu offer.',
+                  ),
+                  _DetailDivider(),
+                  _RuleRow(
+                    icon: Icons.schedule_rounded,
+                    title: 'Schedule & Time Slots',
+                    subtitle:
+                        'Offers are only active within their valid date range and configured weekly time slots.',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            GestureDetector(
+              onTap: () => Navigator.pop(ctx),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _Pal.ink,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'Got it',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -437,7 +596,6 @@ class _OffersScreenState extends State<OffersScreen>
 
   Widget _buildHero() {
     final topPadding = MediaQuery.of(context).padding.top;
-    final featured = _featuredOffer;
 
     return Container(
       decoration: const BoxDecoration(
@@ -468,7 +626,7 @@ class _OffersScreenState extends State<OffersScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Promotions running',
+                'Campaign status',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -486,7 +644,7 @@ class _OffersScreenState extends State<OffersScreen>
                   ),
                 ),
                 child: Text(
-                  '$_liveCount live',
+                  _liveCount > 0 ? '$_liveCount live' : '0 live',
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -510,8 +668,7 @@ class _OffersScreenState extends State<OffersScreen>
                   ),
                 ),
                 TextSpan(
-                  text:
-                      _activeCount == 1 ? '  offer active' : '  offers active',
+                  text: _activeCount == 1 ? '  active deal' : '  active deals',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -530,9 +687,9 @@ class _OffersScreenState extends State<OffersScreen>
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  featured == null
-                      ? 'No featured promotion picked yet'
-                      : 'Featured · ${featured.title}',
+                  _activeCount > 0
+                      ? 'Auto-applied at customer checkout'
+                      : 'Create a deal to attract nearby foodies',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -552,19 +709,20 @@ class _OffersScreenState extends State<OffersScreen>
                   icon: Icons.confirmation_number_outlined,
                   iconBg: Colors.white.withValues(alpha: 0.1),
                   iconColor: Colors.white,
-                  label: 'TOTAL OFFERS',
-                  value: '${_offers.length} created',
+                  label: 'TOTAL CAMPAIGNS',
+                  value: '${_offers.length}',
+                  subtitle: _offers.length == 1 ? ' created' : ' created',
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _MetricTile(
-                  icon: Icons.pause_rounded,
+                  icon: Icons.percent_rounded,
                   iconBg: _Pal.amber.withValues(alpha: 0.18),
                   iconColor: _Pal.amberPale,
-                  label: 'PAUSED',
-                  value: '$_inactiveCount',
-                  subtitle: _inactiveCount == 1 ? ' offer' : ' offers',
+                  label: 'TOP DISCOUNT',
+                  value: _maxDiscount > 0 ? '$_maxDiscount%' : '—',
+                  subtitle: _maxDiscount > 0 ? ' max off' : ' none active',
                   valueColor: _Pal.amberPale,
                 ),
               ),
@@ -649,11 +807,9 @@ class _OffersScreenState extends State<OffersScreen>
           const SizedBox(width: 8),
           Expanded(
             child: _QuickActionButton(
-              icon: Icons.star_outline_rounded,
-              label: 'Featured',
-              onTap: featured == null
-                  ? _goToCreateOffer
-                  : () => _showOfferDetailsModal(featured),
+              icon: Icons.rule_rounded,
+              label: 'Offer rules',
+              onTap: _showOfferRulesModal,
             ),
           ),
           const SizedBox(width: 8),
@@ -769,26 +925,6 @@ class _OffersScreenState extends State<OffersScreen>
                                   ),
                                 ),
                                 const Spacer(),
-                                GestureDetector(
-                                  onTap: () => _setAsFeatured(offer),
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: _Pal.ink.withValues(alpha: 0.35),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.2),
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.star_rounded,
-                                      size: 16,
-                                      color: _Pal.amberPale,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                             Text(
@@ -1039,8 +1175,8 @@ class _OffersScreenState extends State<OffersScreen>
   // ── Milestone rewards ──────────────────────────────────────────────────────
 
   Widget _buildMilestoneCard() {
-    const filledStamps = 3;
-    const totalStamps = 6;
+    final totalStamps = _totalMilestonesCount > 0 ? _totalMilestonesCount : 4;
+    final filledStamps = _activeMilestonesCount;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1130,7 +1266,9 @@ class _OffersScreenState extends State<OffersScreen>
                   }),
                   Expanded(
                     child: Text(
-                      '$filledStamps of $totalStamps collected',
+                      _totalMilestonesCount > 0
+                          ? '$filledStamps of $totalStamps active'
+                          : 'Configure rewards',
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         fontSize: 10.5,
@@ -1616,7 +1754,6 @@ class _OfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = _statusStyleFor(offer);
     final isActive = offer.isActive;
 
     return GestureDetector(
@@ -2093,7 +2230,7 @@ class _ShopStatusPill extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              isOpen ? 'Open' : 'Closed',
+              isOpen ? 'Pause' : 'Resume',
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
@@ -2261,9 +2398,8 @@ class _MetricTile extends StatelessWidget {
 
 class _PulsingDot extends StatefulWidget {
   final Color color;
-  final double size;
 
-  const _PulsingDot({required this.color, this.size = 8});
+  const _PulsingDot({required this.color});
 
   @override
   State<_PulsingDot> createState() => _PulsingDotState();
@@ -2299,8 +2435,8 @@ class _PulsingDotState extends State<_PulsingDot>
       builder: (_, __) => Opacity(
         opacity: _anim.value,
         child: Container(
-          width: widget.size,
-          height: widget.size,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(
             color: widget.color,
             shape: BoxShape.circle,
@@ -2359,5 +2495,65 @@ class _DetailDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(height: 1, color: _Pal.line.withValues(alpha: 0.7));
+  }
+}
+
+class _RuleRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _RuleRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _Pal.line),
+            ),
+            child: Icon(icon, size: 16, color: _Pal.ink700),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _Pal.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                    color: _Pal.ink500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

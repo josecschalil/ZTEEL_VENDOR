@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:frontend/app_colors.dart';
 import 'package:frontend/widgets/app_top_bar.dart';
+import '../services/vendor_service.dart';
+import 'orderScreen.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -212,17 +214,40 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Order verified: $rawCode'),
-                          backgroundColor: AppColors.orange,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          margin: const EdgeInsets.all(16),
-                        ),
-                      );
+                      final res = await VendorService.scanVendorRedemption(rawCode);
+                      if (!mounted) return;
+                      if (res['success'] == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Order verified & marked as completed!'),
+                            backgroundColor: AppColors.orange,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            margin: const EdgeInsets.all(16),
+                          ),
+                        );
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop(true);
+                        } else {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const OrdersScreen(initialTabIndex: 1),
+                            ),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(res['error'] ?? 'Verification failed'),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            margin: const EdgeInsets.all(16),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),

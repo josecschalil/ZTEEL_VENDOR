@@ -15,7 +15,6 @@ class _Pal {
 
   static const ink = Color(0xFF0F172A);
   static const ink700 = Color(0xFF334155);
-  static const ink600 = Color(0xFF475569);
   static const ink500 = Color(0xFF64748B);
   static const ink400 = Color(0xFF94A3B8);
 
@@ -120,6 +119,28 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           _endDate = DateTime.parse(data['ends_at'].toString()).toLocal();
         } catch (_) {}
       }
+      if (data['schedule'] is List && (data['schedule'] as List).isNotEmpty) {
+        final sched = data['schedule'] as List;
+        for (int i = 0; i < 7; i++) {
+          _days[i] = false;
+        }
+        for (final slot in sched) {
+          if (slot is Map<String, dynamic>) {
+            final wd = slot['weekday'] as int?;
+            if (wd != null && wd >= 0 && wd < 7) {
+              _days[wd] = true;
+            }
+            if (slot['starts_at'] != null) {
+              final s = slot['starts_at'].toString();
+              if (s.length >= 5) _startTime = s.substring(0, 5);
+            }
+            if (slot['ends_at'] != null) {
+              final e = slot['ends_at'].toString();
+              if (e.length >= 5) _endTime = e.substring(0, 5);
+            }
+          }
+        }
+      }
       final scope = data['scope_type']?.toString();
       if (scope == 'item_set') {
         _target = _Target.items;
@@ -183,8 +204,12 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       if (isEditing && widget.initialData != null) {
         final data = widget.initialData!;
         final targets = data['targets'] as Map<String, dynamic>?;
-        final rawItemIds = (targets?['item_ids'] as List?) ?? (data['item_ids'] as List?) ?? [];
-        final rawCatIds = (targets?['category_ids'] as List?) ?? (data['category_ids'] as List?) ?? [];
+        final rawItemIds = (targets?['item_ids'] as List?) ??
+            (data['item_ids'] as List?) ??
+            [];
+        final rawCatIds = (targets?['category_ids'] as List?) ??
+            (data['category_ids'] as List?) ??
+            [];
 
         final itemIdsSet = rawItemIds.map((e) => e.toString()).toSet();
         final catIdsSet = rawCatIds.map((e) => e.toString()).toSet();
@@ -543,19 +568,50 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       }
     }
 
-    final startDate = DateTime.now();
-    final endDate = _endDate;
+    final now = DateTime.now();
+    final startDate = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+    final endDate = DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+
+    if (endDate.isBefore(startDate)) {
+      _toast('End date must be today or a future date.', isError: true);
+      return;
+    }
+
+    final bool hasSpecificDays = _days.any((d) => !d) && _days.any((d) => d);
 
     Map<String, dynamic> offerData = {
       'title': title,
       'description': desc,
       'scope_type': scopeType,
       'discount_percentage': _discountPercent,
-      'validity_type': 'date_range',
+      'validity_type': hasSpecificDays ? 'weekly' : 'date_range',
       'starts_at': startDate.toUtc().toIso8601String(),
       'ends_at': endDate.toUtc().toIso8601String(),
       'is_active': true,
     };
+
+    if (hasSpecificDays) {
+      List<Map<String, dynamic>> slots = [];
+      final startParts = _startTime.split(':');
+      final endParts = _endTime.split(':');
+      final startH = int.tryParse(startParts[0]) ?? 18;
+      final startM = int.tryParse(startParts.length > 1 ? startParts[1] : '0') ?? 0;
+      final endH = int.tryParse(endParts[0]) ?? 23;
+      final endM = int.tryParse(endParts.length > 1 ? endParts[1] : '0') ?? 0;
+      final endsNextDay = (endH < startH) || (endH == startH && endM <= startM);
+
+      for (int i = 0; i < 7; i++) {
+        if (_days[i]) {
+          slots.add({
+            'weekday': i,
+            'starts_at': '${startH.toString().padLeft(2, '0')}:${startM.toString().padLeft(2, '0')}:00',
+            'ends_at': '${endH.toString().padLeft(2, '0')}:${endM.toString().padLeft(2, '0')}:00',
+            'ends_next_day': endsNextDay,
+          });
+        }
+      }
+      offerData['weekly_slots'] = slots;
+    }
 
     if (scopeType == 'item_set' && itemIds.isNotEmpty) {
       offerData['item_ids'] = itemIds;
@@ -578,12 +634,16 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     setState(() => _isSaving = false);
 
     if (res['success'] == true) {
-      _toast(isEditing ? 'Offer updated successfully.' : 'Offer created successfully.');
+      _toast(isEditing
+          ? 'Offer updated successfully.'
+          : 'Offer created successfully.');
       Navigator.of(context).pop(true);
     } else {
       _toast(
         res['error']?.toString() ??
-            (isEditing ? 'Could not update the offer.' : 'Could not create the offer.'),
+            (isEditing
+                ? 'Could not update the offer.'
+                : 'Could not create the offer.'),
         isError: true,
       );
     }

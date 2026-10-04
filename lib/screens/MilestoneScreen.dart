@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/app_colors.dart';
-import 'package:frontend/widgets/app_top_bar.dart';
+import 'package:frontend/services/vendor_service.dart';
 
 // ─── Color tokens (same as profile / orders / categories screens) ────────────
 class _K {
@@ -15,9 +14,36 @@ class _K {
   static const textMuted = Color(0xFF94A3B8); // slate-400
   static const emerald = Color(0xFF10B981);
   static const emeraldLight = Color(0xFF6EE7B7);
-  static const emeraldBg = Color(0xFFECFDF5);
+  static const red = Color(0xFFE11D48);
   static const white = Colors.white;
   static const transparent = Colors.transparent;
+}
+
+class _MilestoneData {
+  String? id;
+  bool enabled;
+  final TextEditingController spendCtrl;
+  int rewardType; // 0=PERCENT, 1=ITEM, 2=CASH
+  double percent;
+  final TextEditingController cashCtrl;
+  String selectedItem;
+  String? selectedItemId;
+
+  _MilestoneData({
+    this.id,
+    required this.enabled,
+    required this.spendCtrl,
+    required this.rewardType,
+    required this.percent,
+    required this.cashCtrl,
+    required this.selectedItem,
+    this.selectedItemId,
+  });
+
+  void dispose() {
+    spendCtrl.dispose();
+    cashCtrl.dispose();
+  }
 }
 
 // ── Main screen ─────────────────────────────────────────────────────────────
@@ -29,103 +55,374 @@ class MilestoneRewardsScreen extends StatefulWidget {
 }
 
 class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
-  bool level1Enabled = true;
-  bool level2Enabled = true;
-  int level1RewardType = 0; // 0=PERCENT, 1=ITEM, 2=CASH
-  int level2RewardType = 1;
-  double level1Percent = 15;
-  double level2Percent = 10;
-  final TextEditingController _level1CashCtrl =
-      TextEditingController(text: '12.00');
-  final TextEditingController _level2CashCtrl =
-      TextEditingController(text: '20.00');
-  String level1Item = 'Garlic Bread';
-  String level2Item = 'Paneer Tikka';
+  List<Map<String, dynamic>> _menuItems = [];
+  List<String> _rewardItems = [];
+  List<_MilestoneData> _milestones = [];
+  bool _isLoading = true;
+  bool _isSaving = false;
 
-  final List<String> _rewardItems = const [
-    'Garlic Bread',
-    'Paneer Tikka',
-    'Saffron Samosa',
-    'Butter Naan',
-    'Rose Falooda',
-    'Mango Lassi',
-    'Mini Gulab Jamun',
-    'Chili Potato Bites',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
   @override
   void dispose() {
-    _level1CashCtrl.dispose();
-    _level2CashCtrl.dispose();
+    for (final m in _milestones) {
+      m.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    final itemsRes = await VendorService.getMenuItems();
+    final milestonesRes = await VendorService.getRewardMilestones();
+
+    List<Map<String, dynamic>> itemObjs = [];
+    List<String> itemNames = [];
+    if (itemsRes['success'] == true && itemsRes['data'] != null) {
+      for (final item in itemsRes['data'] as List<dynamic>) {
+        if (item is Map<String, dynamic>) {
+          itemObjs.add(item);
+          itemNames.add(item['name']?.toString() ?? 'Food Item');
+        }
+      }
+    }
+
+    List<_MilestoneData> loaded = [];
+    if (milestonesRes['success'] == true && milestonesRes['data'] != null) {
+      final rawList = milestonesRes['data'] as List<dynamic>;
+      for (int i = 0; i < rawList.length; i++) {
+        final m = rawList[i];
+        if (m is Map<String, dynamic>) {
+          final id = m['id']?.toString();
+          final isActive = m['is_active'] as bool? ?? true;
+          final threshold = m['threshold_amount']?.toString() ?? '25.00';
+          final discountType = m['discount_type']?.toString() ?? 'none';
+          final discountValStr = m['discount_value']?.toString() ?? '0';
+          final discountVal = double.tryParse(discountValStr) ?? 0.0;
+          final hasFreeItem = m['has_free_item'] as bool? ?? false;
+
+          int type = 0;
+          double percent = 15;
+          String cash = '10.00';
+          String itemName = itemNames.isNotEmpty ? itemNames.first : 'Free Item';
+          String? itemId;
+
+          if (hasFreeItem) {
+            type = 1; // ITEM
+            final options = m['reward_options'] as List<dynamic>?;
+            if (options != null && options.isNotEmpty) {
+              final firstOpt = options.first as Map<String, dynamic>?;
+              itemId = firstOpt?['menu_item_id']?.toString() ?? firstOpt?['id']?.toString();
+              final name = firstOpt?['name']?.toString();
+              if (name != null && name.isNotEmpty) {
+                itemName = name;
+              } else if (itemId != null) {
+                final match = itemObjs.firstWhere(
+                  (it) => it['id']?.toString() == itemId,
+                  orElse: () => {},
+                );
+                if (match['name'] != null) itemName = match['name'].toString();
+              }
+            }
+          } else if (discountType == 'flat') {
+            type = 2; // CASH
+            cash = discountVal.toStringAsFixed(2);
+          } else {
+            type = 0; // PERCENT
+            percent = discountVal > 0 ? discountVal : 15;
+          }
+
+          loaded.add(_MilestoneData(
+            id: id,
+            enabled: isActive,
+            spendCtrl: TextEditingController(text: threshold),
+            rewardType: type,
+            percent: percent,
+            cashCtrl: TextEditingController(text: cash),
+            selectedItem: itemName,
+            selectedItemId: itemId,
+          ));
+        }
+      }
+    }
+
+    if (loaded.isEmpty) {
+      // Default 2 initial levels
+      loaded.add(_MilestoneData(
+        enabled: true,
+        spendCtrl: TextEditingController(text: '25.00'),
+        rewardType: 0,
+        percent: 15,
+        cashCtrl: TextEditingController(text: '12.00'),
+        selectedItem: itemNames.isNotEmpty ? itemNames.first : 'Garlic Bread',
+        selectedItemId: itemObjs.isNotEmpty ? itemObjs.first['id']?.toString() : null,
+      ));
+      loaded.add(_MilestoneData(
+        enabled: true,
+        spendCtrl: TextEditingController(text: '50.00'),
+        rewardType: 1,
+        percent: 10,
+        cashCtrl: TextEditingController(text: '20.00'),
+        selectedItem: itemNames.length > 1
+            ? itemNames[1]
+            : (itemNames.isNotEmpty ? itemNames.first : 'Paneer Tikka'),
+        selectedItemId: itemObjs.length > 1
+            ? itemObjs[1]['id']?.toString()
+            : (itemObjs.isNotEmpty ? itemObjs.first['id']?.toString() : null),
+      ));
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _menuItems = itemObjs;
+      _rewardItems = itemNames.isNotEmpty
+          ? itemNames
+          : const [
+              'Garlic Bread',
+              'Paneer Tikka',
+              'Saffron Samosa',
+              'Butter Naan',
+              'Rose Falooda',
+              'Mango Lassi',
+              'Mini Gulab Jamun',
+              'Chili Potato Bites',
+            ];
+      _milestones = loaded;
+      _isLoading = false;
+    });
+  }
+
+  void _toast(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: isError ? _K.red : _K.dark,
+        behavior: SnackBarBehavior.floating,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _addMilestone() {
+    double nextTarget = 75.00;
+    if (_milestones.isNotEmpty) {
+      final lastVal = double.tryParse(_milestones.last.spendCtrl.text.trim()) ?? 50.0;
+      nextTarget = lastVal + 25.0;
+    }
+    final nextLevelNum = _milestones.length + 1;
+    final defaultItem = _rewardItems.isNotEmpty ? _rewardItems.first : 'Reward Item';
+    final defaultItemId = _menuItems.isNotEmpty ? _menuItems.first['id']?.toString() : null;
+
+    setState(() {
+      _milestones.add(_MilestoneData(
+        enabled: true,
+        spendCtrl: TextEditingController(text: nextTarget.toStringAsFixed(2)),
+        rewardType: 0,
+        percent: 15,
+        cashCtrl: TextEditingController(text: '15.00'),
+        selectedItem: defaultItem,
+        selectedItemId: defaultItemId,
+      ));
+    });
+    _toast('Added LEVEL ${nextLevelNum.toString().padLeft(2, '0')}');
+  }
+
+  Future<void> _saveRewards() async {
+    if (_milestones.isEmpty) return;
+
+    final thresholds = <double>{};
+    for (int i = 0; i < _milestones.length; i++) {
+      final m = _milestones[i];
+      final spend = double.tryParse(m.spendCtrl.text.trim());
+      if (spend == null || spend <= 0) {
+        _toast(
+          'Please enter a valid spend target for LEVEL ${(i + 1).toString().padLeft(2, '0')}.',
+          isError: true,
+        );
+        return;
+      }
+      if (thresholds.contains(spend)) {
+        _toast(
+          'Spend targets must be unique for each milestone level.',
+          isError: true,
+        );
+        return;
+      }
+      thresholds.add(spend);
+
+      if (m.rewardType == 1) {
+        if (m.selectedItemId == null || m.selectedItemId!.isEmpty) {
+          final match = _menuItems.firstWhere(
+            (it) => it['name'] == m.selectedItem,
+            orElse: () => {},
+          );
+          if (match['id'] != null) {
+            m.selectedItemId = match['id'].toString();
+          } else {
+            _toast(
+              'Please select a valid menu item for LEVEL ${(i + 1).toString().padLeft(2, '0')}.',
+              isError: true,
+            );
+            return;
+          }
+        }
+      } else if (m.rewardType == 2) {
+        final cash = double.tryParse(m.cashCtrl.text.trim());
+        if (cash == null || cash <= 0) {
+          _toast(
+            'Please enter a valid cash discount for LEVEL ${(i + 1).toString().padLeft(2, '0')}.',
+            isError: true,
+          );
+          return;
+        }
+      }
+    }
+
+    setState(() => _isSaving = true);
+
+    bool allSuccess = true;
+    String? firstError;
+
+    for (int i = 0; i < _milestones.length; i++) {
+      final m = _milestones[i];
+      final spend = double.parse(m.spendCtrl.text.trim());
+      final levelName = 'Level ${(i + 1).toString().padLeft(2, '0')} Milestone';
+
+      Map<String, dynamic> payload = {
+        'name': levelName,
+        'threshold_amount': spend,
+        'is_active': m.enabled,
+      };
+
+      if (m.rewardType == 0) {
+        payload['discount_type'] = 'percent';
+        payload['discount_value'] = m.percent;
+        payload['has_free_item'] = false;
+        payload['reward_option_item_ids'] = [];
+      } else if (m.rewardType == 1) {
+        payload['discount_type'] = 'none';
+        payload['discount_value'] = 0;
+        payload['has_free_item'] = true;
+        if (m.selectedItemId != null) {
+          payload['reward_option_item_ids'] = [m.selectedItemId!];
+        }
+      } else {
+        final cashVal = double.parse(m.cashCtrl.text.trim());
+        payload['discount_type'] = 'flat';
+        payload['discount_value'] = cashVal;
+        payload['has_free_item'] = false;
+        payload['reward_option_item_ids'] = [];
+      }
+
+      final Map<String, dynamic> res;
+      if (m.id != null && m.id!.isNotEmpty) {
+        res = await VendorService.updateRewardMilestone(id: m.id!, data: payload);
+      } else {
+        res = await VendorService.createRewardMilestone(payload);
+        if (res['success'] == true && res['data'] != null && res['data']['id'] != null) {
+          m.id = res['data']['id'].toString();
+        }
+      }
+
+      if (res['success'] != true) {
+        allSuccess = false;
+        firstError ??= res['error']?.toString() ??
+            'Failed to save Level ${(i + 1).toString().padLeft(2, '0')}';
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (allSuccess) {
+      _toast('Milestone rewards saved successfully.');
+      Navigator.of(context).pop(true);
+    } else {
+      _toast(firstError ?? 'Could not save some milestones.', isError: true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final activeCount = _milestones.where((m) => m.enabled).length;
+
     return Scaffold(
       backgroundColor: _K.bg,
       body: Column(
         children: [
-          _buildHeroTopBar(topPadding),
+          _buildHeroTopBar(topPadding, activeCount),
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildMilestoneCard(
-                    level: 'LEVEL 01',
-                    enabled: level1Enabled,
-                    onToggle: (v) => setState(() => level1Enabled = v),
-                    spendTarget: '25.00',
-                    selectedRewardType: level1RewardType,
-                    onRewardTypeChanged: (i) =>
-                        setState(() => level1RewardType = i),
-                    rewardDetailWidget: _buildRewardDetail(
-                      selectedRewardType: level1RewardType,
-                      percentValue: level1Percent,
-                      onPercentChanged: (v) =>
-                          setState(() => level1Percent = v),
-                      cashController: _level1CashCtrl,
-                      selectedItem: level1Item,
-                      onItemTap: () => _openItemPicker(
-                        currentItem: level1Item,
-                        onSelected: (item) => setState(() => level1Item = item),
+            child: _isLoading
+                ? const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: _K.dark,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Level 02 card
-                  _buildMilestoneCard(
-                    level: 'LEVEL 02',
-                    enabled: level2Enabled,
-                    onToggle: (v) => setState(() => level2Enabled = v),
-                    spendTarget: '50.00',
-                    selectedRewardType: level2RewardType,
-                    onRewardTypeChanged: (i) =>
-                        setState(() => level2RewardType = i),
-                    rewardDetailWidget: _buildRewardDetail(
-                      selectedRewardType: level2RewardType,
-                      percentValue: level2Percent,
-                      onPercentChanged: (v) =>
-                          setState(() => level2Percent = v),
-                      cashController: _level2CashCtrl,
-                      selectedItem: level2Item,
-                      onItemTap: () => _openItemPicker(
-                        currentItem: level2Item,
-                        onSelected: (item) => setState(() => level2Item = item),
-                      ),
+                  )
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ...List.generate(_milestones.length, (index) {
+                          final m = _milestones[index];
+                          final levelLabel =
+                              'LEVEL ${(index + 1).toString().padLeft(2, '0')}';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildMilestoneCard(
+                              level: levelLabel,
+                              enabled: m.enabled,
+                              onToggle: (v) => setState(() => m.enabled = v),
+                              spendController: m.spendCtrl,
+                              selectedRewardType: m.rewardType,
+                              onRewardTypeChanged: (i) =>
+                                  setState(() => m.rewardType = i),
+                              rewardDetailWidget: _buildRewardDetail(
+                                selectedRewardType: m.rewardType,
+                                percentValue: m.percent,
+                                onPercentChanged: (v) =>
+                                    setState(() => m.percent = v),
+                                cashController: m.cashCtrl,
+                                selectedItem: m.selectedItem,
+                                onItemTap: () => _openItemPicker(
+                                  currentItem: m.selectedItem,
+                                  onSelected: (item, itemId) => setState(() {
+                                    m.selectedItem = item;
+                                    m.selectedItemId = itemId;
+                                  }),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 2),
+                        _buildAddMilestoneButton(),
+                        const SizedBox(height: 22),
+                        _buildSaveButton(),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  _buildAddMilestoneButton(),
-                  const SizedBox(height: 22),
-                  _buildSaveButton(),
-                ],
-              ),
-            ),
           ),
         ],
       ),
@@ -134,7 +431,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
 
   // ─── Dark hero top bar (matches profile / orders / categories) ───────────
 
-  Widget _buildHeroTopBar(double topPadding) {
+  Widget _buildHeroTopBar(double topPadding, int activeCount) {
     return Container(
       decoration: const BoxDecoration(
         color: _K.dark,
@@ -157,12 +454,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               child: Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: Colors.white.withOpacity(0.9)),
+                  size: 16, color: Colors.white.withValues(alpha: 0.9)),
             ),
           ),
           const SizedBox(width: 14),
@@ -175,7 +472,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       letterSpacing: 0.4),
                 ),
                 const Text(
@@ -191,9 +488,9 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _K.emerald.withOpacity(0.2),
+                    color: _K.emerald.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _K.emerald.withOpacity(0.35)),
+                    border: Border.all(color: _K.emerald.withValues(alpha: 0.35)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -205,7 +502,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                               color: _K.emerald, shape: BoxShape.circle)),
                       const SizedBox(width: 5),
                       Text(
-                        '${(level1Enabled ? 1 : 0) + (level2Enabled ? 1 : 0)} active levels',
+                        '$activeCount active levels',
                         style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -221,12 +518,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: Icon(Icons.star_outline_rounded,
-                size: 18, color: Colors.white.withOpacity(0.9)),
+                size: 18, color: Colors.white.withValues(alpha: 0.9)),
           ),
         ],
       ),
@@ -239,7 +536,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
     required String level,
     required bool enabled,
     required ValueChanged<bool> onToggle,
-    required String spendTarget,
+    required TextEditingController spendController,
     required int selectedRewardType,
     required ValueChanged<int> onRewardTypeChanged,
     required Widget rewardDetailWidget,
@@ -287,7 +584,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
 
           _buildLabel('SPEND TARGET'),
           const SizedBox(height: 6),
-          _buildSpendField(spendTarget),
+          _buildSpendField(spendController),
           const SizedBox(height: 14),
 
           _buildLabel('REWARD TYPE'),
@@ -353,36 +650,36 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
 
   // ─── Spend field ────────────────────────────────────────────────────────
 
-  Widget _buildSpendField(String amount) {
+  Widget _buildSpendField(TextEditingController controller) {
     return Container(
       height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: _K.surfaceRaised,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _K.border, width: 1),
       ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: RichText(
-          text: TextSpan(
-            children: [
-              const TextSpan(
-                text: '\$ ',
-                style: TextStyle(
-                    color: _K.textSecondary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600),
-              ),
-              TextSpan(
-                text: amount,
-                style: const TextStyle(
-                    color: _K.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700),
-              ),
-            ],
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        cursorColor: _K.emerald,
+        style: const TextStyle(
+          color: _K.textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
+        decoration: const InputDecoration(
+          prefixText: '\$ ',
+          prefixStyle: TextStyle(
+            color: _K.textSecondary,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
           ),
+          hintText: '0.00',
+          hintStyle: TextStyle(color: _K.textMuted, fontSize: 14),
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
         ),
       ),
     );
@@ -576,7 +873,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
 
   Future<void> _openItemPicker({
     required String currentItem,
-    required ValueChanged<String> onSelected,
+    required void Function(String name, String? id) onSelected,
   }) async {
     String query = '';
 
@@ -656,7 +953,7 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                             : ListView.separated(
                                 itemCount: filtered.length,
                                 separatorBuilder: (_, __) =>
-                                    Divider(color: _K.border, height: 1),
+                                    const Divider(color: _K.border, height: 1),
                                 itemBuilder: (context, index) {
                                   final item = filtered[index];
                                   final selected = item == currentItem;
@@ -680,7 +977,12 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
                                             color: _K.emerald, size: 18)
                                         : null,
                                     onTap: () {
-                                      onSelected(item);
+                                      final match = _menuItems.firstWhere(
+                                        (it) => it['name'] == item,
+                                        orElse: () => {},
+                                      );
+                                      final itemId = match['id']?.toString();
+                                      onSelected(item, itemId);
                                       Navigator.of(context).pop();
                                     },
                                   );
@@ -701,32 +1003,35 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
   // ─── Add milestone button — dashed, slate outline ─────────────────────────
 
   Widget _buildAddMilestoneButton() {
-    return Container(
-      width: double.infinity,
-      height: 52,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-      child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: _K.borderMid,
-          borderRadius: 12,
-          dashWidth: 8,
-          dashSpace: 5,
-          strokeWidth: 1.5,
-        ),
-        child: const Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_circle_outline, color: _K.textSecondary, size: 18),
-              SizedBox(width: 8),
-              Text(
-                '+ Add Another Milestone',
-                style: TextStyle(
-                    color: _K.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600),
-              ),
-            ],
+    return GestureDetector(
+      onTap: _addMilestone,
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+        child: const CustomPaint(
+          painter: _DashedBorderPainter(
+            color: _K.borderMid,
+            borderRadius: 12,
+            dashWidth: 8,
+            dashSpace: 5,
+            strokeWidth: 1.5,
+          ),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_circle_outline, color: _K.textSecondary, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  '+ Add Another Milestone',
+                  style: TextStyle(
+                      color: _K.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -740,133 +1045,33 @@ class _MilestoneRewardsScreenState extends State<MilestoneRewardsScreen> {
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: _isSaving ? null : _saveRewards,
         style: ElevatedButton.styleFrom(
           backgroundColor: _K.dark,
           foregroundColor: _K.white,
+          disabledBackgroundColor: _K.dark.withValues(alpha: 0.6),
+          disabledForegroundColor: Colors.white70,
           elevation: 0,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
         ),
-        child: const Text(
-          'SAVE REWARDS',
-          style: TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1.4),
-        ),
+        child: _isSaving
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                'SAVE REWARDS',
+                style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1.4),
+              ),
       ),
     );
   }
-
-  // ─── Bottom nav (kept for parity, unused unless composed by caller) ──────
-
-  Widget _buildBottomNav() {
-    final items = [
-      _NavItem(
-          icon: Icons.grid_view_rounded, label: 'DASHBOARD', active: false),
-      _NavItem(
-          icon: Icons.local_offer_outlined, label: 'OFFERS', active: false),
-      _NavItem(icon: Icons.star_outlined, label: 'REWARDS', active: true),
-      _NavItem(icon: Icons.store_outlined, label: 'VENDORS', active: false),
-    ];
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: _K.surface,
-        border: Border(top: BorderSide(color: _K.border, width: 1)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: items.map((item) => _buildNavItem(item)).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(_NavItem item) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(item.icon,
-            color: item.active ? _K.dark : _K.textSecondary, size: 22),
-        const SizedBox(height: 4),
-        Text(
-          item.label,
-          style: TextStyle(
-            color: item.active ? _K.dark : _K.textSecondary,
-            fontSize: 9,
-            fontWeight: item.active ? FontWeight.w700 : FontWeight.w500,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Stat chip (mirrors categories screen) ──────────────────────────────────
-
-class _StatChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _StatChip(
-      {required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: _K.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _K.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-                color: _K.surfaceRaised,
-                borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 14, color: _K.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: _K.textMuted)),
-          const SizedBox(height: 1),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: _K.textPrimary)),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Data class ────────────────────────────────────────────────────────────
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-  final bool active;
-  const _NavItem(
-      {required this.icon, required this.label, required this.active});
 }
 
 // ── Dashed border painter ───────────────────────────────────────────────────

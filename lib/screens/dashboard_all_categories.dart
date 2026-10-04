@@ -16,10 +16,7 @@ class _K {
   static const red = Color(0xFFEF4444);
   static const redBg = Color(0xFFFEF2F2);
   static const amber = Color(0xFFF59E0B);
-  static const amberBg = Color(0xFFFFFBEB);
-  static const amberText = Color(0xFFB45309);
   static const amberLight = Color(0xFFFCD34D);
-  static const white = Colors.white;
 }
 
 enum _CatSort { menuOrder, name, mostDishes }

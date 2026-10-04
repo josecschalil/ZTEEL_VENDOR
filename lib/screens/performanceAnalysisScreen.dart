@@ -75,7 +75,7 @@ class _KitchenDashboardState extends State<KitchenDashboard> {
 
   static const List<OrderItem> _orders = [
     OrderItem(
-      id: '#FD-4092',
+      id: '#C571267D',
       platform: 'DoorDash',
       description: '2x Margherita Pizza',
       timeAgo: '4m ago',
@@ -85,7 +85,7 @@ class _KitchenDashboardState extends State<KitchenDashboard> {
       itemCount: 2,
     ),
     OrderItem(
-      id: '#FD-4091',
+      id: '#E9A3482F',
       platform: 'UberEats',
       description: 'Truffle Pasta Bowl, Tiramisu',
       timeAgo: '12m ago',
@@ -95,7 +95,7 @@ class _KitchenDashboardState extends State<KitchenDashboard> {
       itemCount: 2,
     ),
     OrderItem(
-      id: '#FD-4089',
+      id: '#A198B744',
       platform: 'Dine-In (T3)',
       description: 'Artisan Burger, Caesar Salad',
       timeAgo: '25m ago',
@@ -1121,10 +1121,4 @@ class _PulsingDotState extends State<_PulsingDot>
       ),
     );
   }
-}
-
-// The chef hat icon isn't in default Icons, so we provide a workaround:
-extension on Icons {
-  static const IconData chef_hat =
-      IconData(0xe53d, fontFamily: 'MaterialIcons');
 }

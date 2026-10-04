@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:frontend/app_colors.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
-import 'package:frontend/widgets/app_top_bar.dart';
 import 'categoryItemsScreen.dart';
-import 'editFoodItemScreen.dart';
-import 'offerScreen.dart';
 import 'orderScreen.dart';
 part 'dashboard_all_categories.dart';
 
@@ -43,6 +39,7 @@ class MenuCategory {
   final int count;
   final int itemCount;
   final List<MenuItem> items;
+  final String imageUrl;
 
   const MenuCategory({
     this.id = '',
@@ -52,6 +49,7 @@ class MenuCategory {
     this.count = 0,
     this.itemCount = 0,
     this.items = const [],
+    this.imageUrl = '',
   });
 }
 
@@ -99,6 +97,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       name: 'Pizza',
       count: 14,
       itemCount: 14,
+      imageUrl:
+          'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&auto=format&fit=crop&q=80',
     ),
     MenuCategory(
       id: 'default_pasta',
@@ -107,6 +107,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       name: 'Pasta',
       count: 10,
       itemCount: 10,
+      imageUrl:
+          'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=150&auto=format&fit=crop&q=80',
     ),
     MenuCategory(
       id: 'default_burgers',
@@ -115,6 +117,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       name: 'Burgers',
       count: 8,
       itemCount: 8,
+      imageUrl:
+          'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=150&auto=format&fit=crop&q=80',
     ),
     MenuCategory(
       id: 'default_salads',
@@ -123,6 +127,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       name: 'Salads',
       count: 6,
       itemCount: 6,
+      imageUrl:
+          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=150&auto=format&fit=crop&q=80',
     ),
     MenuCategory(
       id: 'default_desserts',
@@ -131,6 +137,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       name: 'Desserts',
       count: 9,
       itemCount: 9,
+      imageUrl:
+          'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=150&auto=format&fit=crop&q=80',
     ),
     MenuCategory(
       id: 'default_drinks',
@@ -139,12 +147,14 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       name: 'Drinks',
       count: 16,
       itemCount: 16,
+      imageUrl:
+          'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=150&auto=format&fit=crop&q=80',
     ),
   ];
 
   static const List<OrderItem> _orders = [
     OrderItem(
-      id: '#FD-4092',
+      id: '#C571267D',
       platform: 'DoorDash',
       description: '2x Margherita Pizza',
       timeAgo: '4m ago',
@@ -154,7 +164,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       itemCount: 2,
     ),
     OrderItem(
-      id: '#FD-4091',
+      id: '#E9A3482F',
       platform: 'UberEats',
       description: 'Truffle Pasta Bowl, Tiramisu',
       timeAgo: '12m ago',
@@ -164,7 +174,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       itemCount: 2,
     ),
     OrderItem(
-      id: '#FD-4089',
+      id: '#A198B744',
       platform: 'Dine-In (T3)',
       description: 'Artisan Burger, Caesar Salad',
       timeAgo: '25m ago',
@@ -225,6 +235,18 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
               }
             }
 
+            String categoryImg = '';
+            for (final it in itemList) {
+              if (it.imageUrl.trim().isNotEmpty) {
+                categoryImg = it.imageUrl.trim();
+                break;
+              }
+            }
+            if (categoryImg.isEmpty && cat['image'] != null) {
+              categoryImg =
+                  ApiConfig.getImageUrl(cat['image']?.toString()) ?? '';
+            }
+
             categoryList.add(MenuCategory(
               id: catId,
               name: catName,
@@ -233,6 +255,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
               count: itemList.length,
               itemCount: itemList.length,
               items: itemList,
+              imageUrl: categoryImg,
             ));
           }
         }
@@ -506,7 +529,7 @@ class _HeroRevenueBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 30),
+      margin: const EdgeInsets.only(top: 30),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -584,31 +607,184 @@ class _HeroMetricsCapsule extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(10),
-      child: Row(
-        children: [
-          Expanded(
-            child: _MetricTile(
-              icon: Icons.receipt_outlined,
-              iconBg: Colors.white.withValues(alpha: 0.1),
-              iconColor: Colors.white,
-              label: 'LIVE ORDERS',
-              value: '18 Tickets',
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _MetricTile(
+                icon: Icons.receipt_outlined,
+                iconBg: Colors.white.withValues(alpha: 0.1),
+                iconColor: Colors.white,
+                label: 'LIVE ORDERS',
+                value: '18 Tickets',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ShopStatusSwitchTile(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShopStatusSwitchTile extends StatelessWidget {
+  final _shopStatus = ShopStatusService.instance;
+
+  static const _amber = Color(0xFFF59E0B);
+  static const _amberPale = Color(0xFFFCD34D);
+  static const _amberLine = Color(0xFFFDE68A);
+
+  _ShopStatusSwitchTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _shopStatus.status,
+      builder: (context, isOpen, _) {
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _shopStatus.toggle(!isOpen);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: isOpen
+                  ? _amber.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isOpen
+                    ? _amberLine.withValues(alpha: 0.35)
+                    : Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isOpen
+                        ? _amber.withValues(alpha: 0.18)
+                        : Colors.white.withValues(alpha: 0.1),
+                  ),
+                  child: Icon(
+                    isOpen
+                        ? Icons.storefront_rounded
+                        : Icons.storefront_outlined,
+                    size: 15,
+                    color: isOpen ? _amberPale : Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'SHOP STATUS',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white.withValues(alpha: 0.5),
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          isOpen ? 'Open' : 'Closed',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: isOpen ? _amberPale : Colors.white,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                _CustomShopSwitch(isOpen: isOpen),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _MetricTile(
-              icon: null,
-              iconBg: const Color(0xFF10B981).withValues(alpha: 0.2),
-              iconColor: const Color(0xFF10B981),
-              label: 'AVG PREP',
-              value: '14.2m',
-              valueColor: const Color(0xFF6EE7B7),
-              subtitle: '· On Pace',
-              isPulse: true,
+        );
+      },
+    );
+  }
+}
+
+class _CustomShopSwitch extends StatelessWidget {
+  final bool isOpen;
+
+  static const _amber = Color(0xFFF59E0B);
+  static const _amberLine = Color(0xFFFDE68A);
+  static const _amberDeep = Color(0xFF92400E);
+
+  const _CustomShopSwitch({required this.isOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      width: 28,
+      height: 16,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: isOpen ? _amber : const Color(0xFF334155),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isOpen
+              ? _amberLine.withValues(alpha: 0.6)
+              : Colors.white.withValues(alpha: 0.2),
+          width: 0.8,
+        ),
+      ),
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutBack,
+        alignment: isOpen ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          width: 12,
+          height: 12,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 2,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Icon(
+              isOpen ? Icons.check_rounded : Icons.power_settings_new_rounded,
+              size: 8,
+              color: isOpen ? _amberDeep : const Color(0xFF64748B),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -620,9 +796,6 @@ class _MetricTile extends StatelessWidget {
   final Color iconColor;
   final String label;
   final String value;
-  final Color? valueColor;
-  final String? subtitle;
-  final bool isPulse;
 
   const _MetricTile({
     required this.icon,
@@ -630,9 +803,6 @@ class _MetricTile extends StatelessWidget {
     required this.iconColor,
     required this.label,
     required this.value,
-    this.valueColor,
-    this.subtitle,
-    this.isPulse = false,
   });
 
   @override
@@ -647,59 +817,48 @@ class _MetricTile extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(shape: BoxShape.circle, color: iconBg),
             child: Center(
-              child: isPulse
-                  ? _PulsingDot(color: iconColor, size: 10)
-                  : Icon(icon, size: 16, color: iconColor),
+              child: Icon(icon, size: 15, color: iconColor),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.5),
-                    letterSpacing: 0.8,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      letterSpacing: 0.4,
+                    ),
                   ),
                 ),
-                if (subtitle == null)
-                  Text(
+                const SizedBox(height: 1),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
                     value,
-                    style: TextStyle(
-                      fontSize: 13,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w700,
-                      color: valueColor ?? Colors.white,
-                      letterSpacing: -0.3,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
                     ),
-                  )
-                else
-                  Row(
-                    children: [
-                      Text(
-                        value,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: valueColor ?? Colors.white,
-                        ),
-                      ),
-                      Text(
-                        subtitle!,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
                   ),
+                ),
               ],
             ),
           ),
@@ -848,7 +1007,6 @@ class _MajorCategoriesSection extends StatelessWidget {
       child: Column(
         children: [
           _SectionHeader(title: 'Major Categories', onSeeAll: onSeeAll),
-          const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -893,8 +1051,23 @@ class _CategoryCard extends StatelessWidget {
     this.onTap,
   });
 
+  String? get _resolvedImageUrl {
+    if (category.imageUrl.trim().isNotEmpty) {
+      return category.imageUrl.trim();
+    }
+    for (final item in category.items) {
+      if (item.imageUrl.trim().isNotEmpty) {
+        return item.imageUrl.trim();
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final imageUrl = _resolvedImageUrl;
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -915,8 +1088,8 @@ class _CategoryCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               decoration: const BoxDecoration(
                 color: Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
@@ -928,8 +1101,25 @@ class _CategoryCard extends StatelessWidget {
                   ),
                 ],
               ),
-              child:
-                  Icon(category.icon, size: 20, color: const Color(0xFF334155)),
+              child: ClipOval(
+                child: hasImage
+                    ? Image.network(
+                        imageUrl,
+                        width: 42,
+                        height: 42,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          category.icon,
+                          size: 20,
+                          color: const Color(0xFF334155),
+                        ),
+                      )
+                    : Icon(
+                        category.icon,
+                        size: 20,
+                        color: const Color(0xFF334155),
+                      ),
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -1258,9 +1448,8 @@ class _SectionHeader extends StatelessWidget {
 
 class _PulsingDot extends StatefulWidget {
   final Color color;
-  final double size;
 
-  const _PulsingDot({required this.color, this.size = 8});
+  const _PulsingDot({required this.color});
 
   @override
   State<_PulsingDot> createState() => _PulsingDotState();
@@ -1296,8 +1485,8 @@ class _PulsingDotState extends State<_PulsingDot>
       builder: (_, __) => Opacity(
         opacity: _anim.value,
         child: Container(
-          width: widget.size,
-          height: widget.size,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(
             color: widget.color,
             shape: BoxShape.circle,

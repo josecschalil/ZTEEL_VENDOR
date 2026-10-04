@@ -23,7 +23,6 @@ class _C {
   static const textSecondary = Color(0xFF64748B);
   static const textMuted = Color(0xFF94A3B8);
   static const error = Color(0xFFEF4444);
-  static const warning = Color(0xFFF59E0B);
 }
 
 class EditFoodItemScreen extends StatefulWidget {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:frontend/services/vendor_service.dart';
+
 // ─── Palette ─────────────────────────────────────────────────────────────────
 //
 // Identical tokens to createOfferScreen.dart, so viewing an order reads as
@@ -57,8 +59,11 @@ class OrderLineItem {
 // Every original feature is preserved — the order header, per-item image /
 // name / note / offer "missing data" highlighting, the subtotal / savings /
 // offers summary, the milestone banner, and the total amount.
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final String orderId;
+  final String qrCode;
+  final String status;
+  final String? customerName;
   final String totalAmount;
   final String subtotalAmount;
   final String savingsAmount;
@@ -66,10 +71,14 @@ class OrderDetailScreen extends StatelessWidget {
   final bool milestoneUnlocked;
   final String milestoneMessage;
   final List<OrderLineItem> items;
+  final VoidCallback? onOrderCompleted;
 
   const OrderDetailScreen({
     super.key,
     required this.orderId,
+    this.qrCode = '',
+    this.status = 'pending',
+    this.customerName,
     required this.totalAmount,
     required this.subtotalAmount,
     required this.savingsAmount,
@@ -77,7 +86,76 @@ class OrderDetailScreen extends StatelessWidget {
     required this.milestoneUnlocked,
     required this.milestoneMessage,
     required this.items,
+    this.onOrderCompleted,
   });
+
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  late String _currentStatus;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.status.toLowerCase();
+  }
+
+  Future<void> _handleMarkComplete() async {
+    if (widget.qrCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Missing Order QR code for completion.'),
+          backgroundColor: _Pal.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final res = await VendorService.scanVendorRedemption(widget.qrCode);
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (res['success'] == true) {
+      setState(() {
+        _currentStatus = 'confirmed';
+      });
+      widget.onOrderCompleted?.call();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Order ${widget.orderId} marked as completed!',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: _Pal.ink,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        }
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            res['error'] ?? 'Failed to update order status',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: _Pal.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +230,9 @@ class OrderDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 1),
                 Text(
-                  '$orderId · ${items.length} ${items.length == 1 ? "item" : "items"}',
+                  widget.customerName != null && widget.customerName!.isNotEmpty
+                      ? '${widget.customerName} · ${widget.items.length} ${widget.items.length == 1 ? "item" : "items"}'
+                      : '${widget.orderId} · ${widget.items.length} ${widget.items.length == 1 ? "item" : "items"}',
                   style: const TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
@@ -196,7 +276,7 @@ class OrderDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  orderId,
+                  widget.orderId,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -208,7 +288,9 @@ class OrderDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Savings applied · $savingsAmount off',
+                  widget.customerName != null && widget.customerName!.isNotEmpty
+                      ? 'Customer: ${widget.customerName} · ${widget.savingsAmount} off'
+                      : 'Savings applied · ${widget.savingsAmount} off',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -222,7 +304,7 @@ class OrderDetailScreen extends StatelessWidget {
                 _PreviewChip(
                   icon: Icons.restaurant_menu_rounded,
                   label:
-                      '${items.length} ${items.length == 1 ? "item" : "items"}',
+                      '${widget.items.length} ${widget.items.length == 1 ? "item" : "items"}',
                 ),
               ],
             ),
@@ -236,7 +318,7 @@ class OrderDetailScreen extends StatelessWidget {
               border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Text(
-              totalAmount,
+              widget.totalAmount,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
@@ -255,9 +337,9 @@ class OrderDetailScreen extends StatelessWidget {
     return _Card(
       child: Column(
         children: [
-          for (int i = 0; i < items.length; i++) ...[
-            _ItemRow(item: items[i]),
-            if (i != items.length - 1) ...[
+          for (int i = 0; i < widget.items.length; i++) ...[
+            _ItemRow(item: widget.items[i]),
+            if (i != widget.items.length - 1) ...[
               const SizedBox(height: 12),
               const Divider(color: _Pal.line, height: 1),
               const SizedBox(height: 12),
@@ -271,34 +353,35 @@ class OrderDetailScreen extends StatelessWidget {
   // ── Summary ────────────────────────────────────────────────────────────────
 
   Widget _buildSummaryCard() {
-    final offersMissing = offersSummary.startsWith('[');
+    final offersMissing = widget.offersSummary.startsWith('[');
 
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SummaryRow('Subtotal', subtotalAmount, _Pal.ink),
+          _SummaryRow('Subtotal', widget.subtotalAmount, _Pal.ink),
           const SizedBox(height: 10),
-          _SummaryRow('Savings', savingsAmount, _Pal.green),
+          _SummaryRow('Savings', widget.savingsAmount, _Pal.green),
           const SizedBox(height: 14),
           const Divider(color: _Pal.line, height: 1),
           const SizedBox(height: 14),
           _NoticeBox(
-            icon: milestoneUnlocked
+            icon: widget.milestoneUnlocked
                 ? Icons.emoji_events_rounded
                 : Icons.lock_clock_rounded,
-            title: milestoneUnlocked
+            title: widget.milestoneUnlocked
                 ? 'Milestone reward unlocked'
                 : 'Milestone reward not unlocked',
-            message: milestoneMessage,
-            tone:
-                milestoneUnlocked ? _NoticeTone.positive : _NoticeTone.neutral,
+            message: widget.milestoneMessage,
+            tone: widget.milestoneUnlocked
+                ? _NoticeTone.positive
+                : _NoticeTone.neutral,
           ),
           const SizedBox(height: 10),
           _NoticeBox(
             icon: Icons.local_offer_outlined,
             title: offersMissing ? 'Offers unavailable' : 'Offers applied',
-            message: offersSummary,
+            message: widget.offersSummary,
             tone: offersMissing ? _NoticeTone.negative : _NoticeTone.neutral,
           ),
           const SizedBox(height: 16),
@@ -321,7 +404,7 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  totalAmount,
+                  widget.totalAmount,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -340,6 +423,10 @@ class OrderDetailScreen extends StatelessWidget {
   // ── Bottom action bar ──────────────────────────────────────────────────────
 
   Widget _buildBottomBar(BuildContext context) {
+    final isPending = _currentStatus == 'pending';
+    final isConfirmed = _currentStatus == 'confirmed';
+    final isExpired = _currentStatus == 'expired';
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -360,31 +447,67 @@ class OrderDetailScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           GestureDetector(
-            onTap: () {},
+            onTap: (isPending && !_isSubmitting) ? _handleMarkComplete : null,
             child: Container(
               width: double.infinity,
               height: 50,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: _Pal.ink,
+                color: isPending
+                    ? _Pal.ink
+                    : isConfirmed
+                        ? _Pal.green
+                        : _Pal.wash,
                 borderRadius: BorderRadius.circular(14),
+                border: isConfirmed ? Border.all(color: _Pal.green) : null,
               ),
-              child: const Text(
-                'Mark complete',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.1,
-                ),
-              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isConfirmed) ...[
+                          const Icon(Icons.check_circle_rounded,
+                              color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          isPending
+                              ? 'Mark complete'
+                              : isConfirmed
+                                  ? 'Order Completed'
+                                  : isExpired
+                                      ? 'Order Expired'
+                                      : 'Order Cancelled',
+                          style: TextStyle(
+                            color: (isPending || isConfirmed)
+                                ? Colors.white
+                                : _Pal.ink500,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'The customer is notified as soon as you mark this order complete.',
+          Text(
+            isPending
+                ? 'The customer is notified as soon as you mark this order complete.'
+                : isConfirmed
+                    ? 'This order has been verified and marked as complete.'
+                    : 'This order is no longer active.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w500,
               color: _Pal.ink400,

@@ -2,50 +2,32 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:frontend/app_colors.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
-import 'package:frontend/config/api_config.dart';
-import 'package:frontend/widgets/app_top_bar.dart';
 
 // ─── Design tokens matching the Artisan Trattoria dashboard ──────────────────
 class _Dt {
   // Backgrounds
   static const bg = Color(0xFFF8FAFC); // slate-50
-  static const surface = Colors.white;
   static const surfaceRaised = Color(0xFFF1F5F9); // slate-100
   static const dark = Color(0xFF0F172A); // slate-900 (hero)
 
   // Borders
   static const border = Color(0xFFE2E8F0); // slate-200
-  static const borderMuted = Color(0xFFCBD5E1); // slate-300
 
   // Text
   static const textPrimary = Color(0xFF0F172A); // slate-900
   static const textSecondary = Color(0xFF64748B); // slate-500
   static const textMuted = Color(0xFF94A3B8); // slate-400
-  static const textWhite = Colors.white;
 
   // Accents — slate-900 primary, emerald secondary (matches dashboard)
   static const accent = Color(0xFF0F172A); // slate-900
   static const emerald = Color(0xFF10B981); // emerald-500
   static const emeraldLight = Color(0xFF6EE7B7); // emerald-300
   static const emeraldBg = Color(0xFFECFDF5); // emerald-50
-
-  // Shadows
-  static const shadow = BoxShadow(
-    color: Color(0x08000000),
-    blurRadius: 4,
-    offset: Offset(0, 2),
-  );
-  static const shadowMd = BoxShadow(
-    color: Color(0x14000000),
-    blurRadius: 10,
-    offset: Offset(0, 4),
-  );
 }
 
 class ProfileEditScreen extends StatefulWidget {
@@ -675,39 +657,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  Widget _buildActiveBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: _Dt.emerald.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _Dt.emerald.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: const BoxDecoration(
-              color: _Dt.emerald,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 5),
-          const Text(
-            'Active Vendor',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: _Dt.emeraldLight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ─── Section wrapper ──────────────────────────────────────────────────────
 
   Widget _buildSection(String title, {required Widget child}) {
@@ -1309,46 +1258,6 @@ class _FieldRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _QuickActionChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _QuickActionChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x08000000), blurRadius: 4, offset: Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-                color: Color(0xFFF1F5F9), shape: BoxShape.circle),
-            child: Icon(icon, size: 16, color: const Color(0xFF334155)),
-          ),
-          const SizedBox(height: 5),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B))),
-        ],
-      ),
     );
   }
 }

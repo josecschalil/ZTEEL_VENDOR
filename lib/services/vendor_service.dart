@@ -725,6 +725,131 @@ class VendorService {
     }
   }
 
+  // ── Reward Milestones CRUD ─────────────────────────────────────────────────
+
+  /// Get vendor reward milestones
+  static Future<Map<String, dynamic>> getRewardMilestones() async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.vendorRewardMilestonesUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final list = (data is List) ? data : (data['results'] ?? []);
+        return {'success': true, 'data': list};
+      } else {
+        final data = jsonDecode(response.body);
+        return {'success': false, 'error': data['detail'] ?? 'Failed to fetch reward milestones'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Error fetching reward milestones: $e'};
+    }
+  }
+
+  /// Create a new reward milestone
+  static Future<Map<String, dynamic>> createRewardMilestone(Map<String, dynamic> data) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.vendorRewardMilestonesUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      final resData = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': resData};
+      } else {
+        String err = 'Failed to create reward milestone';
+        if (resData is Map) {
+          err = resData['detail'] ?? resData.values.first?.toString() ?? resData.toString();
+        }
+        return {'success': false, 'error': err};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Error creating reward milestone: $e'};
+    }
+  }
+
+  /// Update an existing reward milestone (PATCH)
+  static Future<Map<String, dynamic>> updateRewardMilestone({
+    required String id,
+    required Map<String, dynamic> data,
+  }) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.patch(
+        Uri.parse(ApiConfig.vendorRewardMilestoneDetailUrl(id)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      final resData = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': resData};
+      } else {
+        String err = 'Failed to update reward milestone';
+        if (resData is Map) {
+          err = resData['detail'] ?? resData.values.first?.toString() ?? resData.toString();
+        }
+        return {'success': false, 'error': err};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Error updating reward milestone: $e'};
+    }
+  }
+
+  /// Delete a reward milestone
+  static Future<Map<String, dynamic>> deleteRewardMilestone(String id) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse(ApiConfig.vendorRewardMilestoneDetailUrl(id)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        return {'success': true};
+      } else {
+        final data = jsonDecode(response.body);
+        return {'success': false, 'error': data['detail'] ?? 'Failed to delete reward milestone'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Error deleting reward milestone: $e'};
+    }
+  }
+
   /// Fetch vendor redemption sessions (orders)
   static Future<Map<String, dynamic>> getVendorRedemptions() async {
     final token = await _getAccessToken();
