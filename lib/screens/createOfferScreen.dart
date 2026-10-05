@@ -15,6 +15,7 @@ class _Pal {
 
   static const ink = Color(0xFF0F172A);
   static const ink700 = Color(0xFF334155);
+  static const ink600 = Color(0xFF475569);
   static const ink500 = Color(0xFF64748B);
   static const ink400 = Color(0xFF94A3B8);
 
@@ -61,7 +62,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
 
   bool get isEditing => widget.offerId != null && widget.offerId!.isNotEmpty;
 
-  _Target _target = _Target.items;
+  _Target _target = _Target.allMenu;
   List<String> _allItems = [];
   List<String> _allCategories = [];
   List<Map<String, dynamic>> _menuItemsData = [];
@@ -75,25 +76,13 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
 
   double _discountPercent = 25;
 
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now().add(const Duration(days: 7));
+  bool _isRecurring = false;
   String _startTime = '18:00';
   String _endTime = '23:00';
-  DateTime _endDate = DateTime.now().add(const Duration(days: 7));
   final List<bool> _days = [true, false, true, false, true, true, false];
 
-  static const List<String> _startTimes = [
-    '16:00',
-    '17:00',
-    '18:00',
-    '19:00',
-    '20:00',
-  ];
-  static const List<String> _endTimes = [
-    '21:00',
-    '22:00',
-    '23:00',
-    '00:00',
-    '01:00',
-  ];
   static const List<String> _dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
@@ -114,12 +103,22 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         final d = double.tryParse(data['discount_percentage'].toString());
         if (d != null) _discountPercent = d;
       }
+      if (data['starts_at'] != null) {
+        try {
+          _startDate = DateTime.parse(data['starts_at'].toString()).toLocal();
+        } catch (_) {}
+      }
       if (data['ends_at'] != null) {
         try {
           _endDate = DateTime.parse(data['ends_at'].toString()).toLocal();
         } catch (_) {}
       }
+      final validityType = data['validity_type']?.toString();
+      if (validityType == 'weekly') {
+        _isRecurring = true;
+      }
       if (data['schedule'] is List && (data['schedule'] as List).isNotEmpty) {
+        _isRecurring = true;
         final sched = data['schedule'] as List;
         for (int i = 0; i < 7; i++) {
           _days[i] = false;
@@ -226,8 +225,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           }
         }
       } else {
-        if (itemNames.isNotEmpty) _selectedItems.add(itemNames.first);
-        if (catNames.isNotEmpty) _selectedCategories.add(catNames.first);
+        // No defaults
       }
       _isLoadingData = false;
     });
@@ -249,23 +247,6 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       'Dec',
     ];
     return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
-  }
-
-  String get _targetSummary {
-    switch (_target) {
-      case _Target.items:
-        if (_selectedItems.isEmpty) return 'No items selected';
-        return _selectedItems.length == 1
-            ? _selectedItems.first
-            : '${_selectedItems.length} items selected';
-      case _Target.categories:
-        if (_selectedCategories.isEmpty) return 'No categories selected';
-        return _selectedCategories.length == 1
-            ? _selectedCategories.first
-            : '${_selectedCategories.length} categories selected';
-      case _Target.allMenu:
-        return 'Whole menu';
-    }
   }
 
   // ── Feedback ───────────────────────────────────────────────────────────────
@@ -291,14 +272,78 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     );
   }
 
-  // ── Pickers ────────────────────────────────────────────────────────────────
+  // ── Pickers & Helpers ──────────────────────────────────────────────────────
 
-  Future<void> _pickEndDate() async {
+  String get _durationSummary {
+    final diff = _endDate.difference(_startDate).inDays;
+    if (diff <= 0) return '1 day';
+    return '${diff + 1} days';
+  }
+
+  String _formatTimeDisplay(String time24) {
+    try {
+      final parts = time24.split(':');
+      final hour = int.parse(parts[0]);
+      final min = int.parse(parts.length > 1 ? parts[1] : '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final h = hour % 12 == 0 ? 12 : hour % 12;
+      final m = min.toString().padLeft(2, '0');
+      return '$h:$m $period';
+    } catch (_) {
+      return time24;
+    }
+  }
+
+  String get _scheduleSummaryText {
+    final activeDays = <String>[];
+    const fullDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    for (int i = 0; i < 7; i++) {
+      if (_days[i]) activeDays.add(fullDayNames[i]);
+    }
+    final daysStr = activeDays.length == 7
+        ? 'Every day'
+        : activeDays.length == 5 && !_days[5] && !_days[6]
+            ? 'Mon – Fri'
+            : activeDays.length == 2 && _days[5] && _days[6]
+                ? 'Sat & Sun'
+                : activeDays.isEmpty
+                    ? 'No days selected'
+                    : activeDays.join(', ');
+
+    return 'Active $daysStr • ${_formatTimeDisplay(_startTime)} to ${_formatTimeDisplay(_endTime)}';
+  }
+
+  void _setDaysPreset(String preset) {
+    setState(() {
+      if (preset == 'all') {
+        for (int i = 0; i < 7; i++) {
+          _days[i] = true;
+        }
+      } else if (preset == 'weekdays') {
+        for (int i = 0; i < 5; i++) {
+          _days[i] = true;
+        }
+        _days[5] = false;
+        _days[6] = false;
+      } else if (preset == 'weekends') {
+        for (int i = 0; i < 5; i++) {
+          _days[i] = false;
+        }
+        _days[5] = true;
+        _days[6] = true;
+      }
+    });
+  }
+
+  Future<void> _pickStartDate() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final initial =
+        _startDate.isBefore(today) && !isEditing ? today : _startDate;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _endDate.isBefore(now) ? now : _endDate,
-      firstDate: now,
+      initialDate: initial,
+      firstDate: isEditing ? DateTime(now.year - 1) : today,
       lastDate: DateTime(now.year + 2),
       builder: (context, child) {
         return Theme(
@@ -314,84 +359,83 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         );
       },
     );
-    if (picked != null) setState(() => _endDate = picked);
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+        if (_endDate.isBefore(_startDate)) {
+          _endDate = _startDate.add(const Duration(days: 7));
+        }
+      });
+    }
   }
 
-  Future<void> _openOptionSheet({
-    required String title,
-    required List<String> options,
-    required String current,
-    required ValueChanged<String> onSelect,
-  }) async {
-    await showModalBottomSheet<void>(
+  Future<void> _pickEndDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final minDate =
+        _startDate.isBefore(today) && !isEditing ? today : _startDate;
+    final initial = _endDate.isBefore(minDate) ? minDate : _endDate;
+    final picked = await showDatePicker(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: _Pal.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _Pal.line),
-            ),
-            padding: const EdgeInsets.fromLTRB(6, 14, 6, 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: _Pal.line,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: _Pal.ink,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                ...options.map((opt) {
-                  final selected = opt == current;
-                  return ListTile(
-                    dense: true,
-                    onTap: () {
-                      onSelect(opt);
-                      Navigator.of(context).pop();
-                    },
-                    title: Text(
-                      opt,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w500,
-                        color: selected ? _Pal.ink : _Pal.ink700,
-                      ),
-                    ),
-                    trailing: selected
-                        ? const Icon(Icons.check_circle_rounded,
-                            color: _Pal.ink, size: 18)
-                        : null,
-                  );
-                }),
-              ],
+      initialDate: initial,
+      firstDate: minDate,
+      lastDate: DateTime(now.year + 2),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: _Pal.ink,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: _Pal.ink,
             ),
           ),
+          child: child!,
         );
       },
     );
+    if (picked != null) {
+      setState(() => _endDate = picked);
+    }
+  }
+
+  Future<void> _pickTime({required bool isStart}) async {
+    final currentStr = isStart ? _startTime : _endTime;
+    final parts = currentStr.split(':');
+    final initialTime = TimeOfDay(
+      hour: int.tryParse(parts[0]) ?? (isStart ? 18 : 23),
+      minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0,
+    );
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: _Pal.ink,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: _Pal.ink,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      final formatted =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      setState(() {
+        if (isStart) {
+          _startTime = formatted;
+        } else {
+          _endTime = formatted;
+        }
+      });
+    }
   }
 
   Future<void> _openSearchSelectSheet({required bool isCategory}) async {
@@ -568,34 +612,54 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       }
     }
 
-    final now = DateTime.now();
-    final startDate = DateTime(now.year, now.month, now.day, now.hour, now.minute);
-    final endDate = DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+    final startDateTime = DateTime(
+      _startDate.year,
+      _startDate.month,
+      _startDate.day,
+      0,
+      0,
+      0,
+    );
+    final endDateTime = DateTime(
+      _endDate.year,
+      _endDate.month,
+      _endDate.day,
+      23,
+      59,
+      59,
+    );
 
-    if (endDate.isBefore(startDate)) {
-      _toast('End date must be today or a future date.', isError: true);
+    if (endDateTime.isBefore(startDateTime)) {
+      _toast('End date must be on or after start date.', isError: true);
       return;
     }
 
-    final bool hasSpecificDays = _days.any((d) => !d) && _days.any((d) => d);
+    if (_isRecurring && !_days.any((d) => d)) {
+      _toast('Please select at least one day for the recurring schedule.',
+          isError: true);
+      return;
+    }
+
+    final bool isWeekly = _isRecurring && _days.any((d) => d);
 
     Map<String, dynamic> offerData = {
       'title': title,
       'description': desc,
       'scope_type': scopeType,
       'discount_percentage': _discountPercent,
-      'validity_type': hasSpecificDays ? 'weekly' : 'date_range',
-      'starts_at': startDate.toUtc().toIso8601String(),
-      'ends_at': endDate.toUtc().toIso8601String(),
+      'validity_type': isWeekly ? 'weekly' : 'date_range',
+      'starts_at': startDateTime.toUtc().toIso8601String(),
+      'ends_at': endDateTime.toUtc().toIso8601String(),
       'is_active': true,
     };
 
-    if (hasSpecificDays) {
+    if (isWeekly) {
       List<Map<String, dynamic>> slots = [];
       final startParts = _startTime.split(':');
       final endParts = _endTime.split(':');
       final startH = int.tryParse(startParts[0]) ?? 18;
-      final startM = int.tryParse(startParts.length > 1 ? startParts[1] : '0') ?? 0;
+      final startM =
+          int.tryParse(startParts.length > 1 ? startParts[1] : '0') ?? 0;
       final endH = int.tryParse(endParts[0]) ?? 23;
       final endM = int.tryParse(endParts.length > 1 ? endParts[1] : '0') ?? 0;
       final endsNextDay = (endH < startH) || (endH == startH && endM <= startM);
@@ -604,8 +668,10 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
         if (_days[i]) {
           slots.add({
             'weekday': i,
-            'starts_at': '${startH.toString().padLeft(2, '0')}:${startM.toString().padLeft(2, '0')}:00',
-            'ends_at': '${endH.toString().padLeft(2, '0')}:${endM.toString().padLeft(2, '0')}:00',
+            'starts_at':
+                '${startH.toString().padLeft(2, '0')}:${startM.toString().padLeft(2, '0')}:00',
+            'ends_at':
+                '${endH.toString().padLeft(2, '0')}:${endM.toString().padLeft(2, '0')}:00',
             'ends_next_day': endsNextDay,
           });
         }
@@ -665,10 +731,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SectionLabel('Preview'),
-                    const SizedBox(height: 10),
-                    _buildPreviewCard(),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 5),
                     const _SectionLabel('Offer details'),
                     const SizedBox(height: 10),
                     _buildDetailsCard(),
@@ -742,98 +805,6 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Live preview ───────────────────────────────────────────────────────────
-
-  Widget _buildPreviewCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _Pal.ink,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.local_offer_rounded,
-                size: 18, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_titleController, _descController]),
-              builder: (context, _) {
-                final title = _titleController.text.trim().isEmpty
-                    ? 'Untitled offer'
-                    : _titleController.text.trim();
-                final desc = _descController.text.trim();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    if (desc.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        desc,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          height: 1.35,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.65),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    _PreviewChip(
-                      icon: Icons.restaurant_menu_rounded,
-                      label: _targetSummary,
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Text(
-              '${_discountPercent.toInt()}%',
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
             ),
           ),
         ],
@@ -1124,21 +1095,35 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Date Range (Start Date & End Date) ──
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _FieldLabel('START TIME'),
+                    const _FieldLabel('START DATE'),
                     const SizedBox(height: 6),
-                    _PickerField(
-                      value: _startTime,
-                      onTap: () => _openOptionSheet(
-                        title: 'Start time',
-                        options: _startTimes,
-                        current: _startTime,
-                        onSelect: (v) => setState(() => _startTime = v),
+                    GestureDetector(
+                      onTap: _pickStartDate,
+                      child: _InputBox(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_outlined,
+                                size: 15, color: _Pal.ink700),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _formatDate(_startDate),
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _Pal.ink,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -1149,15 +1134,28 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _FieldLabel('END TIME'),
+                    const _FieldLabel('END DATE'),
                     const SizedBox(height: 6),
-                    _PickerField(
-                      value: _endTime,
-                      onTap: () => _openOptionSheet(
-                        title: 'End time',
-                        options: _endTimes,
-                        current: _endTime,
-                        onSelect: (v) => setState(() => _endTime = v),
+                    GestureDetector(
+                      onTap: _pickEndDate,
+                      child: _InputBox(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.event_available_outlined,
+                                size: 15, color: _Pal.ink700),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _formatDate(_endDate),
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _Pal.ink,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -1165,67 +1163,245 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const _FieldLabel('REPEATS ON'),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (i) {
-              final selected = _days[i];
-              return GestureDetector(
-                onTap: () => setState(() => _days[i] = !_days[i]),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: selected ? _Pal.ink : _Pal.wash,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: selected ? _Pal.ink : _Pal.line,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _dayLabels[i],
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: selected ? Colors.white : _Pal.ink500,
-                    ),
+
+          const SizedBox(height: 10),
+          // Duration info pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: _Pal.wash,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _Pal.line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.timelapse_rounded,
+                    size: 13, color: _Pal.ink500),
+                const SizedBox(width: 5),
+                Text(
+                  'Runs for $_durationSummary (${_formatDate(_startDate)} – ${_formatDate(_endDate)})',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _Pal.ink600,
                   ),
                 ),
-              );
-            }),
+              ],
+            ),
           ),
+
+          const SizedBox(height: 18),
+          const Divider(height: 1, color: _Pal.line),
           const SizedBox(height: 16),
-          const _FieldLabel('ENDS ON'),
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: _pickEndDate,
-            child: _InputBox(
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_month_rounded,
-                      size: 17, color: _Pal.ink700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _formatDate(_endDate),
-                      style: const TextStyle(
-                        fontSize: 13,
+
+          // ── Recurring Schedule Toggle ──
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _isRecurring ? _Pal.ink : _Pal.wash,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.repeat_rounded,
+                  size: 16,
+                  color: _isRecurring ? Colors.white : _Pal.ink500,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Recurring Schedule',
+                      style: TextStyle(
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: _Pal.ink,
                       ),
                     ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Limit offer to specific hours and days of the week',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: _Pal.ink500,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: _isRecurring,
+                activeTrackColor: _Pal.ink,
+                activeThumbColor: Colors.white,
+                onChanged: (val) {
+                  setState(() => _isRecurring = val);
+                },
+              ),
+            ],
+          ),
+
+          // ── Expanded Recurring Controls ──
+          if (_isRecurring) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _Pal.wash,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _Pal.line),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Active hours
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _FieldLabel('DAILY START TIME'),
+                            const SizedBox(height: 6),
+                            _PickerField(
+                              value: _formatTimeDisplay(_startTime),
+                              onTap: () => _pickTime(isStart: true),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _FieldLabel('DAILY END TIME'),
+                            const SizedBox(height: 6),
+                            _PickerField(
+                              value: _formatTimeDisplay(_endTime),
+                              onTap: () => _pickTime(isStart: false),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 19, color: _Pal.ink400),
+
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const _FieldLabel('APPLICABLE DAYS'),
+                      Row(
+                        children: [
+                          _buildPresetPill('All', () => _setDaysPreset('all')),
+                          const SizedBox(width: 4),
+                          _buildPresetPill(
+                              'Weekdays', () => _setDaysPreset('weekdays')),
+                          const SizedBox(width: 4),
+                          _buildPresetPill(
+                              'Weekends', () => _setDaysPreset('weekends')),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Day bubbles
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(7, (i) {
+                      final selected = _days[i];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            final activeCount = _days.where((d) => d).length;
+                            if (selected && activeCount <= 1) {
+                              _toast('At least one day must be selected.',
+                                  isError: true);
+                              return;
+                            }
+                            _days[i] = !_days[i];
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: selected ? _Pal.ink : _Pal.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selected ? _Pal.ink : _Pal.line,
+                              width: selected ? 1.5 : 1,
+                            ),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color: _Pal.ink.withValues(alpha: 0.15),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            _dayLabels[i],
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: selected ? Colors.white : _Pal.ink500,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(height: 12),
+                  // Active schedule summary text
+                  Text(
+                    _scheduleSummaryText,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: _Pal.ink600,
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildPresetPill(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: _Pal.surface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: _Pal.line),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: _Pal.ink700,
+          ),
+        ),
       ),
     );
   }
@@ -1521,39 +1697,6 @@ class _PickerField extends StatelessWidget {
                 size: 18, color: _Pal.ink400),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _PreviewChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _PreviewChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: Colors.white.withValues(alpha: 0.7)),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/api_config.dart';
@@ -5,6 +6,9 @@ import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
 import 'categoryItemsScreen.dart';
 import 'orderScreen.dart';
+import 'orderDetailScreen.dart';
+import 'NotificationScreen.dart';
+import 'reviewsScreen.dart';
 part 'dashboard_all_categories.dart';
 
 // ─── Data Models ─────────────────────────────────────────────────────────────
@@ -43,7 +47,7 @@ class MenuCategory {
 
   const MenuCategory({
     this.id = '',
-    this.name = '',
+    required this.name,
     this.label = '',
     this.icon = Icons.restaurant_outlined,
     this.count = 0,
@@ -55,6 +59,7 @@ class MenuCategory {
 
 class OrderItem {
   final String id;
+  final String rawQrCode;
   final String platform;
   final String description;
   final String timeAgo;
@@ -62,9 +67,11 @@ class OrderItem {
   final OrderStatus statusType;
   final double amount;
   final int itemCount;
+  final Map<String, dynamic> rawSession;
 
   const OrderItem({
     required this.id,
+    this.rawQrCode = '',
     required this.platform,
     required this.description,
     required this.timeAgo,
@@ -72,10 +79,11 @@ class OrderItem {
     required this.statusType,
     required this.amount,
     required this.itemCount,
+    this.rawSession = const {},
   });
 }
 
-enum OrderStatus { cooking, ready, completed }
+enum OrderStatus { pending, completed, expired }
 
 // ─── Main Restaurant Dashboard Screen ────────────────────────────────────────
 
@@ -89,182 +97,343 @@ class RestaurantDashboard extends StatefulWidget {
 class _RestaurantDashboardState extends State<RestaurantDashboard> {
   final _shopStatus = ShopStatusService.instance;
 
-  static const List<MenuCategory> _defaultCategories = [
-    MenuCategory(
-      id: 'default_pizza',
-      icon: Icons.local_pizza_outlined,
-      label: 'Pizza',
-      name: 'Pizza',
-      count: 14,
-      itemCount: 14,
-      imageUrl:
-          'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&auto=format&fit=crop&q=80',
-    ),
-    MenuCategory(
-      id: 'default_pasta',
-      icon: Icons.restaurant_outlined,
-      label: 'Pasta',
-      name: 'Pasta',
-      count: 10,
-      itemCount: 10,
-      imageUrl:
-          'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=150&auto=format&fit=crop&q=80',
-    ),
-    MenuCategory(
-      id: 'default_burgers',
-      icon: Icons.lunch_dining_outlined,
-      label: 'Burgers',
-      name: 'Burgers',
-      count: 8,
-      itemCount: 8,
-      imageUrl:
-          'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=150&auto=format&fit=crop&q=80',
-    ),
-    MenuCategory(
-      id: 'default_salads',
-      icon: Icons.eco_outlined,
-      label: 'Salads',
-      name: 'Salads',
-      count: 6,
-      itemCount: 6,
-      imageUrl:
-          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=150&auto=format&fit=crop&q=80',
-    ),
-    MenuCategory(
-      id: 'default_desserts',
-      icon: Icons.cake_outlined,
-      label: 'Desserts',
-      name: 'Desserts',
-      count: 9,
-      itemCount: 9,
-      imageUrl:
-          'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=150&auto=format&fit=crop&q=80',
-    ),
-    MenuCategory(
-      id: 'default_drinks',
-      icon: Icons.coffee_outlined,
-      label: 'Drinks',
-      name: 'Drinks',
-      count: 16,
-      itemCount: 16,
-      imageUrl:
-          'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=150&auto=format&fit=crop&q=80',
-    ),
-  ];
+  String _vendorName = 'Vendor Partner';
+  String _vendorCategory = 'ZTEEL Partner';
+  String? _vendorAvatarUrl;
 
-  static const List<OrderItem> _orders = [
-    OrderItem(
-      id: '#C571267D',
-      platform: 'DoorDash',
-      description: '2x Margherita Pizza',
-      timeAgo: '4m ago',
-      status: 'Cooking',
-      statusType: OrderStatus.cooking,
-      amount: 38.50,
-      itemCount: 2,
-    ),
-    OrderItem(
-      id: '#E9A3482F',
-      platform: 'UberEats',
-      description: 'Truffle Pasta Bowl, Tiramisu',
-      timeAgo: '12m ago',
-      status: 'Ready for Pickup',
-      statusType: OrderStatus.ready,
-      amount: 24.00,
-      itemCount: 2,
-    ),
-    OrderItem(
-      id: '#A198B744',
-      platform: 'Dine-In (T3)',
-      description: 'Artisan Burger, Caesar Salad',
-      timeAgo: '25m ago',
-      status: 'Completed',
-      statusType: OrderStatus.completed,
-      amount: 42.20,
-      itemCount: 3,
-    ),
-  ];
+  List<MenuCategory> _categories = [];
+  bool _isLoadingCategories = true;
+  String? _categoryError;
 
-  List<MenuCategory> _categories = _defaultCategories;
+  List<OrderItem> _orders = [];
+  bool _isLoadingOrders = true;
+  String? _orderError;
+
+  double _todayRevenue = 0.0;
+  int _pendingCount = 0;
+  Timer? _poller;
 
   @override
   void initState() {
     super.initState();
     _shopStatus.ensureLoaded();
-    _fetchCategories();
+    _fetchDashboardData();
+    _startPolling();
   }
 
-  Future<void> _fetchCategories() async {
+  @override
+  void dispose() {
+    _poller?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _poller?.cancel();
+    _poller = Timer.periodic(const Duration(milliseconds: 3000), (_) {
+      if (!mounted) return;
+      _fetchDashboardData(silent: true, isBackgroundPoll: true);
+    });
+  }
+
+  bool _isFetching = false;
+
+  Future<void> _fetchDashboardData({bool silent = false, bool isBackgroundPoll = false}) async {
+    if (_isFetching) return;
+    _isFetching = true;
+    try {
+      if (isBackgroundPoll) {
+        // Only fetch fast-changing data during rapid polling
+        await _fetchOrders(silent: silent);
+      } else {
+        await Future.wait([
+          _fetchVendorProfile(silent: silent),
+          _fetchCategories(silent: silent),
+          _fetchOrders(silent: silent),
+        ]);
+      }
+    } finally {
+      if (mounted) _isFetching = false;
+    }
+  }
+
+  Future<void> _fetchVendorProfile({bool silent = false}) async {
+    final profileRes = await VendorService.getVendorProfile();
+    if (!mounted) return;
+    if (profileRes['success'] == true && profileRes['data'] != null) {
+      final pData = profileRes['data'] as Map<String, dynamic>;
+      setState(() {
+        _vendorName = pData['business_name']?.toString().trim() ?? 'Vendor Partner';
+        _vendorCategory = pData['category']?.toString().trim() ?? 'ZTEEL Partner';
+        _vendorAvatarUrl = pData['icon_image']?.toString();
+      });
+    }
+  }
+
+  Future<void> _fetchCategories({bool silent = false}) async {
+    if (!silent && _categories.isEmpty) {
+      setState(() {
+        _isLoadingCategories = true;
+        _categoryError = null;
+      });
+    }
+
     final catRes = await VendorService.getMenuCategories();
     if (!mounted) return;
 
     if (catRes['success'] == true && catRes['data'] != null) {
       final rawList = catRes['data'] as List<dynamic>;
-      if (rawList.isNotEmpty) {
-        List<MenuCategory> categoryList = [];
-        for (final cat in rawList) {
-          if (cat is Map<String, dynamic>) {
-            final catId = cat['id']?.toString() ?? '';
-            final catName = cat['name']?.toString() ?? 'Category';
+      List<MenuCategory> categoryList = [];
 
-            final itemRes = await VendorService.getMenuItems(categoryId: catId);
-            List<MenuItem> itemList = [];
+      for (final cat in rawList) {
+        if (cat is Map<String, dynamic>) {
+          final catId = cat['id']?.toString() ?? '';
+          final catName = cat['name']?.toString() ?? 'Category';
 
-            if (itemRes['success'] == true && itemRes['data'] != null) {
-              final rawItems = itemRes['data'] as List<dynamic>;
-              for (final it in rawItems) {
-                if (it is Map<String, dynamic>) {
-                  final priceNum = it['price'];
-                  final rawPrice = (priceNum is num)
-                      ? priceNum.toDouble()
-                      : double.tryParse(priceNum?.toString() ?? '0') ?? 0.0;
-                  final priceStr = '₹${rawPrice.toStringAsFixed(0)}';
+          final itemRes = await VendorService.getMenuItems(categoryId: catId);
+          List<MenuItem> itemList = [];
 
-                  itemList.add(MenuItem(
-                    id: it['id']?.toString() ?? '',
-                    name: it['name']?.toString() ?? 'Item',
-                    imageUrl:
-                        ApiConfig.getImageUrl(it['image']?.toString()) ?? '',
-                    price: priceStr,
-                    rawPrice: rawPrice,
-                    description: it['description']?.toString() ?? '',
-                    isVegetarian: it['is_vegetarian'] as bool? ?? false,
-                    isAvailable: it['is_available'] as bool? ?? true,
-                  ));
-                }
+          if (itemRes['success'] == true && itemRes['data'] != null) {
+            final rawItems = itemRes['data'] as List<dynamic>;
+            for (final it in rawItems) {
+              if (it is Map<String, dynamic>) {
+                final priceNum = it['price'];
+                final rawPrice = (priceNum is num)
+                    ? priceNum.toDouble()
+                    : double.tryParse(priceNum?.toString() ?? '0') ?? 0.0;
+                final priceStr = '₹${rawPrice.toStringAsFixed(0)}';
+
+                itemList.add(MenuItem(
+                  id: it['id']?.toString() ?? '',
+                  name: it['name']?.toString() ?? 'Item',
+                  imageUrl: ApiConfig.getImageUrl(it['image']?.toString()) ?? '',
+                  price: priceStr,
+                  rawPrice: rawPrice,
+                  description: it['description']?.toString() ?? '',
+                  isVegetarian: it['is_vegetarian'] as bool? ?? false,
+                  isAvailable: it['is_available'] as bool? ?? true,
+                ));
               }
             }
-
-            String categoryImg = '';
-            for (final it in itemList) {
-              if (it.imageUrl.trim().isNotEmpty) {
-                categoryImg = it.imageUrl.trim();
-                break;
-              }
-            }
-            if (categoryImg.isEmpty && cat['image'] != null) {
-              categoryImg =
-                  ApiConfig.getImageUrl(cat['image']?.toString()) ?? '';
-            }
-
-            categoryList.add(MenuCategory(
-              id: catId,
-              name: catName,
-              label: catName,
-              icon: _getCategoryIcon(catName),
-              count: itemList.length,
-              itemCount: itemList.length,
-              items: itemList,
-              imageUrl: categoryImg,
-            ));
           }
-        }
-        if (mounted && categoryList.isNotEmpty) {
-          setState(() {
-            _categories = categoryList;
-          });
+
+          String categoryImg = '';
+          for (final it in itemList) {
+            if (it.imageUrl.trim().isNotEmpty) {
+              categoryImg = it.imageUrl.trim();
+              break;
+            }
+          }
+          if (categoryImg.isEmpty && cat['image'] != null) {
+            categoryImg = ApiConfig.getImageUrl(cat['image']?.toString()) ?? '';
+          }
+
+          categoryList.add(MenuCategory(
+            id: catId,
+            name: catName,
+            label: catName,
+            icon: _getCategoryIcon(catName),
+            count: itemList.length,
+            itemCount: itemList.length,
+            items: itemList,
+            imageUrl: categoryImg,
+          ));
         }
       }
+
+      if (mounted) {
+        setState(() {
+          _categories = categoryList;
+          _isLoadingCategories = false;
+          _categoryError = null;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoadingCategories = false;
+          _categoryError = catRes['error']?.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchOrders({bool silent = false}) async {
+    if (!silent && _orders.isEmpty) {
+      setState(() {
+        _isLoadingOrders = true;
+        _orderError = null;
+      });
+    }
+
+    final redRes = await VendorService.getVendorRedemptions();
+    if (!mounted) return;
+
+    if (redRes['success'] == true && redRes['data'] != null) {
+      final list = redRes['data'] as List<dynamic>;
+
+      List<OrderItem> parsedOrders = [];
+      double totalRev = 0.0;
+      int pending = 0;
+
+      for (final r in list) {
+        if (r is Map<String, dynamic>) {
+          final id = _formatOrderNumber(r);
+          final qrCode = r['qr_code']?.toString() ?? '';
+          final statusType = _parseStatusType(r);
+          final statusText = _statusLabel(statusType);
+          final amount = _parseOrderAmount(r);
+          final itemCount = _parseItemCount(r);
+          final desc = _formatOrderDescription(r);
+          final timeAgo = _formatTimeAgo(r['created_at']?.toString() ?? r['confirmed_at']?.toString());
+          final customerName = r['customer_name']?.toString();
+          final platform = (customerName != null && customerName.trim().isNotEmpty)
+              ? customerName.trim()
+              : 'ZTEEL Order';
+
+          bool isToday = false;
+          final dateStr = r['confirmed_at']?.toString() ?? r['created_at']?.toString();
+          if (dateStr != null) {
+            final parsedDate = DateTime.tryParse(dateStr)?.toLocal();
+            if (parsedDate != null) {
+              final now = DateTime.now();
+              isToday = parsedDate.year == now.year && parsedDate.month == now.month && parsedDate.day == now.day;
+            }
+          }
+
+          if (statusType == OrderStatus.completed && isToday) {
+            totalRev += amount;
+          } else if (statusType == OrderStatus.pending) {
+            pending++;
+          }
+
+          parsedOrders.add(OrderItem(
+            id: id,
+            rawQrCode: qrCode,
+            platform: platform,
+            description: desc,
+            timeAgo: timeAgo,
+            status: statusText,
+            statusType: statusType,
+            amount: amount,
+            itemCount: itemCount,
+            rawSession: r,
+          ));
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _orders = parsedOrders;
+          _todayRevenue = totalRev;
+          _pendingCount = pending;
+          _isLoadingOrders = false;
+          _orderError = null;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoadingOrders = false;
+          _orderError = redRes['error']?.toString();
+        });
+      }
+    }
+  }
+
+  String _formatOrderNumber(Map<String, dynamic> session) {
+    final rawOrderNum = session['order_number']?.toString();
+    if (rawOrderNum != null && rawOrderNum.isNotEmpty) {
+      return rawOrderNum.startsWith('#') ? rawOrderNum : '#$rawOrderNum';
+    }
+    final qrCode = session['qr_code']?.toString() ?? '';
+    if (qrCode.isNotEmpty) {
+      final clean = qrCode.replaceAll('-', '').toUpperCase();
+      final code = clean.length >= 8 ? clean.substring(0, 8) : clean;
+      return '#$code';
+    }
+    return '#C571267D';
+  }
+
+  OrderStatus _parseStatusType(Map<String, dynamic> session) {
+    final status = (session['status'] ?? 'pending').toString().toLowerCase();
+    if (status == 'confirmed' || status == 'completed' || status == 'delivered') {
+      return OrderStatus.completed;
+    }
+    if (status == 'expired' || status == 'cancelled') {
+      return OrderStatus.expired;
+    }
+    final expiresAt = session['expires_at']?.toString();
+    if (expiresAt != null && expiresAt.isNotEmpty) {
+      final exp = DateTime.tryParse(expiresAt);
+      if (exp != null && exp.isBefore(DateTime.now())) {
+        return OrderStatus.expired;
+      }
+    }
+    return OrderStatus.pending;
+  }
+
+  String _statusLabel(OrderStatus type) {
+    switch (type) {
+      case OrderStatus.pending:
+        return 'Pending';
+      case OrderStatus.completed:
+        return 'Completed';
+      case OrderStatus.expired:
+        return 'Expired';
+    }
+  }
+
+  double _parseOrderAmount(Map<String, dynamic> session) {
+    final finalTotal = session['final_total'] ?? session['subtotal'];
+    if (finalTotal is num) return finalTotal.toDouble();
+    return double.tryParse(finalTotal?.toString() ?? '0.0') ?? 0.0;
+  }
+
+  int _parseItemCount(Map<String, dynamic> session) {
+    final items = (session['items'] as List<dynamic>?) ?? [];
+    int count = 0;
+    for (final it in items) {
+      if (it is Map<String, dynamic>) {
+        count += int.tryParse(it['quantity']?.toString() ?? '1') ?? 1;
+      }
+    }
+    return count > 0 ? count : 1;
+  }
+
+  String _formatOrderDescription(Map<String, dynamic> session) {
+    final items = (session['items'] as List<dynamic>?) ?? [];
+    if (items.isEmpty) {
+      final reward = session['reward'] as Map<String, dynamic>?;
+      final giftName = reward?['gift_item_name_snapshot']?.toString();
+      if (giftName != null && giftName.isNotEmpty) {
+        return 'Free Reward: $giftName';
+      }
+      return 'Redemption Order';
+    }
+    final names = <String>[];
+    for (final it in items) {
+      if (it is Map<String, dynamic>) {
+        final qty = it['quantity']?.toString() ?? '1';
+        final name = it['item_name_snapshot']?.toString() ?? it['name']?.toString() ?? 'Dish';
+        names.add('${qty}x $name');
+      }
+    }
+    return names.join(', ');
+  }
+
+  String _formatTimeAgo(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return 'Just now';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      return '${dt.day}/${dt.month}';
+    } catch (_) {
+      return 'Recently';
     }
   }
 
@@ -294,17 +463,139 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     return Icons.restaurant_menu_outlined;
   }
 
-  void _openAllCategories() {
-    Navigator.push(
+  void _openAllCategories() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => AllCategoriesScreen(
           categories: _categories,
-          onAddCategory: () {},
-          onRefreshCategories: _fetchCategories,
+          onRefreshCategories: () => _fetchCategories(silent: true),
         ),
       ),
     );
+    if (mounted) {
+      _fetchCategories(silent: true);
+    }
+  }
+
+  Future<void> _openSessionDetails(Map<String, dynamic> session) async {
+    final qrCode = session['qr_code']?.toString() ?? '';
+    final orderIdStr = _formatOrderNumber(session);
+
+    final customerName = session['customer_name']?.toString() ?? '';
+    final status = (session['status'] ?? 'pending').toString().toLowerCase();
+
+    final finalTotal = session['final_total']?.toString() ??
+        session['subtotal']?.toString() ??
+        '0.00';
+    final subtotal = session['subtotal']?.toString() ?? '0.00';
+    final discount = session['total_discount']?.toString() ?? '0.00';
+
+    final reward = session['reward'] as Map<String, dynamic>?;
+    final hasReward = reward != null &&
+        (reward['name_snapshot'] != null ||
+            reward['gift_item_name_snapshot'] != null ||
+            reward['discount_amount'] != null);
+    String milestoneMsg = 'No milestone reward applied for this order.';
+    if (hasReward) {
+      final rName = reward['name_snapshot']?.toString() ?? 'Milestone Reward';
+      final rDisc = reward['discount_amount']?.toString();
+      final giftName = reward['gift_item_name_snapshot']?.toString();
+      if (giftName != null && giftName.isNotEmpty) {
+        milestoneMsg = '$rName (Free item: $giftName)';
+      } else if (rDisc != null && double.tryParse(rDisc) != null && double.tryParse(rDisc)! > 0) {
+        milestoneMsg = '$rName (Saved ₹$rDisc)';
+      } else {
+        milestoneMsg = rName;
+      }
+    }
+
+    final offersList = (session['applied_offers'] as List<dynamic>?) ?? [];
+    final offersSummaryStr = offersList.isNotEmpty
+        ? 'Offers applied: ${offersList.map((o) {
+            final title = o['title_snapshot']?.toString() ?? 'Offer';
+            final dAmount = o['discount_amount']?.toString();
+            if (dAmount != null && double.tryParse(dAmount) != null && double.tryParse(dAmount)! > 0) {
+              return '$title (Saved ₹$dAmount)';
+            }
+            return title;
+          }).join(', ')}'
+        : '[No Offers Applied]';
+
+    final rawItems = (session['items'] as List<dynamic>?) ?? [];
+    List<OrderLineItem> mappedItems = [];
+    if (rawItems.isEmpty) {
+      mappedItems.add(const OrderLineItem(
+        name: 'Order Items',
+        note: '',
+        quantity: 'x1',
+        imageUrl: '',
+        unitPrice: '₹0.00 each',
+        lineTotal: '₹0.00',
+        appliedOffer: null,
+      ));
+    } else {
+      mappedItems = rawItems.map((item) {
+        final iMap = item as Map<String, dynamic>;
+        final iName = iMap['item_name_snapshot']?.toString() ?? '';
+        final nameStr = iName.isNotEmpty ? iName : 'Item';
+
+        final components = iMap['components'] as List<dynamic>?;
+        String noteStr = '';
+        if (components != null && components.isNotEmpty) {
+          final compList = components
+              .map((c) =>
+                  '${c['quantity'] ?? 1}x ${c['item_name_snapshot'] ?? ''}')
+              .join(', ');
+          noteStr = 'Includes: $compList';
+        } else if (iMap['is_reward_item'] == true) {
+          noteStr = '🎁 Free Milestone Reward';
+        }
+
+        final qty = iMap['quantity']?.toString() ?? '1';
+        final uPrice = iMap['unit_price_snapshot']?.toString() ?? '0.00';
+        final lTotal = iMap['line_total']?.toString() ?? '0.00';
+        final imgUrl = ApiConfig.getImageUrl(
+                iMap['image']?.toString() ?? iMap['image_url']?.toString()) ??
+            '';
+
+        return OrderLineItem(
+          name: nameStr,
+          note: noteStr,
+          quantity: 'x$qty',
+          imageUrl: imgUrl,
+          unitPrice: '₹$uPrice each',
+          lineTotal: '₹$lTotal',
+          appliedOffer: offersList.isNotEmpty
+              ? offersList.first['title_snapshot']?.toString()
+              : null,
+        );
+      }).toList();
+    }
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => OrderDetailScreen(
+          orderId: orderIdStr,
+          qrCode: qrCode,
+          status: status,
+          customerName: customerName.isNotEmpty ? customerName : null,
+          totalAmount: '₹$finalTotal',
+          subtotalAmount: '₹$subtotal',
+          savingsAmount: '-₹$discount',
+          offersSummary: offersSummaryStr,
+          milestoneUnlocked: hasReward,
+          milestoneMessage: milestoneMsg,
+          items: mappedItems,
+          onOrderCompleted: () {
+            _fetchDashboardData(silent: true);
+          },
+        ),
+      ),
+    );
+    if (result == true && mounted) {
+      _fetchDashboardData(silent: true);
+    }
   }
 
   @override
@@ -318,7 +609,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         body: RefreshIndicator(
-          onRefresh: _fetchCategories,
+          onRefresh: () => _fetchDashboardData(),
           color: const Color(0xFF0F172A),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(
@@ -327,7 +618,17 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
             child: Column(
               children: [
                 _HeroCard(
-                  onNotificationTap: () {},
+                  vendorName: _vendorName,
+                  vendorCategory: _vendorCategory,
+                  vendorAvatarUrl: _vendorAvatarUrl,
+                  todayRevenue: _todayRevenue,
+                  pendingCount: _pendingCount,
+                  onNotificationTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 _QuickActionsBar(
@@ -338,23 +639,49 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
                       MaterialPageRoute(builder: (_) => const OrdersScreen()),
                     );
                   },
-                  onReviewsTap: () {},
-                  onRatingsTap: () {},
+                  onReviewsTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ReviewsScreen()),
+                    );
+                  },
+                  onRatingsTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ReviewsScreen()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
                 _MajorCategoriesSection(
                   categories: _categories,
+                  isLoading: _isLoadingCategories,
+                  errorMessage: _categoryError,
                   onSeeAll: _openAllCategories,
+                  onRetry: () => _fetchCategories(),
                 ),
                 const SizedBox(height: 20),
                 _LatestOrdersSection(
                   orders: _orders,
+                  isLoading: _isLoadingOrders,
+                  errorMessage: _orderError,
                   onSeeAll: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const OrdersScreen()),
                     );
                   },
+                  onOrderTap: (order) {
+                    if (order.rawSession.isNotEmpty) {
+                      _openSessionDetails(order.rawSession);
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                      );
+                    }
+                  },
+                  onRetry: () => _fetchOrders(),
                 ),
                 const SizedBox(height: 32),
               ],
@@ -369,9 +696,21 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
 // ─── Hero Card ────────────────────────────────────────────────────────────────
 
 class _HeroCard extends StatelessWidget {
+  final String vendorName;
+  final String vendorCategory;
+  final String? vendorAvatarUrl;
+  final double todayRevenue;
+  final int pendingCount;
   final VoidCallback? onNotificationTap;
 
-  const _HeroCard({this.onNotificationTap});
+  const _HeroCard({
+    required this.vendorName,
+    required this.vendorCategory,
+    this.vendorAvatarUrl,
+    required this.todayRevenue,
+    required this.pendingCount,
+    this.onNotificationTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -399,15 +738,20 @@ class _HeroCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _HeroHeader(onNotificationTap: onNotificationTap),
+          _HeroHeader(
+            vendorName: vendorName,
+            vendorCategory: vendorCategory,
+            avatarUrl: vendorAvatarUrl,
+            onNotificationTap: onNotificationTap,
+          ),
           const SizedBox(height: 8),
           _HeroRevenueBadge(),
           const SizedBox(height: 4),
-          _HeroRevenueAmount(),
+          _HeroRevenueAmount(amount: todayRevenue),
           const SizedBox(height: 4),
-          _HeroLiveIndicator(),
+          _HeroLiveIndicator(pendingCount: pendingCount),
           const SizedBox(height: 16),
-          _HeroMetricsCapsule(),
+          _HeroMetricsCapsule(pendingCount: pendingCount),
         ],
       ),
     );
@@ -415,12 +759,23 @@ class _HeroCard extends StatelessWidget {
 }
 
 class _HeroHeader extends StatelessWidget {
+  final String vendorName;
+  final String vendorCategory;
+  final String? avatarUrl;
   final VoidCallback? onNotificationTap;
 
-  const _HeroHeader({this.onNotificationTap});
+  const _HeroHeader({
+    required this.vendorName,
+    required this.vendorCategory,
+    this.avatarUrl,
+    this.onNotificationTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final resolvedImg = ApiConfig.getImageUrl(avatarUrl);
+    final hasImg = resolvedImg != null && resolvedImg.isNotEmpty;
+
     return Row(
       children: [
         // Avatar with green dot
@@ -432,14 +787,24 @@ class _HeroHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFF334155), width: 2),
+                color: const Color(0xFF1E293B),
               ),
               child: ClipOval(
-                child: Image.network(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCJFaKH2gw6QTTTf7UQJaJ6dWTW8bKkZDbrqQIP8UKXo4Yy6Z1lDi8lshjutI674H-xwyCrUpvrwv5WHrUt7cDSjcea9QPspaLdD-dq7jg390lJzD6FLgPekAulmMiEev8BjYymGjocIdnP5gK6MQLQk-R54NZpujjY5WLzQrupWVkdOufzyzs_fckJPbZwpK8B7zwa2kei7529jCzrESInxs7WiAWboj1mQJ0RcoB070a6cnvoWDVYig',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.person, color: Colors.white54),
-                ),
+                child: hasImg
+                    ? Image.network(
+                        resolvedImg,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.storefront_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.storefront_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
               ),
             ),
             Positioned(
@@ -471,9 +836,11 @@ class _HeroHeader extends StatelessWidget {
                   letterSpacing: 1.2,
                 ),
               ),
-              const Text(
-                'Chef Marco · Artisan Trattoria',
-                style: TextStyle(
+              Text(
+                '$vendorName · $vendorCategory',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -552,7 +919,7 @@ class _HeroRevenueBadge extends StatelessWidget {
                   color: const Color(0xFF34D399).withValues(alpha: 0.3)),
             ),
             child: const Text(
-              '+18.4%',
+              'Live',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -567,11 +934,14 @@ class _HeroRevenueBadge extends StatelessWidget {
 }
 
 class _HeroRevenueAmount extends StatelessWidget {
+  final double amount;
+  const _HeroRevenueAmount({required this.amount});
+
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      '\$2,142.50',
-      style: TextStyle(
+    return Text(
+      '₹${amount.toStringAsFixed(2)}',
+      style: const TextStyle(
         fontSize: 34,
         fontWeight: FontWeight.w800,
         color: Colors.white,
@@ -582,15 +952,22 @@ class _HeroRevenueAmount extends StatelessWidget {
 }
 
 class _HeroLiveIndicator extends StatelessWidget {
+  final int pendingCount;
+  const _HeroLiveIndicator({required this.pendingCount});
+
   @override
   Widget build(BuildContext context) {
+    final statusText = pendingCount > 0
+        ? 'Kitchen Live · $pendingCount Open Order${pendingCount == 1 ? '' : 's'}'
+        : 'Kitchen Ready · Open for Orders';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const _PulsingDot(color: Color(0xFF34D399)),
         const SizedBox(width: 6),
         Text(
-          'Kitchen Live · Open Orders',
+          statusText,
           style: TextStyle(
             fontSize: 11,
             color: Colors.white.withValues(alpha: 0.7),
@@ -603,8 +980,13 @@ class _HeroLiveIndicator extends StatelessWidget {
 }
 
 class _HeroMetricsCapsule extends StatelessWidget {
+  final int pendingCount;
+  const _HeroMetricsCapsule({required this.pendingCount});
+
   @override
   Widget build(BuildContext context) {
+    final ticketText = '$pendingCount ${pendingCount == 1 ? 'Ticket' : 'Tickets'}';
+
     return Container(
       padding: const EdgeInsets.all(10),
       child: IntrinsicHeight(
@@ -617,7 +999,7 @@ class _HeroMetricsCapsule extends StatelessWidget {
                 iconBg: Colors.white.withValues(alpha: 0.1),
                 iconColor: Colors.white,
                 label: 'LIVE ORDERS',
-                value: '18 Tickets',
+                value: ticketText,
               ),
             ),
             const SizedBox(width: 8),
@@ -993,11 +1375,17 @@ class _QuickActionButton extends StatelessWidget {
 
 class _MajorCategoriesSection extends StatelessWidget {
   final List<MenuCategory> categories;
+  final bool isLoading;
+  final String? errorMessage;
   final VoidCallback? onSeeAll;
+  final VoidCallback? onRetry;
 
   const _MajorCategoriesSection({
     required this.categories,
+    this.isLoading = false,
+    this.errorMessage,
     this.onSeeAll,
+    this.onRetry,
   });
 
   @override
@@ -1007,35 +1395,119 @@ class _MajorCategoriesSection extends StatelessWidget {
       child: Column(
         children: [
           _SectionHeader(title: 'Major Categories', onSeeAll: onSeeAll),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.0,
-            ),
-            itemCount: categories.length > 6 ? 6 : categories.length,
-            itemBuilder: (_, i) => _CategoryCard(
-              category: categories[i],
-              onTap: () {
-                if (categories[i].id.isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CategoryItemsScreen(
-                        categoryId: categories[i].id,
-                        categoryName: categories[i].name,
+          const SizedBox(height: 10),
+          if (isLoading)
+            Container(
+              height: 120,
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Color(0xFF0F172A),
+              ),
+            )
+          else if (errorMessage != null && categories.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 28),
+                  const SizedBox(height: 6),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: onRetry,
+                    child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            )
+          else if (categories.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.category_outlined, size: 32, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'No Categories Created',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Organize your dishes into categories for customers.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: onSeeAll,
+                    icon: const Icon(Icons.add, size: 16, color: Color(0xFF0F172A)),
+                    label: const Text(
+                      'Manage Categories',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
                       ),
                     ),
-                  );
-                } else {
-                  onSeeAll?.call();
-                }
-              },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: categories.length > 6 ? 6 : categories.length,
+              itemBuilder: (_, i) => _CategoryCard(
+                category: categories[i],
+                onTap: () {
+                  if (categories[i].id.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CategoryItemsScreen(
+                          categoryId: categories[i].id,
+                          categoryName: categories[i].name,
+                        ),
+                      ),
+                    );
+                  } else {
+                    onSeeAll?.call();
+                  }
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -1122,14 +1594,17 @@ class _CategoryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              category.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                category.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
               ),
             ),
             const SizedBox(height: 2),
@@ -1152,11 +1627,19 @@ class _CategoryCard extends StatelessWidget {
 
 class _LatestOrdersSection extends StatelessWidget {
   final List<OrderItem> orders;
+  final bool isLoading;
+  final String? errorMessage;
   final VoidCallback? onSeeAll;
+  final ValueChanged<OrderItem>? onOrderTap;
+  final VoidCallback? onRetry;
 
   const _LatestOrdersSection({
     required this.orders,
+    this.isLoading = false,
+    this.errorMessage,
     this.onSeeAll,
+    this.onOrderTap,
+    this.onRetry,
   });
 
   @override
@@ -1167,10 +1650,79 @@ class _LatestOrdersSection extends StatelessWidget {
         children: [
           _SectionHeader(title: 'Latest Orders', onSeeAll: onSeeAll),
           const SizedBox(height: 12),
-          ...orders.map((o) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _OrderCard(order: o),
-              )),
+          if (isLoading)
+            Container(
+              height: 120,
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Color(0xFF0F172A),
+              ),
+            )
+          else if (errorMessage != null && orders.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 28),
+                  const SizedBox(height: 6),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: onRetry,
+                    child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            )
+          else if (orders.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.receipt_long_outlined, size: 36, color: Color(0xFF94A3B8)),
+                  SizedBox(height: 10),
+                  Text(
+                    'No Orders Yet',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Orders placed and verified with your QR code will appear here in real-time.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ...orders.take(3).map((o) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _OrderCard(
+                    order: o,
+                    onTap: () => onOrderTap?.call(o),
+                  ),
+                )),
         ],
       ),
     );
@@ -1179,143 +1731,160 @@ class _LatestOrdersSection extends StatelessWidget {
 
 class _OrderCard extends StatelessWidget {
   final OrderItem order;
+  final VoidCallback? onTap;
 
-  const _OrderCard({required this.order});
+  const _OrderCard({
+    required this.order,
+    this.onTap,
+  });
 
   Color get _iconBg {
     switch (order.statusType) {
-      case OrderStatus.ready:
-        return const Color(0xFF10B981).withValues(alpha: 0.08);
-      default:
+      case OrderStatus.pending:
+        return const Color(0xFFFEF3C7);
+      case OrderStatus.completed:
+        return const Color(0xFFD1FAE5).withValues(alpha: 0.6);
+      case OrderStatus.expired:
         return const Color(0xFFF1F5F9);
     }
   }
 
   Color get _iconColor {
     switch (order.statusType) {
-      case OrderStatus.ready:
+      case OrderStatus.pending:
+        return const Color(0xFFD97706);
+      case OrderStatus.completed:
         return const Color(0xFF059669);
-      default:
-        return const Color(0xFF475569);
+      case OrderStatus.expired:
+        return const Color(0xFF64748B);
     }
   }
 
   Color get _borderColor {
     switch (order.statusType) {
-      case OrderStatus.ready:
-        return const Color(0xFFD1FAE5).withValues(alpha: 0.6);
-      default:
+      case OrderStatus.pending:
+        return const Color(0xFFFDE68A).withValues(alpha: 0.8);
+      case OrderStatus.completed:
+        return const Color(0xFFD1FAE5).withValues(alpha: 0.8);
+      case OrderStatus.expired:
         return const Color(0xFFE2E8F0).withValues(alpha: 0.8);
     }
   }
 
   IconData get _icon {
     switch (order.statusType) {
-      case OrderStatus.ready:
-        return Icons.restaurant_outlined;
-      case OrderStatus.completed:
-        return Icons.lunch_dining_outlined;
-      default:
+      case OrderStatus.pending:
         return Icons.receipt_long_outlined;
+      case OrderStatus.completed:
+        return Icons.check_circle_outline_rounded;
+      case OrderStatus.expired:
+        return Icons.cancel_outlined;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _iconBg,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: order.statusType == OrderStatus.ready
-                    ? const Color(0xFFD1FAE5).withValues(alpha: 0.6)
-                    : const Color(0xFFE2E8F0),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _borderColor),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x06000000),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _iconBg,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: _borderColor,
+                ),
+              ),
+              child: Icon(_icon, size: 18, color: _iconColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        order.id,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          '· ${order.platform}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    order.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  _StatusBadge(order: order),
+                ],
               ),
             ),
-            child: Icon(_icon, size: 18, color: _iconColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      order.id,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '· ${order.platform}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
+                Text(
+                  '₹${order.amount.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  order.description,
+                  '${order.itemCount} items',
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
+                    color: Color(0xFF94A3B8),
                   ),
                 ),
-                const SizedBox(height: 5),
-                _StatusBadge(order: order),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '\$${order.amount.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${order.itemCount} items',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF94A3B8),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1328,44 +1897,44 @@ class _StatusBadge extends StatelessWidget {
 
   Color get _dotColor {
     switch (order.statusType) {
-      case OrderStatus.cooking:
+      case OrderStatus.pending:
         return const Color(0xFFF59E0B);
-      case OrderStatus.ready:
-        return const Color(0xFF10B981);
       case OrderStatus.completed:
+        return const Color(0xFF10B981);
+      case OrderStatus.expired:
         return const Color(0xFF94A3B8);
     }
   }
 
   Color get _textColor {
     switch (order.statusType) {
-      case OrderStatus.cooking:
+      case OrderStatus.pending:
         return const Color(0xFF92400E);
-      case OrderStatus.ready:
-        return const Color(0xFF065F46);
       case OrderStatus.completed:
+        return const Color(0xFF065F46);
+      case OrderStatus.expired:
         return const Color(0xFF64748B);
     }
   }
 
   Color get _bgColor {
     switch (order.statusType) {
-      case OrderStatus.cooking:
+      case OrderStatus.pending:
         return const Color(0xFFFFFBEB);
-      case OrderStatus.ready:
-        return const Color(0xFFECFDF5);
       case OrderStatus.completed:
+        return const Color(0xFFECFDF5);
+      case OrderStatus.expired:
         return const Color(0xFFF1F5F9);
     }
   }
 
   Color get _borderColor {
     switch (order.statusType) {
-      case OrderStatus.cooking:
-        return const Color(0xFFE2E8F0);
-      case OrderStatus.ready:
-        return const Color(0xFFD1FAE5);
+      case OrderStatus.pending:
+        return const Color(0xFFFDE68A);
       case OrderStatus.completed:
+        return const Color(0xFFD1FAE5);
+      case OrderStatus.expired:
         return const Color(0xFFE2E8F0).withValues(alpha: 0.6);
     }
   }

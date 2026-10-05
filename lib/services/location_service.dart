@@ -1,3 +1,4 @@
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SavedLocationCoordinates {
@@ -14,7 +15,7 @@ class SavedLocationCoordinates {
   });
 }
 
-/// Persistent coordinate store for location-aware frontend processing.
+/// Persistent coordinate store and GPS helper for location-aware vendor processing.
 class LocationService {
   LocationService._();
 
@@ -42,5 +43,29 @@ class LocationService {
       label: prefs.getString(_labelKey) ?? 'Shop Location',
       address: prefs.getString(_addressKey) ?? '',
     );
+  }
+
+  /// Request permission and fetch current device position
+  static Future<Position?> getCurrentDevicePosition() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return null;
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return null;
+    }
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 8),
+      );
+    } catch (_) {
+      return await Geolocator.getLastKnownPosition();
+    }
   }
 }

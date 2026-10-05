@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
+import 'package:frontend/screens/terms_policy_screen.dart';
 
 // ─── Design tokens matching the Artisan Trattoria dashboard ──────────────────
 class _Dt {
@@ -165,6 +166,41 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     }
   }
 
+  Future<void> _removeIconImage() async {
+    setState(() => _isUploadingIcon = true);
+    final res = await VendorService.removeVendorImage(removeIcon: true);
+    if (!mounted) return;
+    setState(() {
+      _isUploadingIcon = false;
+      if (res['success'] == true) {
+        _iconImageFile = null;
+        _iconImageUrl = null;
+      }
+    });
+    if (res['success'] == true) {
+      _showSnack('Shop logo removed.', success: true);
+    } else {
+      _showSnack(res['error'] ?? 'Failed to remove shop logo');
+    }
+  }
+
+  void _showIconPhotoOptions() {
+    if (_isUploadingIcon) return;
+    final hasIcon = _iconImageFile != null ||
+        (_iconImageUrl != null && _iconImageUrl!.isNotEmpty);
+    if (!hasIcon) {
+      _pickIconImage();
+      return;
+    }
+
+    _showImageOptionsSheet(
+      title: 'Shop Logo',
+      subtitle: 'Manage your shop profile image',
+      onChange: _pickIconImage,
+      onRemove: _removeIconImage,
+    );
+  }
+
   Future<void> _pickCoverImage() async {
     try {
       final XFile? picked =
@@ -191,6 +227,215 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       setState(() => _isUploadingCover = false);
       _showSnack('Could not pick cover photo: $e');
     }
+  }
+
+  Future<void> _removeCoverImage() async {
+    setState(() => _isUploadingCover = true);
+    final res = await VendorService.removeVendorImage(removeCover: true);
+    if (!mounted) return;
+    setState(() {
+      _isUploadingCover = false;
+      if (res['success'] == true) {
+        _coverImageFile = null;
+        _coverImageUrl = null;
+      }
+    });
+    if (res['success'] == true) {
+      _showSnack('Cover photo removed.', success: true);
+    } else {
+      _showSnack(res['error'] ?? 'Failed to remove cover photo');
+    }
+  }
+
+  void _showCoverPhotoOptions() {
+    if (_isUploadingCover) return;
+    final hasCover = _coverImageFile != null ||
+        (_coverImageUrl != null && _coverImageUrl!.isNotEmpty);
+    if (!hasCover) {
+      _pickCoverImage();
+      return;
+    }
+
+    _showImageOptionsSheet(
+      title: 'Cover Photo',
+      subtitle: 'Manage your shop cover banner',
+      onChange: _pickCoverImage,
+      onRemove: _removeCoverImage,
+    );
+  }
+
+  void _showImageOptionsSheet({
+    required String title,
+    required String subtitle,
+    required VoidCallback onChange,
+    required VoidCallback onRemove,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF0F172A),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: Color(0xFF334155), width: 1),
+            ),
+          ),
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 14,
+            bottom: MediaQuery.of(ctx).padding.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF475569),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: _Dt.textMuted,
+                  fontSize: 12.5,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _buildImageSheetOption(
+                icon: Icons.photo_library_outlined,
+                iconColor: Colors.white,
+                title: 'Change photo',
+                subtitle: 'Choose a new image from your gallery',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onChange();
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildImageSheetOption(
+                icon: Icons.delete_outline_rounded,
+                iconColor: const Color(0xFFEF4444),
+                title: 'Remove photo',
+                subtitle: 'Delete current photo and reset to default',
+                titleColor: const Color(0xFFEF4444),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onRemove();
+                },
+              ),
+              const SizedBox(height: 14),
+              InkWell(
+                onTap: () => Navigator.pop(ctx),
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  width: double.infinity,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: _Dt.textSecondary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageSheetOption({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    Color titleColor = Colors.white,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF334155)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: titleColor,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: _Dt.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: _Dt.textSecondary,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSnack(String message, {bool success = false}) {
@@ -347,6 +592,453 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() => _daySessions[dayIndex].removeAt(sessionIndex));
   }
 
+  void _applyHoursToAllDays(int sourceDayIndex) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    setState(() {
+      for (int i = 0; i < 7; i++) {
+        if (i != sourceDayIndex) {
+          _daySessions[i] = sourceSessions
+              .map((s) => _OpeningSession(start: s.start, end: s.end))
+              .toList();
+        }
+      }
+    });
+    _showSnack('Applied ${_fullDayLabel(sourceDayIndex)} hours to all 7 days.',
+        success: true);
+  }
+
+  void _applyHoursToWeekdays(int sourceDayIndex) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    setState(() {
+      for (int i = 0; i < 5; i++) {
+        if (i != sourceDayIndex) {
+          _daySessions[i] = sourceSessions
+              .map((s) => _OpeningSession(start: s.start, end: s.end))
+              .toList();
+        }
+      }
+    });
+    _showSnack(
+        'Applied ${_fullDayLabel(sourceDayIndex)} hours to weekdays (Mon–Fri).',
+        success: true);
+  }
+
+  void _applyHoursToCustomDays(int sourceDayIndex, List<int> targetDayIndices) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    setState(() {
+      for (final index in targetDayIndices) {
+        if (index != sourceDayIndex && index >= 0 && index < 7) {
+          _daySessions[index] = sourceSessions
+              .map((s) => _OpeningSession(start: s.start, end: s.end))
+              .toList();
+        }
+      }
+    });
+    _showSnack(
+        'Applied ${_fullDayLabel(sourceDayIndex)} hours to ${targetDayIndices.length} selected days.',
+        success: true);
+  }
+
+  void _showApplyHoursModal(int sourceDayIndex) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    final dayName = _fullDayLabel(sourceDayIndex);
+    final String summaryText = sourceSessions.isEmpty
+        ? 'Closed (Will mark other days as Closed)'
+        : sourceSessions
+            .map((s) => '${_formatTime(s.start)} – ${_formatTime(s.end)}')
+            .join(', ');
+
+    // By default select all other 6 days
+    final Set<int> selectedDays =
+        List.generate(7, (i) => i).where((i) => i != sourceDayIndex).toSet();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _Dt.dark,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final allOtherSelected = selectedDays.length == 6;
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  18 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle indicator
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF334155),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+
+                    // Title Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF334155)),
+                          ),
+                          child: const Icon(
+                            Icons.copy_all_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Apply $dayName Schedule',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                summaryText,
+                                style: const TextStyle(
+                                  color: _Dt.textMuted,
+                                  fontSize: 11.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Quick presets section
+                    const Text(
+                      'QUICK PRESETS',
+                      style: TextStyle(
+                        color: _Dt.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // All 7 Days preset
+                    _buildPresetOption(
+                      icon: Icons.calendar_month_rounded,
+                      title: 'Apply to all 7 days (Mon – Sun)',
+                      subtitle: 'Copy this schedule across the whole week',
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _applyHoursToAllDays(sourceDayIndex);
+                      },
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Weekdays Only preset
+                    _buildPresetOption(
+                      icon: Icons.business_center_rounded,
+                      title: 'Apply to weekdays (Mon – Fri)',
+                      subtitle: 'Keep Saturday & Sunday schedule unchanged',
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _applyHoursToWeekdays(sourceDayIndex);
+                      },
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Custom Days Selector Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFF334155)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'SELECT SPECIFIC DAYS',
+                                style: TextStyle(
+                                  color: _Dt.textMuted,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.9,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    if (allOtherSelected) {
+                                      selectedDays.clear();
+                                    } else {
+                                      selectedDays.clear();
+                                      for (int i = 0; i < 7; i++) {
+                                        if (i != sourceDayIndex) {
+                                          selectedDays.add(i);
+                                        }
+                                      }
+                                    }
+                                  });
+                                },
+                                child: Text(
+                                  allOtherSelected ? 'Clear all' : 'Select all',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // 7-day pill tiles row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: List.generate(7, (i) {
+                              final isSource = i == sourceDayIndex;
+                              final isSelected = selectedDays.contains(i);
+
+                              return GestureDetector(
+                                onTap: isSource
+                                    ? null
+                                    : () {
+                                        setModalState(() {
+                                          if (isSelected) {
+                                            selectedDays.remove(i);
+                                          } else {
+                                            selectedDays.add(i);
+                                          }
+                                        });
+                                      },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 160),
+                                  width: 42,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: isSource
+                                        ? const Color(0xFF0F172A)
+                                        : isSelected
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSource
+                                          ? const Color(0xFF1E293B)
+                                          : isSelected
+                                              ? Colors.white
+                                              : const Color(0xFF334155),
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        _dayLabel(i),
+                                        style: TextStyle(
+                                          color: isSource
+                                              ? _Dt.textSecondary
+                                              : isSelected
+                                                  ? _Dt.dark
+                                                  : _Dt.border,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      if (isSource)
+                                        const Text(
+                                          'SRC',
+                                          style: TextStyle(
+                                            color: _Dt.textSecondary,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          width: 13,
+                                          height: 13,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: isSelected
+                                                ? _Dt.dark
+                                                : Colors.transparent,
+                                            border: isSelected
+                                                ? null
+                                                : Border.all(
+                                                    color: _Dt.textSecondary,
+                                                    width: 1.2,
+                                                  ),
+                                          ),
+                                          child: isSelected
+                                              ? const Icon(
+                                                  Icons.check_rounded,
+                                                  size: 9,
+                                                  color: Colors.white,
+                                                )
+                                              : null,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Apply Button
+                    GestureDetector(
+                      onTap: selectedDays.isEmpty
+                          ? null
+                          : () {
+                              Navigator.pop(ctx);
+                              _applyHoursToCustomDays(
+                                sourceDayIndex,
+                                selectedDays.toList(),
+                              );
+                            },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: selectedDays.isEmpty
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selectedDays.isEmpty
+                                ? const Color(0xFF334155)
+                                : Colors.white,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            selectedDays.isEmpty
+                                ? 'Select at least one day'
+                                : 'Apply to ${selectedDays.length} Selected Day${selectedDays.length > 1 ? 's' : ''}',
+                            style: TextStyle(
+                              color: selectedDays.isEmpty
+                                  ? _Dt.textSecondary
+                                  : _Dt.dark,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPresetOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF334155)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Icon(icon, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: _Dt.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: _Dt.textSecondary,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
@@ -411,7 +1103,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       children: [
         // ── Full Cover Image Header (Fills all along the top) ──
         GestureDetector(
-          onTap: _isUploadingCover ? null : _pickCoverImage,
+          onTap: _isUploadingCover ? null : _showCoverPhotoOptions,
           child: Container(
             height: headerHeight,
             width: double.infinity,
@@ -516,31 +1208,38 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   right: 16,
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.camera_alt_outlined,
-                                color: Colors.white, size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              _isUploadingCover ? 'Uploading…' : 'Change cover',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      GestureDetector(
+                        onTap: _isUploadingCover ? null : _showCoverPhotoOptions,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.camera_alt_outlined,
+                                  color: Colors.white, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                _isUploadingCover
+                                    ? 'Uploading…'
+                                    : (coverImg != null
+                                        ? 'Edit cover'
+                                        : 'Add cover'),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -576,7 +1275,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           bottom: -(avatarSize / 2),
           left: 28,
           child: GestureDetector(
-            onTap: _isUploadingIcon ? null : _pickIconImage,
+            onTap: _isUploadingIcon ? null : _showIconPhotoOptions,
             child: Stack(
               children: [
                 Container(
@@ -959,7 +1658,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             }),
           ),
           const SizedBox(height: 14),
-          // Day label + add session
+          // Day label + action buttons
           Row(
             children: [
               Expanded(
@@ -971,6 +1670,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       color: _Dt.textPrimary),
                 ),
               ),
+              if (_daySessions[_selectedDayIndex].isNotEmpty) ...[],
               GestureDetector(
                 onTap: () => _addSession(_selectedDayIndex),
                 child: Container(
@@ -1030,8 +1730,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             _pickSessionTime(_selectedDayIndex, idx, true),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
                       child: Text('to',
                           style: TextStyle(
                               fontSize: 12,
@@ -1064,6 +1764,42 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ),
               );
             }),
+          if (_daySessions[_selectedDayIndex].isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: InkWell(
+                onTap: () => _showApplyHoursModal(_selectedDayIndex),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _Dt.surfaceRaised,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _Dt.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.sync_rounded,
+                          size: 15, color: _Dt.textPrimary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Apply ${_fullDayLabel(_selectedDayIndex)} hours to other days',
+                          style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: _Dt.textPrimary),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          size: 16, color: _Dt.textSecondary),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (selectedDayValidation != null) ...[
             const SizedBox(height: 6),
             Text(selectedDayValidation,
@@ -1186,7 +1922,135 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       color: _Dt.textSecondary)),
             ),
           ),
+          const SizedBox(height: 24),
+          // ─── Legal & App Policies Section ───
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _Dt.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.gavel_rounded,
+                        size: 16, color: _Dt.textSecondary),
+                    SizedBox(width: 8),
+                    Text(
+                      'Legal & Compliance',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _Dt.textPrimary,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _buildLegalTile(
+                  title: 'Terms & Conditions',
+                  subtitle:
+                      'Vendor service rules, order policies & disclaimers',
+                  icon: Icons.description_outlined,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TermsAndPolicyScreen(
+                        initialTab: LegalTab.terms,
+                      ),
+                    ),
+                  ),
+                ),
+                const Divider(height: 1, color: _Dt.border),
+                _buildLegalTile(
+                  title: 'Privacy Policy',
+                  subtitle: 'How shop information & location data are handled',
+                  icon: Icons.shield_outlined,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TermsAndPolicyScreen(
+                        initialTab: LegalTab.privacy,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              'ZTEEL Vendor App • v1.0.0',
+              style: TextStyle(
+                fontSize: 11,
+                color: _Dt.textMuted.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLegalTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: const Color(0xFF475569)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _Dt.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: _Dt.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: _Dt.textMuted,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -32,6 +32,8 @@ class ApiConfig {
       '$baseUrl/api/v1/vendor/redemptions/';
   static String vendorScanRedemptionUrl(String qrCode) =>
       '$baseUrl/api/v1/vendor/redemptions/$qrCode/scan/';
+  static String get vendorReviewsUrl =>
+      '$baseUrl/api/v1/vendor/reviews/';
 
   /// Helper to convert relative media path to full backend URL
   static String? getImageUrl(String? path) {

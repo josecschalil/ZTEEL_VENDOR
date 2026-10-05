@@ -4,8 +4,8 @@ import 'package:frontend/services/vendor_service.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 //
-// Identical tokens to createOfferScreen.dart, so viewing an order reads as
-// the same surface as creating an offer.
+// Same slate / white tokens as createOfferScreen.dart (plus amber, which is
+// only used for "pending" and the milestone reward).
 class _Pal {
   const _Pal._();
 
@@ -22,6 +22,8 @@ class _Pal {
 
   static const green = Color(0xFF10B981);
   static const red = Color(0xFFE11D48);
+  static const amber = Color(0xFFF59E0B);
+  static const amberInk = Color(0xFFB45309);
 
   static const cardShadow = BoxShadow(
     color: Color(0x06000000),
@@ -50,15 +52,20 @@ class OrderLineItem {
   });
 }
 
+String _itemsLabel(int n) => '$n ${n == 1 ? 'item' : 'items'}';
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 //
-// Rebuilt around the same rhythm as CreateOfferScreen: a dark live-preview
-// card up top, then labelled sections each in their own card, with the
-// primary action pinned to the bottom bar so it's always reachable.
+// Layout, top to bottom:
+//   1. Dark ticket  – customer, status and the total on a perforated stub
+//   2. Progress     – placed → awaiting → completed (or expired / cancelled)
+//   3. Items        – one card, thumbnails with quantity and line totals
+//   4. Offers       – applied promotion + milestone reward (only if present)
+//   5. Breakdown    – item total, discount, total payable
+//   Bottom bar      – total + the primary action, always reachable
 //
-// Every original feature is preserved — the order header, per-item image /
-// name / note / offer "missing data" highlighting, the subtotal / savings /
-// offers summary, the milestone banner, and the total amount.
+// The public API (constructor, OrderLineItem, onOrderCompleted, pop(true))
+// is unchanged.
 class OrderDetailScreen extends StatefulWidget {
   final String orderId;
   final String qrCode;
@@ -103,14 +110,47 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     _currentStatus = widget.status.toLowerCase();
   }
 
-  Future<void> _handleMarkComplete() async {
-    if (widget.qrCode.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Missing Order QR code for completion.'),
-          backgroundColor: _Pal.red,
+  // ── Derived values ─────────────────────────────────────────────────────────
+
+  String get _cleanOffers => widget.offersSummary.trim();
+
+  bool get _hasOffers =>
+      _cleanOffers.isNotEmpty &&
+      !_cleanOffers.startsWith('[') &&
+      !_cleanOffers.toLowerCase().startsWith('no ');
+
+  bool get _hasMilestone =>
+      widget.milestoneUnlocked &&
+      widget.milestoneMessage.trim().isNotEmpty &&
+      !widget.milestoneMessage.startsWith('[');
+
+  bool get _hasSavings {
+    final raw = widget.savingsAmount.replaceAll('₹', '').replaceAll(',', '');
+    return (double.tryParse(raw.trim()) ?? 0.0) > 0.0;
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  void _toast(String message, Color color) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          margin: const EdgeInsets.all(16),
         ),
       );
+  }
+
+  Future<void> _handleMarkComplete() async {
+    if (widget.qrCode.isEmpty) {
+      _toast('Missing Order QR code for completion.', _Pal.red);
       return;
     }
 
@@ -120,73 +160,56 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     setState(() => _isSubmitting = false);
 
     if (res['success'] == true) {
-      setState(() {
-        _currentStatus = 'confirmed';
-      });
+      setState(() => _currentStatus = 'confirmed');
       widget.onOrderCompleted?.call();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Order ${widget.orderId} marked as completed!',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: _Pal.ink,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      _toast('Order ${widget.orderId} marked as completed!', _Pal.ink);
       Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted && Navigator.of(context).canPop()) {
           Navigator.of(context).pop(true);
         }
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            res['error'] ?? 'Failed to update order status',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: _Pal.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      _toast(res['error'] ?? 'Failed to update order status', _Pal.red);
     }
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _Pal.bg,
+      // In the bottomNavigationBar slot so snackbars float above it.
+      bottomNavigationBar: _buildBottomBar(context),
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             _buildTopBar(context),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SectionLabel('Preview'),
-                    const SizedBox(height: 10),
-                    _buildPreviewCard(),
-                    const SizedBox(height: 22),
-                    const _SectionLabel('Items'),
+                    _SectionLabel('Items',
+                        trailing: _itemsLabel(widget.items.length)),
                     const SizedBox(height: 10),
                     _buildItemsCard(),
-                    const SizedBox(height: 18),
-                    const _SectionLabel('Order summary'),
+                    if (_hasOffers || _hasMilestone) ...[
+                      const SizedBox(height: 22),
+                      const _SectionLabel('Offers and rewards'),
+                      const SizedBox(height: 10),
+                      _buildRewards(),
+                    ],
+                    const SizedBox(height: 22),
+                    const _SectionLabel('Payment breakdown'),
                     const SizedBox(height: 10),
-                    _buildSummaryCard(),
+                    _buildBreakdownCard(),
                   ],
                 ),
               ),
             ),
-            _buildBottomBar(context),
           ],
         ),
       ),
@@ -215,123 +238,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Order details',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: _Pal.ink,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  widget.customerName != null && widget.customerName!.isNotEmpty
-                      ? '${widget.customerName} · ${widget.items.length} ${widget.items.length == 1 ? "item" : "items"}'
-                      : '${widget.orderId} · ${widget.items.length} ${widget.items.length == 1 ? "item" : "items"}',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: _Pal.ink500,
-                  ),
-                ),
-              ],
+          const Text(
+            'Order details',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: _Pal.ink,
+              letterSpacing: -0.3,
             ),
           ),
         ],
       ),
     );
   }
-
-  // ── Live preview ───────────────────────────────────────────────────────────
-
-  Widget _buildPreviewCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _Pal.ink,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.receipt_long_rounded,
-                size: 18, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.orderId,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.customerName != null && widget.customerName!.isNotEmpty
-                      ? 'Customer: ${widget.customerName} · ${widget.savingsAmount} off'
-                      : 'Savings applied · ${widget.savingsAmount} off',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    height: 1.35,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.65),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _PreviewChip(
-                  icon: Icons.restaurant_menu_rounded,
-                  label:
-                      '${widget.items.length} ${widget.items.length == 1 ? "item" : "items"}',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Text(
-              widget.totalAmount,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Items ──────────────────────────────────────────────────────────────────
 
   Widget _buildItemsCard() {
     return _Card(
@@ -340,9 +259,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           for (int i = 0; i < widget.items.length; i++) ...[
             _ItemRow(item: widget.items[i]),
             if (i != widget.items.length - 1) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               const Divider(color: _Pal.line, height: 1),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
             ],
           ],
         ],
@@ -350,70 +269,93 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  // ── Summary ────────────────────────────────────────────────────────────────
+  // ── 4. Offers and rewards ──────────────────────────────────────────────────
 
-  Widget _buildSummaryCard() {
-    final offersMissing = widget.offersSummary.startsWith('[');
+  Widget _buildRewards() {
+    return Column(
+      children: [
+        if (_hasOffers)
+          _RewardTile(
+            icon: Icons.local_offer_rounded,
+            accent: _Pal.green,
+            labelColor: _Pal.green,
+            title: 'Applied promotion',
+            message: _cleanOffers,
+          ),
+        if (_hasOffers && _hasMilestone) const SizedBox(height: 10),
+        if (_hasMilestone)
+          _RewardTile(
+            icon: Icons.emoji_events_rounded,
+            accent: _Pal.amber,
+            labelColor: _Pal.amberInk,
+            title: 'Milestone reward unlocked',
+            message: widget.milestoneMessage,
+          ),
+      ],
+    );
+  }
 
+  // ── 5. Breakdown ───────────────────────────────────────────────────────────
+
+  Widget _buildBreakdownCard() {
     return _Card(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SummaryRow('Subtotal', widget.subtotalAmount, _Pal.ink),
-          const SizedBox(height: 10),
-          _SummaryRow('Savings', widget.savingsAmount, _Pal.green),
-          const SizedBox(height: 14),
-          const Divider(color: _Pal.line, height: 1),
-          const SizedBox(height: 14),
-          _NoticeBox(
-            icon: widget.milestoneUnlocked
-                ? Icons.emoji_events_rounded
-                : Icons.lock_clock_rounded,
-            title: widget.milestoneUnlocked
-                ? 'Milestone reward unlocked'
-                : 'Milestone reward not unlocked',
-            message: widget.milestoneMessage,
-            tone: widget.milestoneUnlocked
-                ? _NoticeTone.positive
-                : _NoticeTone.neutral,
-          ),
-          const SizedBox(height: 10),
-          _NoticeBox(
-            icon: Icons.local_offer_outlined,
-            title: offersMissing ? 'Offers unavailable' : 'Offers applied',
-            message: widget.offersSummary,
-            tone: offersMissing ? _NoticeTone.negative : _NoticeTone.neutral,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              color: _Pal.ink,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
+          _SummaryRow('Item total', widget.subtotalAmount, _Pal.ink),
+          if (_hasSavings) ...[
+            const SizedBox(height: 10),
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Total amount',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                  ),
+                const Row(
+                  children: [
+                    Icon(Icons.discount_outlined, size: 14, color: _Pal.green),
+                    SizedBox(width: 6),
+                    Text(
+                      'Special discount',
+                      style: TextStyle(
+                        color: _Pal.green,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
-                  widget.totalAmount,
+                  '-${widget.savingsAmount}',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
+                    color: _Pal.green,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
                   ),
                 ),
               ],
             ),
+          ],
+          const SizedBox(height: 14),
+          const Divider(color: _Pal.line, height: 1),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total payable',
+                style: TextStyle(
+                  color: _Pal.ink700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                widget.totalAmount,
+                style: const TextStyle(
+                  color: _Pal.ink,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.6,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -426,6 +368,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final isPending = _currentStatus == 'pending';
     final isConfirmed = _currentStatus == 'confirmed';
     final isExpired = _currentStatus == 'expired';
+    final canComplete = (isPending || isExpired) && !_isSubmitting;
+
+    final label = isPending
+        ? 'Mark complete'
+        : isConfirmed
+            ? 'Order completed'
+            : isExpired
+                ? 'Complete Expired Order'
+                : 'Order cancelled';
+    final icon = isPending
+        ? Icons.check_rounded
+        : isConfirmed
+            ? Icons.check_circle_rounded
+            : isExpired
+                ? Icons.history_rounded
+                : Icons.block_rounded;
+    final bg = isPending
+        ? _Pal.ink
+        : isConfirmed
+            ? _Pal.green
+            : isExpired
+                ? const Color(0xFFD97706)
+                : _Pal.wash;
+    final fg =
+        (isPending || isConfirmed || isExpired) ? Colors.white : _Pal.ink500;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -443,74 +410,76 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               color: Color(0x08000000), blurRadius: 12, offset: Offset(0, -4)),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          GestureDetector(
-            onTap: (isPending && !_isSubmitting) ? _handleMarkComplete : null,
-            child: Container(
-              width: double.infinity,
-              height: 50,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isPending
-                    ? _Pal.ink
-                    : isConfirmed
-                        ? _Pal.green
-                        : _Pal.wash,
-                borderRadius: BorderRadius.circular(14),
-                border: isConfirmed ? Border.all(color: _Pal.green) : null,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Total',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: _Pal.ink400,
+                ),
               ),
-              child: _isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (isConfirmed) ...[
-                          const Icon(Icons.check_circle_rounded,
-                              color: Colors.white, size: 18),
-                          const SizedBox(width: 8),
-                        ],
-                        Text(
-                          isPending
-                              ? 'Mark complete'
-                              : isConfirmed
-                                  ? 'Order Completed'
-                                  : isExpired
-                                      ? 'Order Expired'
-                                      : 'Order Cancelled',
-                          style: TextStyle(
-                            color: (isPending || isConfirmed)
-                                ? Colors.white
-                                : _Pal.ink500,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.1,
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
+              const SizedBox(height: 2),
+              Text(
+                widget.totalAmount,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: _Pal.ink,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            isPending
-                ? 'The customer is notified as soon as you mark this order complete.'
-                : isConfirmed
-                    ? 'This order has been verified and marked as complete.'
-                    : 'This order is no longer active.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w500,
-              color: _Pal.ink400,
+          const SizedBox(width: 18),
+          Expanded(
+            child: Material(
+              color: bg,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: (isPending || isConfirmed || isExpired)
+                    ? BorderSide.none
+                    : const BorderSide(color: _Pal.line),
+              ),
+              child: InkWell(
+                onTap: canComplete ? _handleMarkComplete : null,
+                child: SizedBox(
+                  height: 52,
+                  child: Center(
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(icon, color: fg, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  color: fg,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -519,22 +488,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 }
 
-// ─── Shared pieces (mirrors createOfferScreen.dart) ──────────────────────────
+// ─── Shared pieces ───────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   final String title;
-  const _SectionLabel(this.title);
+  final String? trailing;
+  const _SectionLabel(this.title, {this.trailing});
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: _Pal.ink,
-        letterSpacing: -0.2,
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: _Pal.ink,
+            letterSpacing: -0.2,
+          ),
+        ),
+        if (trailing != null)
+          Text(
+            trailing!,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: _Pal.ink400,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -559,40 +543,7 @@ class _Card extends StatelessWidget {
   }
 }
 
-class _PreviewChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _PreviewChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: Colors.white.withValues(alpha: 0.7)),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Item row ─────────────────────────────────────────────────────────────────
+// ─── Item row ────────────────────────────────────────────────────────────────
 
 class _ItemRow extends StatelessWidget {
   final OrderLineItem item;
@@ -602,148 +553,216 @@ class _ItemRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isImgMissing = item.imageUrl.isEmpty;
     final isNameMissing = item.name.startsWith('[');
-    final isNoteMissing = item.note.startsWith('[');
+    final hasOffer = item.appliedOffer != null &&
+        item.appliedOffer!.trim().isNotEmpty &&
+        !item.appliedOffer!.startsWith('[');
+    final hasNote = item.note.trim().isNotEmpty && !item.note.startsWith('[');
 
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color:
-                    isImgMissing ? _Pal.red.withValues(alpha: 0.08) : _Pal.wash,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isImgMissing
-                      ? _Pal.red.withValues(alpha: 0.4)
-                      : _Pal.line,
-                ),
-              ),
-              child: ClipOval(
-                child: isImgMissing
-                    ? const Icon(Icons.restaurant, color: _Pal.red, size: 18)
-                    : Image.network(
-                        item.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.restaurant,
-                          color: _Pal.red,
-                          size: 18,
-                        ),
-                      ),
-              ),
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: isImgMissing ? _Pal.red.withValues(alpha: 0.08) : _Pal.wash,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isImgMissing ? _Pal.red.withValues(alpha: 0.4) : _Pal.line,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isNameMissing ? _Pal.red : _Pal.ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: isImgMissing
+                ? const Icon(Icons.restaurant, color: _Pal.red, size: 20)
+                : Image.network(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.restaurant,
+                      color: _Pal.red,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.note,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isNoteMissing ? _Pal.red : _Pal.ink500,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isNameMissing ? _Pal.red : _Pal.ink,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.1,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: _Pal.wash,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: _Pal.line),
+                    ),
+                    child: Text(
+                      item.quantity,
+                      style: const TextStyle(
+                        color: _Pal.ink600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      item.unitPrice,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _Pal.ink400,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              item.quantity,
-              style: const TextStyle(
-                color: _Pal.ink600,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              item.unitPrice,
-              style: const TextStyle(
-                color: _Pal.ink400,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              item.lineTotal,
-              style: const TextStyle(
-                color: _Pal.ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        if (item.appliedOffer != null) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _OfferChip(
-              label: item.appliedOffer!,
-              isError: item.appliedOffer!.startsWith('['),
-            ),
+              if (hasOffer) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _Pal.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.local_offer_rounded,
+                          size: 10, color: _Pal.green),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          item.appliedOffer!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _Pal.green,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (hasNote) ...[
+                const SizedBox(height: 6),
+                Text(
+                  item.note,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _Pal.ink500,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
+        const SizedBox(width: 10),
+        Text(
+          item.lineTotal,
+          style: const TextStyle(
+            color: _Pal.ink,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
+        ),
       ],
     );
   }
 }
 
-class _OfferChip extends StatelessWidget {
-  final String label;
-  final bool isError;
-  const _OfferChip({required this.label, required this.isError});
+// ─── Reward tile ─────────────────────────────────────────────────────────────
+
+class _RewardTile extends StatelessWidget {
+  final IconData icon;
+  final Color accent;
+  final Color labelColor;
+  final String title;
+  final String message;
+  const _RewardTile({
+    required this.icon,
+    required this.accent,
+    required this.labelColor,
+    required this.title,
+    required this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final tint = isError ? _Pal.red : _Pal.green;
     return Container(
-      padding: const EdgeInsets.only(left: 8, right: 10, top: 5, bottom: 5),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: tint.withValues(alpha: 0.3)),
+        color: accent.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 17, color: Colors.white),
           ),
-          const SizedBox(width: 6),
-          Text(
-            'Offer: $label',
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: tint,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: labelColor,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: _Pal.ink,
+                    height: 1.35,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -752,7 +771,7 @@ class _OfferChip extends StatelessWidget {
   }
 }
 
-// ─── Summary pieces ───────────────────────────────────────────────────────────
+// ─── Summary row ─────────────────────────────────────────────────────────────
 
 class _SummaryRow extends StatelessWidget {
   final String label;
@@ -769,7 +788,7 @@ class _SummaryRow extends StatelessWidget {
           label,
           style: const TextStyle(
             color: _Pal.ink500,
-            fontSize: 12,
+            fontSize: 12.5,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -782,102 +801,6 @@ class _SummaryRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-enum _NoticeTone { positive, negative, neutral }
-
-class _NoticeBox extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String message;
-  final _NoticeTone tone;
-
-  const _NoticeBox({
-    required this.icon,
-    required this.title,
-    required this.message,
-    required this.tone,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    late final Color iconColor;
-    late final Color titleColor;
-    late final Color bg;
-    late final Color border;
-
-    switch (tone) {
-      case _NoticeTone.positive:
-        iconColor = _Pal.green;
-        titleColor = _Pal.green;
-        bg = _Pal.green.withValues(alpha: 0.08);
-        border = _Pal.green.withValues(alpha: 0.3);
-        break;
-      case _NoticeTone.negative:
-        iconColor = _Pal.red;
-        titleColor = _Pal.red;
-        bg = _Pal.red.withValues(alpha: 0.08);
-        border = _Pal.red.withValues(alpha: 0.3);
-        break;
-      case _NoticeTone.neutral:
-        iconColor = _Pal.ink700;
-        titleColor = _Pal.ink;
-        bg = _Pal.wash;
-        border = _Pal.line;
-        break;
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _Pal.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: border),
-            ),
-            child: Icon(icon, color: iconColor, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: titleColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  message,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    height: 1.35,
-                    fontWeight: FontWeight.w500,
-                    color: _Pal.ink500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -7,33 +7,142 @@ import 'package:frontend/services/auth_service.dart';
 
 class VendorService {
   static Future<String?> _getAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('access_token');
+    return await AuthService.getValidAccessToken();
+  }
+
+  /// Centralized authenticated request runner with automatic 401 token refresh & retry.
+  static Future<http.Response> _sendWithAuth(
+    Future<http.Response> Function(String token) requestFn,
+  ) async {
+    var token = await AuthService.getValidAccessToken();
+    if (token == null || token.isEmpty) {
+      token = await AuthService.refreshSession(force: true);
+    }
+    if (token == null || token.isEmpty) {
+      return http.Response(
+        jsonEncode({'detail': 'No active session found. Please sign in.'}),
+        401,
+      );
+    }
+
+    var response = await requestFn(token);
+
+    // If 401 Unauthorized, perform token refresh and retry once
+    if (response.statusCode == 401) {
+      final newToken = await AuthService.refreshSession(force: true);
+      if (newToken != null && newToken.isNotEmpty) {
+        response = await requestFn(newToken);
+      }
+    }
+
+    return response;
+  }
+
+  static Future<http.Response> authGet(Uri uri, {Map<String, String>? headers}) {
+    return _sendWithAuth((token) => http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        if (headers != null) ...headers,
+      },
+    ).timeout(const Duration(seconds: 15)));
+  }
+
+  static Future<http.Response> authPost(Uri uri, {Map<String, String>? headers, Object? body}) {
+    return _sendWithAuth((token) => http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        if (headers != null) ...headers,
+      },
+      body: body is String ? body : (body != null ? jsonEncode(body) : null),
+    ).timeout(const Duration(seconds: 15)));
+  }
+
+  static Future<http.Response> authPatch(Uri uri, {Map<String, String>? headers, Object? body}) {
+    return _sendWithAuth((token) => http.patch(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        if (headers != null) ...headers,
+      },
+      body: body is String ? body : (body != null ? jsonEncode(body) : null),
+    ).timeout(const Duration(seconds: 15)));
+  }
+
+  static Future<http.Response> authPut(Uri uri, {Map<String, String>? headers, Object? body}) {
+    return _sendWithAuth((token) => http.put(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        if (headers != null) ...headers,
+      },
+      body: body is String ? body : (body != null ? jsonEncode(body) : null),
+    ).timeout(const Duration(seconds: 15)));
+  }
+
+  static Future<http.Response> authDelete(Uri uri, {Map<String, String>? headers, Object? body}) {
+    return _sendWithAuth((token) => http.delete(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        if (headers != null) ...headers,
+      },
+      body: body is String ? body : (body != null ? jsonEncode(body) : null),
+    ).timeout(const Duration(seconds: 15)));
+  }
+
+  static String _extractApiError(dynamic data, [String fallback = 'Operation failed.']) {
+    if (data is Map) {
+      if (data['detail'] != null && data['detail'].toString().isNotEmpty) {
+        return data['detail'].toString();
+      }
+      if (data['error'] != null && data['error'].toString().isNotEmpty) {
+        return data['error'].toString();
+      }
+      if (data['message'] != null && data['message'].toString().isNotEmpty) {
+        return data['message'].toString();
+      }
+      for (final value in data.values) {
+        if (value is List && value.isNotEmpty) {
+          return value.first.toString();
+        }
+        if (value is String && value.isNotEmpty) {
+          return value;
+        }
+      }
+    } else if (data is String && data.isNotEmpty) {
+      return data;
+    }
+    return fallback;
   }
 
   /// Fetch vendor profile from backend
   static Future<Map<String, dynamic>> getVendorProfile() async {
-    final token = await _getAccessToken();
-    if (token == null || token.isEmpty) {
-      return {'success': false, 'error': 'No access token found'};
-    }
-
     try {
-      final response = await http.get(
-        Uri.parse(ApiConfig.vendorProfileUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await authGet(Uri.parse(ApiConfig.vendorProfileUrl));
+      final data = jsonDecode(response.body);
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
         data['icon_image'] = ApiConfig.getImageUrl(data['icon_image']?.toString());
         data['cover_image'] = ApiConfig.getImageUrl(data['cover_image']?.toString());
+
+        final businessName = data['business_name']?.toString().trim() ?? '';
+        final isOnboarded = data['is_onboarded'] as bool? ?? false;
+        if (businessName.isNotEmpty || isOnboarded) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('business_name', businessName);
+          await AuthService.setOnboarded(true);
+        }
+
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': data['detail'] ?? 'Failed to fetch vendor profile.'};
+        return {'success': false, 'error': _extractApiError(data, 'Failed to fetch vendor profile.')};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -45,14 +154,28 @@ class VendorService {
     final localOnboarded = await AuthService.isOnboarded();
     if (localOnboarded) return true;
 
+    final prefs = await SharedPreferences.getInstance();
+    final cachedName = prefs.getString('business_name')?.trim() ?? '';
+    if (cachedName.isNotEmpty) {
+      await AuthService.setOnboarded(true);
+      return true;
+    }
+
     final res = await getVendorProfile();
     if (res['success'] == true && res['data'] != null) {
       final data = res['data'] as Map<String, dynamic>;
       final businessName = data['business_name']?.toString().trim() ?? '';
       final isOnboarded = data['is_onboarded'] as bool? ?? false;
       if (businessName.isNotEmpty || isOnboarded) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_onboarded', true);
+        await prefs.setString('business_name', businessName);
+        await AuthService.setOnboarded(true);
+        return true;
+      }
+    } else {
+      // If network error occurred, but user is logged in, do not kick them to SetupShopScreen
+      final loggedIn = await AuthService.isLoggedIn();
+      final err = res['error']?.toString() ?? '';
+      if (loggedIn && (err.contains('Network') || err.contains('SocketException') || err.contains('Timeout'))) {
         return true;
       }
     }
@@ -96,7 +219,7 @@ class VendorService {
           request.files.add(await http.MultipartFile.fromPath('cover_image', coverImage.path));
         }
 
-        final streamedResponse = await request.send();
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
         final response = await http.Response.fromStream(streamedResponse);
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -108,10 +231,11 @@ class VendorService {
             refresh: (await SharedPreferences.getInstance()).getString('refresh_token') ?? '',
             phone: (await SharedPreferences.getInstance()).getString('phone_number') ?? '',
             isOnboarded: isOnboarded,
+            businessName: businessName,
           );
           return {'success': true, 'data': data};
         } else {
-          return {'success': false, 'error': data.toString()};
+          return {'success': false, 'error': _extractApiError(data, 'Failed to update shop profile.')};
         }
       } else {
         // JSON request
@@ -129,20 +253,75 @@ class VendorService {
             'latitude': latitude,
             'longitude': longitude,
           }),
-        );
+        ).timeout(const Duration(seconds: 15));
 
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         if (response.statusCode == 200 || response.statusCode == 201) {
           final isOnboarded = data['is_onboarded'] as bool? ?? true;
           final prefs = await SharedPreferences.getInstance();
           await prefs.setBool('is_onboarded', isOnboarded);
+          await prefs.setString('business_name', businessName);
           return {'success': true, 'data': data};
         } else {
-          return {'success': false, 'error': data['detail'] ?? data.toString()};
+          return {'success': false, 'error': _extractApiError(data, 'Failed to update shop profile.')};
         }
       }
     } catch (e) {
       return {'success': false, 'error': 'Error saving shop profile: $e'};
+    }
+  }
+
+  /// Remove icon image or cover image from the vendor profile
+  static Future<Map<String, dynamic>> removeVendorImage({
+    bool removeIcon = false,
+    bool removeCover = false,
+  }) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final Map<String, dynamic> body = {};
+      if (removeIcon) body['icon_image'] = null;
+      if (removeCover) body['cover_image'] = null;
+
+      final response = await http.patch(
+        Uri.parse(ApiConfig.vendorProfileUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 15));
+
+      dynamic data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        data = null;
+      }
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {
+          'success': true,
+          if (data is Map<String, dynamic>) 'data': data,
+        };
+      } else {
+        if (data != null) {
+          return {
+            'success': false,
+            'error': _extractApiError(data, 'Failed to remove image.')
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'Server returned status ${response.statusCode}'
+          };
+        }
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Error removing image: $e'};
     }
   }
 
@@ -162,7 +341,7 @@ class VendorService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({'availability_override': override}),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -190,7 +369,7 @@ class VendorService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({'days': daysSchedule}),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {'success': true};
@@ -225,7 +404,7 @@ class VendorService {
         request.files.add(await http.MultipartFile.fromPath('cover_image', coverImage.path));
       }
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
       final response = await http.Response.fromStream(streamedResponse);
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -237,7 +416,7 @@ class VendorService {
           'data': data,
         };
       } else {
-        return {'success': false, 'error': data['detail'] ?? 'Failed to upload image.'};
+        return {'success': false, 'error': _extractApiError(data, 'Failed to upload image.')};
       }
     } catch (e) {
       return {'success': false, 'error': 'Error uploading image: $e'};
@@ -245,6 +424,38 @@ class VendorService {
   }
 
   // ── Menu Categories CRUD ──────────────────────────────────────────────────
+
+  static Future<List<dynamic>> _fetchAllPages(String initialUrl, String token) async {
+    List<dynamic> allResults = [];
+    String? nextUrl = initialUrl;
+
+    while (nextUrl != null) {
+      final response = await http.get(
+        Uri.parse(nextUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) {
+          allResults.addAll(data);
+          break;
+        } else if (data is Map<String, dynamic>) {
+          allResults.addAll(data['results'] ?? []);
+          nextUrl = data['next']?.toString();
+        } else {
+          break;
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        throw Exception(data['detail'] ?? 'Failed to fetch list.');
+      }
+    }
+    return allResults;
+  }
 
   /// Get all menu categories for vendor
   static Future<Map<String, dynamic>> getMenuCategories() async {
@@ -254,24 +465,10 @@ class VendorService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse(ApiConfig.vendorMenuCategoriesUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final list = (data is List) ? data : (data['results'] ?? []);
-        return {'success': true, 'data': list};
-      } else {
-        final data = jsonDecode(response.body);
-        return {'success': false, 'error': data['detail'] ?? 'Failed to fetch categories'};
-      }
+      final list = await _fetchAllPages(ApiConfig.vendorMenuCategoriesUrl, token);
+      return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': 'Error fetching categories: $e'};
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -296,7 +493,7 @@ class VendorService {
           'name': name,
           'order': order,
         }),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -338,7 +535,7 @@ class VendorService {
           'name': name,
           'order': order,
         }),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
@@ -358,7 +555,7 @@ class VendorService {
     }
   }
 
-  /// Delete a menu category and all food items inside it
+  /// Delete a menu category
   static Future<Map<String, dynamic>> deleteMenuCategory(String id) async {
     final token = await _getAccessToken();
     if (token == null || token.isEmpty) {
@@ -366,31 +563,13 @@ class VendorService {
     }
 
     try {
-      // 1. Fetch all menu items belonging to this category and delete them first
-      final itemsRes = await getMenuItems(categoryId: id);
-      if (itemsRes['success'] == true && itemsRes['data'] != null) {
-        final rawItems = itemsRes['data'] as List<dynamic>;
-        for (final item in rawItems) {
-          if (item is Map<String, dynamic> && item['id'] != null) {
-            final deleteItemRes = await deleteMenuItem(item['id'].toString());
-            if (deleteItemRes['success'] != true) {
-              return {
-                'success': false,
-                'error': deleteItemRes['error'] ?? 'Failed to delete food items in category.'
-              };
-            }
-          }
-        }
-      }
-
-      // 2. Delete the menu category itself
       final response = await http.delete(
         Uri.parse(ApiConfig.vendorMenuCategoryDetailUrl(id)),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
         return {'success': true};
@@ -446,38 +625,23 @@ class VendorService {
         urlStr += '?category_id=$categoryId';
       }
 
-      final response = await http.get(
-        Uri.parse(urlStr),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+      final list = await _fetchAllPages(urlStr, token);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final rawList = (data is List) ? data : (data['results'] ?? []);
-        final list = rawList is List ? rawList : [];
-
-        if (categoryId != null && categoryId.isNotEmpty) {
-          final filtered = list.where((item) {
-            if (item is Map<String, dynamic>) {
-              final catField = item['category'];
-              if (catField is String) return catField == categoryId;
-              if (catField is Map) return catField['id']?.toString() == categoryId;
-            }
-            return false;
-          }).toList();
-          return {'success': true, 'data': filtered};
-        }
-
-        return {'success': true, 'data': list};
-      } else {
-        final data = jsonDecode(response.body);
-        return {'success': false, 'error': data['detail'] ?? 'Failed to fetch menu items'};
+      if (categoryId != null && categoryId.isNotEmpty) {
+        final filtered = list.where((item) {
+          if (item is Map<String, dynamic>) {
+            final catField = item['category'];
+            if (catField is String) return catField == categoryId;
+            if (catField is Map) return catField['id']?.toString() == categoryId;
+          }
+          return false;
+        }).toList();
+        return {'success': true, 'data': filtered};
       }
+
+      return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': 'Error fetching menu items: $e'};
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -491,28 +655,26 @@ class VendorService {
     bool isAvailable = true,
     File? image,
   }) async {
-    final token = await _getAccessToken();
-    if (token == null || token.isEmpty) {
-      return {'success': false, 'error': 'Not authenticated'};
-    }
-
     try {
-      final uri = Uri.parse(ApiConfig.vendorMenuItemsUrl);
-      final request = http.MultipartRequest('POST', uri);
-      request.headers['Authorization'] = 'Bearer $token';
-      request.fields['name'] = name;
-      request.fields['category'] = categoryId;
-      request.fields['price'] = price.toStringAsFixed(2);
-      request.fields['description'] = encodeDescription(description, isVegetarian);
-      request.fields['is_vegetarian'] = isVegetarian.toString();
-      request.fields['is_available'] = isAvailable.toString();
+      final response = await _sendWithAuth((token) async {
+        final uri = Uri.parse(ApiConfig.vendorMenuItemsUrl);
+        final request = http.MultipartRequest('POST', uri);
+        request.headers['Authorization'] = 'Bearer $token';
+        request.fields['name'] = name;
+        request.fields['category'] = categoryId;
+        request.fields['price'] = price.toStringAsFixed(2);
+        request.fields['description'] = encodeDescription(description, isVegetarian);
+        request.fields['is_vegetarian'] = isVegetarian.toString();
+        request.fields['is_available'] = isAvailable.toString();
 
-      if (image != null) {
-        request.files.add(await http.MultipartFile.fromPath('image', image.path));
-      }
+        if (image != null) {
+          request.files.add(await http.MultipartFile.fromPath('image', image.path));
+        }
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
+        return await http.Response.fromStream(streamedResponse);
+      });
+
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -536,36 +698,34 @@ class VendorService {
     bool? isAvailable,
     File? image,
   }) async {
-    final token = await _getAccessToken();
-    if (token == null || token.isEmpty) {
-      return {'success': false, 'error': 'Not authenticated'};
-    }
-
     try {
-      final uri = Uri.parse(ApiConfig.vendorMenuItemDetailUrl(id));
-      final request = http.MultipartRequest('PATCH', uri);
-      request.headers['Authorization'] = 'Bearer $token';
+      final response = await _sendWithAuth((token) async {
+        final uri = Uri.parse(ApiConfig.vendorMenuItemDetailUrl(id));
+        final request = http.MultipartRequest('PATCH', uri);
+        request.headers['Authorization'] = 'Bearer $token';
 
-      if (name != null) request.fields['name'] = name;
-      if (categoryId != null) request.fields['category'] = categoryId;
-      if (price != null) request.fields['price'] = price.toStringAsFixed(2);
-      if (description != null && isVegetarian != null) {
-        request.fields['description'] = encodeDescription(description, isVegetarian);
-      } else if (description != null) {
-        request.fields['description'] = description;
-      }
-      if (isVegetarian != null) request.fields['is_vegetarian'] = isVegetarian.toString();
-      if (isAvailable != null) request.fields['is_available'] = isAvailable.toString();
+        if (name != null) request.fields['name'] = name;
+        if (categoryId != null) request.fields['category'] = categoryId;
+        if (price != null) request.fields['price'] = price.toStringAsFixed(2);
+        if (description != null && isVegetarian != null) {
+          request.fields['description'] = encodeDescription(description, isVegetarian);
+        } else if (description != null) {
+          request.fields['description'] = description;
+        }
+        if (isVegetarian != null) request.fields['is_vegetarian'] = isVegetarian.toString();
+        if (isAvailable != null) request.fields['is_available'] = isAvailable.toString();
 
-      if (image != null) {
-        request.files.add(await http.MultipartFile.fromPath('image', image.path));
-      }
+        if (image != null) {
+          request.files.add(await http.MultipartFile.fromPath('image', image.path));
+        }
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
+        return await http.Response.fromStream(streamedResponse);
+      });
+
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         return {'success': true, 'data': data};
       } else {
         return {'success': false, 'error': data.toString()};
@@ -589,7 +749,7 @@ class VendorService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
         return {'success': true};
@@ -614,24 +774,10 @@ class VendorService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse(ApiConfig.vendorOffersUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final list = (data is List) ? data : (data['results'] ?? []);
-        return {'success': true, 'data': list};
-      } else {
-        final data = jsonDecode(response.body);
-        return {'success': false, 'error': data['detail'] ?? 'Failed to fetch offers'};
-      }
+      final list = await _fetchAllPages(ApiConfig.vendorOffersUrl, token);
+      return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': 'Error fetching offers: $e'};
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -650,7 +796,7 @@ class VendorService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(offerData),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -685,7 +831,7 @@ class VendorService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(data),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final resData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -712,7 +858,7 @@ class VendorService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
         return {'success': true};
@@ -735,24 +881,10 @@ class VendorService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse(ApiConfig.vendorRewardMilestonesUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final list = (data is List) ? data : (data['results'] ?? []);
-        return {'success': true, 'data': list};
-      } else {
-        final data = jsonDecode(response.body);
-        return {'success': false, 'error': data['detail'] ?? 'Failed to fetch reward milestones'};
-      }
+      final list = await _fetchAllPages(ApiConfig.vendorRewardMilestonesUrl, token);
+      return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': 'Error fetching reward milestones: $e'};
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -771,7 +903,7 @@ class VendorService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(data),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final resData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -806,7 +938,7 @@ class VendorService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(data),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final resData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -837,7 +969,7 @@ class VendorService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
         return {'success': true};
@@ -858,24 +990,10 @@ class VendorService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse(ApiConfig.vendorRedemptionsUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final list = (data is List) ? data : (data['results'] ?? []);
-        return {'success': true, 'data': list};
-      } else {
-        final data = jsonDecode(response.body);
-        return {'success': false, 'error': data['detail'] ?? 'Failed to fetch redemptions'};
-      }
+      final list = await _fetchAllPages(ApiConfig.vendorRedemptionsUrl, token);
+      return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': 'Error fetching redemptions: $e'};
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -893,7 +1011,7 @@ class VendorService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
@@ -905,4 +1023,35 @@ class VendorService {
       return {'success': false, 'error': 'Error confirming order: $e'};
     }
   }
+
+  /// Fetch all customer reviews and ratings summary for the logged in vendor
+  static Future<Map<String, dynamic>> getVendorReviews() async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.vendorReviewsUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        return {'success': true, 'data': data};
+      } else {
+        return {
+          'success': false,
+          'error': data is Map ? (data['detail'] ?? 'Failed to fetch reviews') : 'Failed to fetch reviews',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Error fetching reviews: $e'};
+    }
+  }
 }
+

@@ -30,8 +30,6 @@ class _K {
 
 enum ItemStatus { available, notAvailable }
 
-enum ItemTag { none, bestseller, veg }
-
 enum ItemFilter { all, available, unavailable }
 
 enum _CardAction { edit, delete }
@@ -43,7 +41,8 @@ class FoodItem {
   final double price;
   final String imageUrl;
   final ItemStatus status;
-  final ItemTag tag;
+  final bool isVeg;
+  final bool isBestseller;
 
   const FoodItem({
     required this.id,
@@ -52,7 +51,8 @@ class FoodItem {
     required this.price,
     required this.imageUrl,
     this.status = ItemStatus.available,
-    this.tag = ItemTag.none,
+    this.isVeg = false,
+    this.isBestseller = false,
   });
 
   FoodItem copyWith({ItemStatus? status}) => FoodItem(
@@ -62,7 +62,8 @@ class FoodItem {
         price: price,
         imageUrl: imageUrl,
         status: status ?? this.status,
-        tag: tag,
+        isVeg: isVeg,
+        isBestseller: isBestseller,
       );
 }
 
@@ -194,6 +195,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         if (item is Map<String, dynamic>) {
           final isAvail = item['is_available'] as bool? ?? true;
           final isVeg = VendorService.parseIsVegetarian(item);
+          final isBestseller = item['is_bestseller'] as bool? ?? false;
           final desc =
               VendorService.cleanDescription(item['description']?.toString());
           final p = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
@@ -204,7 +206,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
             price: p,
             imageUrl: ApiConfig.getImageUrl(item['image']?.toString()) ?? '',
             status: isAvail ? ItemStatus.available : ItemStatus.notAvailable,
-            tag: isVeg ? ItemTag.veg : ItemTag.none,
+            isVeg: isVeg,
+            isBestseller: isBestseller,
           ));
         }
       }
@@ -366,8 +369,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           categoryId: widget.categoryId,
           categoryName: widget.categoryName,
           isAvailable: item.status == ItemStatus.available,
-          isVeg: item.tag == ItemTag.veg,
-          isBestseller: item.tag == ItemTag.bestseller,
+          isVeg: item.isVeg,
+          isBestseller: item.isBestseller,
         ),
       ),
     );
@@ -384,7 +387,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           initialName: item.name,
           initialPrice: item.price,
           initialDescription: item.description,
-          initialIsVeg: item.tag == ItemTag.veg,
+          initialIsVeg: item.isVeg,
           initialIsAvailable: item.status == ItemStatus.available,
           initialImageUrl: item.imageUrl,
         ),
@@ -978,9 +981,9 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               width: 34,
               height: 34,
               decoration: const BoxDecoration(
-                  color: _K.emerald, shape: BoxShape.circle),
-              child:
-                  const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                  color: Colors.white, shape: BoxShape.circle),
+              child: const Icon(Icons.add_rounded,
+                  color: _K.textPrimary, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -1093,8 +1096,8 @@ class _ItemTile extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (item.tag == ItemTag.veg) const _VegMark(),
-                if (item.tag == ItemTag.bestseller)
+                if (item.isVeg) const _VegMark(),
+                if (item.isBestseller)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 7, vertical: 4),

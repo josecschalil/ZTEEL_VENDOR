@@ -7,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:frontend/screens/locationPageScreen.dart';
 import 'package:frontend/screens/vendor_home.dart';
+import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SetupShopScreen extends StatefulWidget {
   const SetupShopScreen({super.key});
@@ -30,7 +32,6 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
   static const Color slate400 = Color(0xFF94A3B8);
   static const Color slate300 = Color(0xFFCBD5E1);
   static const Color slate200 = Color(0xFFE2E8F0);
-  static const Color slate100 = Color(0xFFF1F5F9);
 
   static const Color accent = Color(0xFF3B82F6);
   static const Color danger = Color(0xFFEF4444);
@@ -193,47 +194,12 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
 
       if (picked == null) return;
 
-      final file = File(picked.path);
-
       setState(() {
-        _iconImageFile = file;
-        _isUploadingIcon = true;
+        _iconImageFile = File(picked.path);
+        _iconImageUrl = null;
       });
-
-      final res = await VendorService.uploadSingleImage(
-        iconImage: file,
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _isUploadingIcon = false;
-      });
-
-      if (res['success'] == true) {
-        if (res['icon_image'] != null) {
-          setState(() {
-            _iconImageUrl = res['icon_image'].toString();
-          });
-        }
-
-        _showToast(
-          'Profile image updated.',
-          positive: true,
-        );
-      } else {
-        _showToast(
-          res['error'] ?? 'Failed to upload profile image.',
-          positive: false,
-        );
-      }
     } catch (_) {
       if (!mounted) return;
-
-      setState(() {
-        _isUploadingIcon = false;
-      });
-
       _showToast(
         'Could not select profile image.',
         positive: false,
@@ -250,47 +216,12 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
 
       if (picked == null) return;
 
-      final file = File(picked.path);
-
       setState(() {
-        _coverImageFile = file;
-        _isUploadingCover = true;
+        _coverImageFile = File(picked.path);
+        _coverImageUrl = null;
       });
-
-      final res = await VendorService.uploadSingleImage(
-        coverImage: file,
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _isUploadingCover = false;
-      });
-
-      if (res['success'] == true) {
-        if (res['cover_image'] != null) {
-          setState(() {
-            _coverImageUrl = res['cover_image'].toString();
-          });
-        }
-
-        _showToast(
-          'Cover photo updated.',
-          positive: true,
-        );
-      } else {
-        _showToast(
-          res['error'] ?? 'Failed to upload cover photo.',
-          positive: false,
-        );
-      }
     } catch (_) {
       if (!mounted) return;
-
-      setState(() {
-        _isUploadingCover = false;
-      });
-
       _showToast(
         'Could not select cover image.',
         positive: false,
@@ -393,10 +324,17 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
 
     final normalized = sessions
         .map(
-          (session) => (
-            _toMinutes(session.start),
-            _toMinutes(session.end),
-          ),
+          (session) {
+            final startMins = _toMinutes(session.start);
+            int endMins = _toMinutes(session.end);
+            
+            // Allow overnight hours
+            if (endMins <= startMins) {
+              endMins += 24 * 60;
+            }
+            
+            return (startMins, endMins);
+          },
         )
         .toList()
       ..sort(
@@ -485,6 +423,451 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
     });
   }
 
+  void _applyHoursToAllDays(int sourceDayIndex) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    setState(() {
+      for (int i = 0; i < 7; i++) {
+        if (i != sourceDayIndex) {
+          _daySessions[i] = sourceSessions
+              .map((s) => _OpeningSession(start: s.start, end: s.end))
+              .toList();
+        }
+      }
+    });
+    _showToast(
+      'Applied ${_fullDayLabel(sourceDayIndex)} hours to all 7 days.',
+      positive: true,
+    );
+  }
+
+  void _applyHoursToWeekdays(int sourceDayIndex) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    setState(() {
+      for (int i = 0; i < 5; i++) {
+        if (i != sourceDayIndex) {
+          _daySessions[i] = sourceSessions
+              .map((s) => _OpeningSession(start: s.start, end: s.end))
+              .toList();
+        }
+      }
+    });
+    _showToast(
+      'Applied ${_fullDayLabel(sourceDayIndex)} hours to weekdays (Mon–Fri).',
+      positive: true,
+    );
+  }
+
+  void _applyHoursToCustomDays(int sourceDayIndex, List<int> targetDayIndices) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    setState(() {
+      for (final index in targetDayIndices) {
+        if (index != sourceDayIndex && index >= 0 && index < 7) {
+          _daySessions[index] = sourceSessions
+              .map((s) => _OpeningSession(start: s.start, end: s.end))
+              .toList();
+        }
+      }
+    });
+    _showToast(
+      'Applied ${_fullDayLabel(sourceDayIndex)} hours to ${targetDayIndices.length} selected days.',
+      positive: true,
+    );
+  }
+
+  void _showApplyHoursModal(int sourceDayIndex) {
+    final sourceSessions = _daySessions[sourceDayIndex];
+    final dayName = _fullDayLabel(sourceDayIndex);
+    final String summaryText = sourceSessions.isEmpty
+        ? 'Closed (Will mark other days as Closed)'
+        : sourceSessions
+            .map((s) => '${_formatTime(s.start)} – ${_formatTime(s.end)}')
+            .join(', ');
+
+    // By default select all other 6 days
+    final Set<int> selectedDays =
+        List.generate(7, (i) => i).where((i) => i != sourceDayIndex).toSet();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: slate950,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final allOtherSelected = selectedDays.length == 6;
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  18 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle indicator
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: slate700,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+
+                    // Title Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: slate900,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: slate800),
+                          ),
+                          child: const Icon(
+                            Icons.copy_all_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Apply $dayName Schedule',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                summaryText,
+                                style: const TextStyle(
+                                  color: slate400,
+                                  fontSize: 11.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Quick presets section
+                    const Text(
+                      'QUICK PRESETS',
+                      style: TextStyle(
+                        color: slate500,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // All 7 Days preset
+                    _buildPresetOption(
+                      icon: Icons.calendar_month_rounded,
+                      title: 'Apply to all 7 days (Mon – Sun)',
+                      subtitle: 'Copy this schedule across the whole week',
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _applyHoursToAllDays(sourceDayIndex);
+                      },
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Weekdays Only preset
+                    _buildPresetOption(
+                      icon: Icons.business_center_rounded,
+                      title: 'Apply to weekdays (Mon – Fri)',
+                      subtitle: 'Keep Saturday & Sunday schedule unchanged',
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _applyHoursToWeekdays(sourceDayIndex);
+                      },
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Custom Days Selector Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: slate900,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: slate800),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'SELECT SPECIFIC DAYS',
+                                style: TextStyle(
+                                  color: slate400,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.9,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    if (allOtherSelected) {
+                                      selectedDays.clear();
+                                    } else {
+                                      selectedDays.clear();
+                                      for (int i = 0; i < 7; i++) {
+                                        if (i != sourceDayIndex) {
+                                          selectedDays.add(i);
+                                        }
+                                      }
+                                    }
+                                  });
+                                },
+                                child: Text(
+                                  allOtherSelected ? 'Clear all' : 'Select all',
+                                  style: const TextStyle(
+                                    color: accent,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // 7-day pill tiles row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: List.generate(7, (i) {
+                              final isSource = i == sourceDayIndex;
+                              final isSelected = selectedDays.contains(i);
+
+                              return GestureDetector(
+                                onTap: isSource
+                                    ? null
+                                    : () {
+                                        setModalState(() {
+                                          if (isSelected) {
+                                            selectedDays.remove(i);
+                                          } else {
+                                            selectedDays.add(i);
+                                          }
+                                        });
+                                      },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 160),
+                                  width: 42,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: isSource
+                                        ? slate950
+                                        : isSelected
+                                            ? Colors.white
+                                            : slate800,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSource
+                                          ? slate800
+                                          : isSelected
+                                              ? Colors.white
+                                              : slate700,
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        _shortDayLabel(i),
+                                        style: TextStyle(
+                                          color: isSource
+                                              ? slate600
+                                              : isSelected
+                                                  ? slate950
+                                                  : slate200,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      if (isSource)
+                                        const Text(
+                                          'SRC',
+                                          style: TextStyle(
+                                            color: slate600,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          width: 13,
+                                          height: 13,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: isSelected
+                                                ? slate950
+                                                : Colors.transparent,
+                                            border: isSelected
+                                                ? null
+                                                : Border.all(
+                                                    color: slate600,
+                                                    width: 1.2,
+                                                  ),
+                                          ),
+                                          child: isSelected
+                                              ? const Icon(
+                                                  Icons.check_rounded,
+                                                  size: 9,
+                                                  color: Colors.white,
+                                                )
+                                              : null,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Apply Button
+                    GestureDetector(
+                      onTap: selectedDays.isEmpty
+                          ? null
+                          : () {
+                              Navigator.pop(ctx);
+                              _applyHoursToCustomDays(
+                                sourceDayIndex,
+                                selectedDays.toList(),
+                              );
+                            },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: selectedDays.isEmpty ? slate900 : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selectedDays.isEmpty ? slate800 : Colors.white,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            selectedDays.isEmpty
+                                ? 'Select at least one day'
+                                : 'Apply to ${selectedDays.length} Selected Day${selectedDays.length > 1 ? 's' : ''}',
+                            style: TextStyle(
+                              color: selectedDays.isEmpty ? slate600 : slate950,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPresetOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: slate900,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: slate800),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: slate800,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: slate700),
+              ),
+              child: Icon(icon, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: slate400,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: slate500,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ============================================================
   // NAVIGATION
   // ============================================================
@@ -562,17 +945,16 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
         return false;
       }
 
-      final validation = _sessionValidationMessage(
-        _selectedDayIndex,
-      );
-
-      if (validation != null) {
-        _showToast(
-          validation,
-          positive: false,
-        );
-
-        return false;
+      final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      for (int i = 0; i < 7; i++) {
+        final validation = _sessionValidationMessage(i);
+        if (validation != null) {
+          _showToast(
+            '${days[i]}: $validation',
+            positive: false,
+          );
+          return false;
+        }
       }
 
       return true;
@@ -652,12 +1034,16 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
 
           final slots = sessions
               .map(
-                (session) => {
-                  'opens_at': '${session.start.hour.toString().padLeft(2, '0')}:'
-                      '${session.start.minute.toString().padLeft(2, '0')}:00',
-                  'closes_at': '${session.end.hour.toString().padLeft(2, '0')}:'
-                      '${session.end.minute.toString().padLeft(2, '0')}:00',
-                  'closes_next_day': false,
+                (session) {
+                  final closesNextDay = session.end.hour < session.start.hour || 
+                      (session.end.hour == session.start.hour && session.end.minute <= session.start.minute);
+                  return {
+                    'opens_at': '${session.start.hour.toString().padLeft(2, '0')}:'
+                        '${session.start.minute.toString().padLeft(2, '0')}:00',
+                    'closes_at': '${session.end.hour.toString().padLeft(2, '0')}:'
+                        '${session.end.minute.toString().padLeft(2, '0')}:00',
+                    'closes_next_day': closesNextDay,
+                  };
                 },
               )
               .toList();
@@ -691,6 +1077,10 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
 
       if (!mounted) return;
 
+      await AuthService.setOnboarded(true);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('business_name', _nameController.text.trim());
+
       setState(() {
         _isSubmitting = false;
         _currentStep = 4;
@@ -721,18 +1111,25 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
   }) {
     if (!mounted) return;
 
+    final mediaQuery = MediaQuery.of(context);
+    final bottomPadding = mediaQuery.padding.bottom;
+    // Position toast cleanly above the sticky bottom action bar
+    final bottomMargin = 104.0 + bottomPadding;
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(
+          duration: const Duration(milliseconds: 2400),
+          dismissDirection: DismissDirection.horizontal,
+          margin: EdgeInsets.fromLTRB(
             16,
             0,
             16,
-            16,
+            bottomMargin,
           ),
-          elevation: 0,
+          elevation: 6,
           backgroundColor: positive
               ? slate900
               : const Color(
@@ -741,6 +1138,9 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(
               14,
+            ),
+            side: BorderSide(
+              color: positive ? slate800 : const Color(0xFF991B1B),
             ),
           ),
           content: Row(
@@ -796,28 +1196,67 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
       ),
       child: Scaffold(
         backgroundColor: slate950,
-        body: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  if (_currentStep != 4) _buildTopBar(),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.only(
-                        bottom: _currentStep < 4 ? 115 : 0,
-                      ),
-                      child: _buildCurrentStep(),
+        body: Stack(
+          children: [
+            // ── Background image on Step 0 (Welcome / Get Started) ──
+            if (_currentStep == 0)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: MediaQuery.of(context).size.height * 0.52,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/images/setup_shop_bg.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox(),
                     ),
+                    // Multi-stop gradient overlay to smoothly blend with slate950
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0.0, 0.35, 0.70, 1.0],
+                          colors: [
+                            slate950.withValues(alpha: 0.08),
+                            slate950.withValues(alpha: 0.35),
+                            slate950.withValues(alpha: 0.78),
+                            slate950,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            SafeArea(
+              bottom: false,
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      if (_currentStep != 4) _buildTopBar(),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.only(
+                            bottom: _currentStep < 4 ? 115 : 0,
+                          ),
+                          child: _buildCurrentStep(),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (_currentStep < 4) _buildStickyBottomBar(),
                 ],
               ),
-              if (_currentStep < 4) _buildStickyBottomBar(),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1804,48 +2243,54 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () => _addSession(
-                  _selectedDayIndex,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(
-                      0.06,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (sessions.isNotEmpty) ...[],
+                  GestureDetector(
+                    onTap: () => _addSession(
+                      _selectedDayIndex,
                     ),
-                    borderRadius: BorderRadius.circular(
-                      10,
-                    ),
-                    border: Border.all(
-                      color: slate700,
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Text(
-                        'Add hours',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(
+                          0.06,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          10,
+                        ),
+                        border: Border.all(
+                          color: slate700,
                         ),
                       ),
-                    ],
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            'Add hours',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -1961,10 +2406,69 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                 );
               },
             ),
+          if (sessions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(
+                top: 4,
+              ),
+              child: InkWell(
+                onTap: () => _showApplyHoursModal(
+                  _selectedDayIndex,
+                ),
+                borderRadius: BorderRadius.circular(
+                  12,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(
+                      alpha: 0.04,
+                    ),
+                    borderRadius: BorderRadius.circular(
+                      12,
+                    ),
+                    border: Border.all(
+                      color: slate800,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.sync_rounded,
+                        color: accent,
+                        size: 16,
+                      ),
+                      const SizedBox(
+                        width: 8,
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Apply ${_fullDayLabel(_selectedDayIndex)} hours to other days',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: slate500,
+                        size: 12,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (validation != null)
             Padding(
               padding: const EdgeInsets.only(
-                top: 2,
+                top: 8,
               ),
               child: Text(
                 validation,
@@ -2331,7 +2835,9 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
               _buildPrimaryButton(
                 label: 'Go to Dashboard',
                 icon: Icons.arrow_forward_rounded,
-                onTap: () {
+                onTap: () async {
+                  await AuthService.setOnboarded(true);
+                  if (!mounted) return;
                   Navigator.of(
                     context,
                   ).pushAndRemoveUntil(

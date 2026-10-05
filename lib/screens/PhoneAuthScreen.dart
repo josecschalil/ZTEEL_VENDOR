@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/OtpProfileScreen.dart';
+import 'package:frontend/screens/terms_policy_screen.dart';
 import 'package:frontend/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -194,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                                   // Left-aligned editorial heading
                                   const Text(
-                                    'Welcome\nto ZTEEEL',
+                                    'Welcome\nto ZTEEL',
                                     style: TextStyle(
                                       color: Color(0xFF0F172A),
                                       fontSize: 44,
@@ -378,7 +379,7 @@ class _Footer extends StatelessWidget {
                 backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 disabledBackgroundColor:
-                    const Color(0xFF0F172A).withOpacity(0.6),
+                    const Color(0xFF0F172A).withValues(alpha: 0.6),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -402,28 +403,42 @@ class _Footer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: TextStyle(
-                  color: const Color(0xFF94A3B8).withOpacity(.75),
-                  fontSize: 11.5,
-                  height: 1.5),
-              children: [
-                const TextSpan(text: 'By continuing, you agree to our '),
-                TextSpan(
-                    text: 'Terms',
+          Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'By continuing, you agree to our ',
                     style: TextStyle(
-                        color: const Color(0xFF0F172A).withOpacity(.9),
-                        fontWeight: FontWeight.w600)),
-                const TextSpan(text: ' and '),
-                TextSpan(
-                    text: 'Privacy Policy',
-                    style: TextStyle(
-                        color: const Color(0xFF0F172A).withOpacity(.9),
-                        fontWeight: FontWeight.w600)),
-                const TextSpan(text: '.'),
-              ],
+                      color: Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TermsAndPolicyScreen(
+                          initialTab: LegalTab.terms,
+                        ),
+                      ),
+                    ),
+                    child: const Text(
+                      'Terms & Conditions',
+                      style: TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

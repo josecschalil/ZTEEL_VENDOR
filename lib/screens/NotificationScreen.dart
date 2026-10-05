@@ -131,7 +131,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           id: 'n7',
           type: NotifType.promo,
           title: 'New restaurant added',
-          message: 'The Smokehouse just joined ZTEEEL — 20% off this week.',
+          message: 'The Smokehouse just joined ZTEEL — 20% off this week.',
           time: '6d ago',
           read: true,
         ),

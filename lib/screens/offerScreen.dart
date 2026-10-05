@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:frontend/screens/MilestoneScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
@@ -190,18 +190,9 @@ class _OffersScreenState extends State<OffersScreen>
           .length;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final savedFeaturedId = prefs.getString('featured_offer_id') ?? '';
-
     if (res['success'] == true && res['data'] != null) {
       final rawList = res['data'] as List<dynamic>;
       List<Offer> fetched = [];
-
-      bool hasFeaturedMatch = false;
-      if (savedFeaturedId.isNotEmpty) {
-        hasFeaturedMatch =
-            rawList.any((item) => item['id']?.toString() == savedFeaturedId);
-      }
 
       for (int i = 0; i < rawList.length; i++) {
         final item = rawList[i];
@@ -252,8 +243,7 @@ class _OffersScreenState extends State<OffersScreen>
             } catch (_) {}
           }
 
-          final isFeatured =
-              hasFeaturedMatch ? (id == savedFeaturedId) : (i == 0);
+          final isFeatured = item['is_featured'] as bool? ?? false;
 
           fetched.add(Offer(
             id: id,
@@ -307,20 +297,30 @@ class _OffersScreenState extends State<OffersScreen>
   // ── Actions ────────────────────────────────────────────────────────────────
 
   Future<void> _setAsFeatured(Offer offer) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('featured_offer_id', offer.id);
+    final res = await VendorService.updateOffer(
+        id: offer.id, data: {'is_featured': true});
 
-    setState(() {
-      for (final o in _offers) {
-        o.isFeatured = (o.id == offer.id);
+    if (res['success'] == true) {
+      setState(() {
+        for (final o in _offers) {
+          o.isFeatured = (o.id == offer.id);
+        }
+      });
+
+      _heroController.reset();
+      _heroController.forward();
+
+      if (mounted) {
+        _toast('"${offer.title}" is now your featured promotion');
       }
-    });
-
-    _heroController.reset();
-    _heroController.forward();
-
-    if (!mounted) return;
-    _toast('"${offer.title}" is now your featured promotion');
+    } else {
+      if (mounted) {
+        _toast(
+          res['error']?.toString() ?? 'Could not feature this offer',
+          isError: true,
+        );
+      }
+    }
   }
 
   Future<void> _goToCreateOffer() async {

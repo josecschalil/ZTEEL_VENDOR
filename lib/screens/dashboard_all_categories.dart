@@ -29,13 +29,13 @@ String _catCount(int n, String one, String many) => '$n ${n == 1 ? one : many}';
 // Redesigned with square cards displaying the first food item's image as background.
 class AllCategoriesScreen extends StatefulWidget {
   final List<MenuCategory> categories;
-  final VoidCallback onAddCategory;
+  final VoidCallback? onAddCategory;
   final VoidCallback? onRefreshCategories;
 
   const AllCategoriesScreen({
     super.key,
     required this.categories,
-    required this.onAddCategory,
+    this.onAddCategory,
     this.onRefreshCategories,
   });
 
@@ -116,7 +116,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             id: it['id']?.toString() ?? '',
             imageUrl: ApiConfig.getImageUrl(it['image']?.toString()) ?? '',
             name: it['name']?.toString() ?? 'Food Item',
-            price: '\$${p.toStringAsFixed(2)}',
+            price: '₹${p.toStringAsFixed(0)}',
             rawPrice: p,
             description:
                 VendorService.cleanDescription(it['description']?.toString()),
@@ -127,11 +127,24 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       }
     }
 
+    String categoryImg = '';
+    for (final it in itemList) {
+      if (it.imageUrl.trim().isNotEmpty) {
+        categoryImg = it.imageUrl.trim();
+        break;
+      }
+    }
+    if (categoryImg.isEmpty && cat['image'] != null) {
+      categoryImg = ApiConfig.getImageUrl(cat['image']?.toString()) ?? '';
+    }
+
     return MenuCategory(
       id: catId,
       name: catName,
+      label: catName,
       itemCount: itemList.length,
       items: itemList,
+      imageUrl: categoryImg,
     );
   }
 
@@ -156,6 +169,25 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
+  Future<void> _addNewCategory() async {
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (_) => const _CatAddDialog(),
+    );
+    if (newName == null || newName.trim().isEmpty) return;
+
+    final res = await VendorService.createMenuCategory(name: newName.trim());
+    if (!mounted) return;
+
+    if (res['success'] == true) {
+      _showSnack('Category created.', success: true);
+      await _fetchCategoriesFromApi();
+      _triggerRefresh();
+    } else {
+      _showSnack(res['error']?.toString() ?? 'Could not create category.');
+    }
+  }
+
   Future<void> _openCategory(MenuCategory cat) async {
     await Navigator.push(
       context,
@@ -460,15 +492,17 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                     ),
                     const SizedBox(width: 10),
                     GestureDetector(
-                      onTap: widget.onAddCategory,
+                      onTap: _addNewCategory,
                       child: Container(
-                        padding: const EdgeInsets.fromLTRB(12, 9, 16, 9),
+                        margin: const EdgeInsets.only(right: 5),
+                        padding: const EdgeInsets.fromLTRB(9, 9, 9, 9),
                         decoration: BoxDecoration(
-                          color: _K.emerald,
+                          color: const Color.fromARGB(255, 253, 253, 253),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: _K.emerald.withValues(alpha: 0.3),
+                              color: const Color.fromARGB(255, 248, 250, 249)
+                                  .withValues(alpha: 0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -478,16 +512,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.add_rounded,
-                                size: 18, color: Colors.white),
-                            SizedBox(width: 4),
-                            Text(
-                              'Add',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
+                                size: 18, color: _K.textPrimary),
                           ],
                         ),
                       ),
@@ -690,7 +715,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             );
           } else {
             return _AddCategorySquareCard(
-              onTap: widget.onAddCategory,
+              onTap: _addNewCategory,
             );
           }
         },
@@ -748,7 +773,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: widget.onAddCategory,
+              onPressed: _addNewCategory,
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Add Category',
                   style: TextStyle(fontWeight: FontWeight.w700)),
@@ -1461,6 +1486,138 @@ class _CatDeleteDialog extends StatelessWidget {
                     ),
                     child: const Text('Delete',
                         style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CatAddDialog extends StatefulWidget {
+  const _CatAddDialog();
+
+  @override
+  State<_CatAddDialog> createState() => _CatAddDialogState();
+}
+
+class _CatAddDialogState extends State<_CatAddDialog> {
+  final TextEditingController _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final t = _ctrl.text.trim();
+    if (t.isNotEmpty) Navigator.pop(context, t);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: _K.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: _K.emeraldBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _K.emerald.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: const Icon(Icons.add_rounded,
+                      size: 20, color: _K.emerald),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Add category',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _K.textPrimary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: _K.surfaceRaised,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _K.border),
+              ),
+              child: TextField(
+                controller: _ctrl,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                textCapitalization: TextCapitalization.words,
+                onSubmitted: (_) => _submit(),
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _K.textPrimary),
+                cursorColor: _K.emerald,
+                decoration: const InputDecoration(
+                  hintText: 'e.g., Starters, Main Course, Drinks',
+                  hintStyle: TextStyle(
+                      color: _K.textMuted, fontWeight: FontWeight.w400),
+                  border: InputBorder.none,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _K.textSecondary,
+                      side: const BorderSide(color: _K.border, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Cancel',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _ctrl,
+                    builder: (_, v, __) => ElevatedButton(
+                      onPressed: v.text.trim().isEmpty ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _K.dark,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: _K.borderMid,
+                        disabledForegroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Create',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
                   ),
                 ),
               ],

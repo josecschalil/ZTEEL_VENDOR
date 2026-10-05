@@ -21,221 +21,7 @@ class _C {
   static const transparent = Colors.transparent;
 }
 
-// ─── Sample Dummy Orders (Pending, Completed, Expired) ───────────────────────
-final List<Map<String, dynamic>> kDummyOrders = [
-  // 1. Pending Order
-  {
-    'id': '7b8f9e21-4d1a-4f5c-8b1a-9a8b7c6d5e4f',
-    'qr_code': 'ORD-942810',
-    'status': 'pending',
-    'customer_name': 'Rahul Sharma',
-    'vendor_name': 'Artisan Trattoria',
-    'subtotal': '650.00',
-    'item_discount': '130.00',
-    'eligible_subtotal': '650.00',
-    'milestone_discount': '0.00',
-    'total_discount': '130.00',
-    'final_total': '520.00',
-    'created_at': '2026-09-20T21:55:00Z',
-    'expires_at': '2026-09-20T22:25:00Z',
-    'confirmed_at': null,
-    'items': [
-      {
-        'id': 'item-101',
-        'menu_item_id': 'mi-001',
-        'item_name_snapshot': 'Paneer Tikka Platter',
-        'unit_price_snapshot': '280.00',
-        'quantity': 1,
-        'line_subtotal': '280.00',
-        'line_discount': '56.00',
-        'line_total': '224.00',
-        'is_reward_item': false,
-        'image':
-            'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=500&auto=format&fit=crop&q=80',
-        'components': [
-          {
-            'item_name_snapshot': 'Mint Chutney & Salad',
-            'quantity': 1,
-          }
-        ],
-      },
-      {
-        'id': 'item-102',
-        'menu_item_id': 'mi-002',
-        'item_name_snapshot': 'Butter Naan',
-        'unit_price_snapshot': '45.00',
-        'quantity': 2,
-        'line_subtotal': '90.00',
-        'line_discount': '18.00',
-        'line_total': '72.00',
-        'is_reward_item': false,
-        'image':
-            'https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?w=500&auto=format&fit=crop&q=80',
-        'components': [],
-      },
-      {
-        'id': 'item-103',
-        'menu_item_id': 'mi-003',
-        'item_name_snapshot': 'Dal Makhani Special',
-        'unit_price_snapshot': '280.00',
-        'quantity': 1,
-        'line_subtotal': '280.00',
-        'line_discount': '56.00',
-        'line_total': '224.00',
-        'is_reward_item': false,
-        'image':
-            'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop&q=80',
-        'components': [],
-      },
-    ],
-    'applied_offers': [
-      {
-        'id': 'offer-apply-01',
-        'offer_id': 'off-001',
-        'title_snapshot': '20% OFF Special Dinner',
-        'scope_type_snapshot': 'all_menu',
-        'percentage_snapshot': 20.0,
-        'maximum_discount_snapshot': 200.0,
-        'qualifying_subtotal': '650.00',
-        'discount_amount': '130.00',
-      }
-    ],
-  },
 
-  // 2. Completed Order
-  {
-    'id': '3c9d8e72-1b2f-4a3d-9c8b-7a6b5c4d3e2f',
-    'qr_code': 'ORD-618402',
-    'status': 'confirmed',
-    'customer_name': 'Ananya Nair',
-    'vendor_name': 'Artisan Trattoria',
-    'subtotal': '890.00',
-    'item_discount': '222.50',
-    'eligible_subtotal': '890.00',
-    'milestone_discount': '50.00',
-    'total_discount': '272.50',
-    'final_total': '617.50',
-    'created_at': '2026-09-20T19:15:00Z',
-    'expires_at': '2026-09-20T19:45:00Z',
-    'confirmed_at': '2026-09-20T19:28:14Z',
-    'items': [
-      {
-        'id': 'item-201',
-        'menu_item_id': 'mi-004',
-        'item_name_snapshot': 'Classic Chicken Biryani',
-        'unit_price_snapshot': '320.00',
-        'quantity': 2,
-        'line_subtotal': '640.00',
-        'line_discount': '160.00',
-        'line_total': '480.00',
-        'is_reward_item': false,
-        'image':
-            'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80',
-        'components': [
-          {
-            'item_name_snapshot': 'Raita & Salan',
-            'quantity': 2,
-          }
-        ],
-      },
-      {
-        'id': 'item-202',
-        'menu_item_id': 'mi-005',
-        'item_name_snapshot': 'Mango Lassi',
-        'unit_price_snapshot': '125.00',
-        'quantity': 2,
-        'line_subtotal': '250.00',
-        'line_discount': '62.50',
-        'line_total': '187.50',
-        'is_reward_item': false,
-        'image':
-            'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500&auto=format&fit=crop&q=80',
-        'components': [],
-      },
-    ],
-    'applied_offers': [
-      {
-        'id': 'offer-apply-02',
-        'offer_id': 'off-002',
-        'title_snapshot': '25% OFF Weekend Feast',
-        'scope_type_snapshot': 'all_menu',
-        'percentage_snapshot': 25.0,
-        'maximum_discount_snapshot': 300.0,
-        'qualifying_subtotal': '890.00',
-        'discount_amount': '222.50',
-      }
-    ],
-    'reward': {
-      'name_snapshot': 'Loyalty Stamp Reward',
-      'discount_amount': '50.00',
-    },
-  },
-
-  // 3. Expired Order
-  {
-    'id': '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
-    'qr_code': 'ORD-305194',
-    'status': 'expired',
-    'customer_name': 'Karthik Menon',
-    'vendor_name': 'Artisan Trattoria',
-    'subtotal': '420.00',
-    'item_discount': '63.00',
-    'eligible_subtotal': '420.00',
-    'milestone_discount': '0.00',
-    'total_discount': '63.00',
-    'final_total': '357.00',
-    'created_at': '2026-09-20T17:00:00Z',
-    'expires_at': '2026-09-20T17:30:00Z',
-    'confirmed_at': null,
-    'items': [
-      {
-        'id': 'item-301',
-        'menu_item_id': 'mi-006',
-        'item_name_snapshot': 'Crispy Veg Spring Rolls',
-        'unit_price_snapshot': '180.00',
-        'quantity': 1,
-        'line_subtotal': '180.00',
-        'line_discount': '27.00',
-        'line_total': '153.00',
-        'is_reward_item': false,
-        'image':
-            'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=80',
-        'components': [
-          {
-            'item_name_snapshot': 'Sweet Chili Sauce',
-            'quantity': 1,
-          }
-        ],
-      },
-      {
-        'id': 'item-302',
-        'menu_item_id': 'mi-007',
-        'item_name_snapshot': 'Cold Coffee with Ice Cream',
-        'unit_price_snapshot': '120.00',
-        'quantity': 2,
-        'line_subtotal': '240.00',
-        'line_discount': '36.00',
-        'line_total': '204.00',
-        'is_reward_item': false,
-        'image':
-            'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&auto=format&fit=crop&q=80',
-        'components': [],
-      },
-    ],
-    'applied_offers': [
-      {
-        'id': 'offer-apply-03',
-        'offer_id': 'off-003',
-        'title_snapshot': '15% OFF Starters & Beverages',
-        'scope_type_snapshot': 'category_set',
-        'percentage_snapshot': 15.0,
-        'maximum_discount_snapshot': 100.0,
-        'qualifying_subtotal': '420.00',
-        'discount_amount': '63.00',
-      }
-    ],
-  },
-];
 
 class OrdersScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -264,7 +50,8 @@ class _OrdersScreenState extends State<OrdersScreen>
   void initState() {
     super.initState();
     _selectedTab = widget.initialTabIndex;
-    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
+    _tabController = TabController(
+        length: 3, vsync: this, initialIndex: widget.initialTabIndex);
     _pageController = PageController(initialPage: widget.initialTabIndex);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) return;
@@ -337,11 +124,11 @@ class _OrdersScreenState extends State<OrdersScreen>
       setState(() {
         _redemptions = list;
         _isLoading = false;
+        _errorMessage = null;
       });
     } else if (_redemptions.isEmpty) {
       setState(() {
-        _redemptions =
-            kDummyOrders.map((e) => Map<String, dynamic>.from(e)).toList();
+        _errorMessage = 'Failed to load orders. Please check your connection and try again.';
         _isLoading = false;
       });
     }
@@ -431,7 +218,9 @@ class _OrdersScreenState extends State<OrdersScreen>
 
   bool _isCompletedSession(Map<String, dynamic> r) {
     final status = (r['status'] ?? '').toString().toLowerCase();
-    return status == 'confirmed' || status == 'completed' || status == 'delivered';
+    return status == 'confirmed' ||
+        status == 'completed' ||
+        status == 'delivered';
   }
 
   List<dynamic> get _pendingOrders => _redemptions
@@ -485,7 +274,9 @@ class _OrdersScreenState extends State<OrdersScreen>
       final giftName = reward['gift_item_name_snapshot']?.toString();
       if (giftName != null && giftName.isNotEmpty) {
         milestoneMsg = '$rName (Free item: $giftName)';
-      } else if (rDisc != null && double.tryParse(rDisc) != null && double.tryParse(rDisc)! > 0) {
+      } else if (rDisc != null &&
+          double.tryParse(rDisc) != null &&
+          double.tryParse(rDisc)! > 0) {
         milestoneMsg = '$rName (Saved ₹$rDisc)';
       } else {
         milestoneMsg = rName;
@@ -497,7 +288,9 @@ class _OrdersScreenState extends State<OrdersScreen>
         ? 'Offers applied: ${offersList.map((o) {
             final title = o['title_snapshot']?.toString() ?? 'Offer';
             final dAmount = o['discount_amount']?.toString();
-            if (dAmount != null && double.tryParse(dAmount) != null && double.tryParse(dAmount)! > 0) {
+            if (dAmount != null &&
+                double.tryParse(dAmount) != null &&
+                double.tryParse(dAmount)! > 0) {
               return '$title (Saved ₹$dAmount)';
             }
             return title;
@@ -507,32 +300,34 @@ class _OrdersScreenState extends State<OrdersScreen>
     final rawItems = (session['items'] as List<dynamic>?) ?? [];
     List<OrderLineItem> mappedItems = [];
     if (rawItems.isEmpty) {
-      mappedItems.add(const OrderLineItem(
-        name: '[Missing Item Name]',
-        note: '[No Note / Component]',
-        quantity: 'x0',
+      mappedItems.add(OrderLineItem(
+        name: 'Order Item',
+        note: '',
+        quantity: 'x1',
         imageUrl: '',
-        unitPrice: '₹0.00 each',
-        lineTotal: '₹0.00',
-        appliedOffer: '[No Applied Offer]',
+        unitPrice: '₹$finalTotal',
+        lineTotal: '₹$finalTotal',
+        appliedOffer: offersList.isNotEmpty
+            ? offersList.first['title_snapshot']?.toString()
+            : null,
       ));
     } else {
       mappedItems = rawItems.map((item) {
         final iMap = item as Map<String, dynamic>;
         final iName = iMap['item_name_snapshot']?.toString() ?? '';
-        final nameStr = iName.isNotEmpty ? iName : '[Missing Item Name]';
+        final nameStr = iName.isNotEmpty ? iName : 'Item';
 
         final components = iMap['components'] as List<dynamic>?;
         String noteStr = '';
         if (components != null && components.isNotEmpty) {
-          noteStr = components
+          final compList = components
               .map((c) =>
                   '${c['quantity'] ?? 1}x ${c['item_name_snapshot'] ?? ''}')
               .join(', ');
+          noteStr = 'Includes: $compList';
         } else if (iMap['is_reward_item'] == true) {
-          noteStr = 'Free Milestone Reward';
+          noteStr = '🎁 Free Milestone Reward';
         }
-        if (noteStr.isEmpty) noteStr = '[No Note / Component]';
 
         final qty = iMap['quantity']?.toString() ?? '1';
         final uPrice = iMap['unit_price_snapshot']?.toString() ?? '0.00';
@@ -699,7 +494,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _vendorName.isNotEmpty ? _vendorName : 'Zteeel Vendor',
+                      _vendorName.isNotEmpty ? _vendorName : 'ZTEEL Vendor',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -906,10 +701,12 @@ class _OrdersScreenState extends State<OrdersScreen>
   Widget _buildOrderCardFromSession(Map<String, dynamic> session) {
     final qrCode = session['qr_code']?.toString() ?? '';
     final isQrMissing = qrCode.isEmpty && session['order_number'] == null;
-    final orderIdStr = isQrMissing ? '[Missing Order QR]' : _formatOrderNumber(session);
+    final orderIdStr =
+        isQrMissing ? '[Missing Order QR]' : _formatOrderNumber(session);
 
     final status = (session['status'] ?? '').toString().toLowerCase();
     final isConfirmed = status == 'confirmed';
+    final isExpired = status == 'expired';
 
     final finalTotal = session['final_total']?.toString() ??
         session['subtotal']?.toString() ??
@@ -962,7 +759,10 @@ class _OrdersScreenState extends State<OrdersScreen>
                         ),
                       ),
                       if (session['customer_name'] != null &&
-                          session['customer_name'].toString().trim().isNotEmpty) ...[
+                          session['customer_name']
+                              .toString()
+                              .trim()
+                              .isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           session['customer_name'].toString().trim(),
@@ -1042,7 +842,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _C.emerald, // was AppColors.green
+                        color: _C.emerald,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: _C.emerald),
                       ),
@@ -1053,6 +853,35 @@ class _OrdersScreenState extends State<OrdersScreen>
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
+                      ),
+                    ),
+                  )
+                else if (!isConfirmed && isExpired)
+                  GestureDetector(
+                    onTap: () => _confirmOrder(qrCode),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD97706),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFD97706)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.history_rounded,
+                              size: 13, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            'Complete Expired',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   )
@@ -1120,17 +949,75 @@ class _OrdersScreenState extends State<OrdersScreen>
     final isImgMissing = imgUrl == null || imgUrl.isEmpty;
 
     final qty = item['quantity']?.toString() ?? '1';
+    final unitPrice = item['unit_price_snapshot']?.toString() ?? '';
 
     final components = item['components'] as List<dynamic>?;
-    String noteStr = '';
-    if (components != null && components.isNotEmpty) {
-      noteStr = components
+    final isReward = item['is_reward_item'] == true;
+
+    Widget subtitleWidget;
+    if (isReward) {
+      subtitleWidget = const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.card_giftcard_rounded, size: 12, color: _C.emerald),
+          SizedBox(width: 4),
+          Text(
+            'Free Milestone Reward',
+            style: TextStyle(
+              color: _C.emerald,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+    } else if (components != null && components.isNotEmpty) {
+      final compStr = components
           .map((c) => '${c['quantity'] ?? 1}x ${c['item_name_snapshot'] ?? ''}')
           .join(', ');
-    } else if (item['is_reward_item'] == true) {
-      noteStr = 'Free Milestone Reward';
+      subtitleWidget = Row(
+        children: [
+          const Icon(Icons.layers_outlined, size: 12, color: _C.textSecondary),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              'Combo: $compStr',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _C.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else if (unitPrice.isNotEmpty && double.tryParse(unitPrice) != null) {
+      final uPriceVal = double.parse(unitPrice).toStringAsFixed(2);
+      subtitleWidget = Row(
+        children: [
+          Text(
+            '₹$uPriceVal each',
+            style: const TextStyle(
+              color: _C.textSecondary,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    } else {
+      subtitleWidget = const Text(
+        'Standard item',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: _C.textSecondary,
+          fontSize: 11,
+        ),
+      );
     }
-    final isNoteMissing = noteStr.isEmpty;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -1142,20 +1029,20 @@ class _OrdersScreenState extends State<OrdersScreen>
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: isImgMissing ? _C.red.withValues(alpha: 0.12) : _C.border,
+                color:
+                    isImgMissing ? _C.border.withValues(alpha: 0.5) : _C.border,
                 borderRadius: BorderRadius.circular(10),
-                border:
-                    isImgMissing ? Border.all(color: _C.red, width: 1.2) : null,
               ),
               child: isImgMissing
-                  ? const Icon(Icons.restaurant, color: _C.red, size: 24)
+                  ? const Icon(Icons.restaurant_rounded,
+                      color: _C.textSecondary, size: 24)
                   : Image.network(
                       imgUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: _C.red.withValues(alpha: 0.12),
-                        child: const Icon(Icons.restaurant,
-                            color: _C.red, size: 24),
+                        color: _C.border.withValues(alpha: 0.5),
+                        child: const Icon(Icons.restaurant_rounded,
+                            color: _C.textSecondary, size: 24),
                       ),
                     ),
             ),
@@ -1166,25 +1053,17 @@ class _OrdersScreenState extends State<OrdersScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isNameMissing ? '[Missing Item Name]' : name,
+                  isNameMissing ? 'Menu Item' : name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: isNameMissing ? _C.red : _C.textPrimary,
+                    color: isNameMissing ? _C.textSecondary : _C.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  isNoteMissing ? '[No Note / Component]' : noteStr,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isNoteMissing ? _C.red : _C.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
+                subtitleWidget,
               ],
             ),
           ),

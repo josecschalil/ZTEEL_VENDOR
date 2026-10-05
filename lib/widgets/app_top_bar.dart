@@ -5,7 +5,7 @@ import 'package:frontend/app_colors.dart';
 /// Supports both main root views (with branding, live status, and notification bell)
 /// and nested/detail views (with back button, title, badges, and trailing actions).
 class AppTopBar extends StatefulWidget implements PreferredSizeWidget {
-  /// Title of the top bar. Defaults to 'Zteeel Vendor' if omitted in brand mode.
+  /// Title of the top bar. Defaults to 'ZTEEL Vendor' if omitted in brand mode.
   final String? title;
 
   /// Optional subtitle shown below the title.
@@ -165,7 +165,7 @@ class _AppTopBarState extends State<AppTopBar>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    widget.title ?? (widget.showBackButton ? '' : 'Zteeel Vendor'),
+                    widget.title ?? (widget.showBackButton ? '' : 'ZTEEL Vendor'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
