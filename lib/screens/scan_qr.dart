@@ -364,10 +364,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         orderIdStr = qrCode.startsWith('#') ? qrCode : '#$qrCode';
       } else if (idStr.isNotEmpty) {
         final clean = idStr.replaceAll('-', '');
-        orderIdStr =
-            '#ORD-${clean.length >= 6 ? clean.substring(0, 6).toUpperCase() : clean.toUpperCase()}';
+        orderIdStr = '#ORD-${clean.toUpperCase()}';
       } else {
-        orderIdStr = '#ORD-000000';
+        orderIdStr = '#ORD-UNKNOWN';
       }
 
       final status = (session['status'] ?? 'pending').toString().toLowerCase();

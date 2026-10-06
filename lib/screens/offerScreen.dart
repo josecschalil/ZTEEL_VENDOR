@@ -1307,17 +1307,7 @@ class _OffersScreenState extends State<OffersScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: _Pal.line,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Container(
@@ -1394,104 +1384,126 @@ class _OffersScreenState extends State<OffersScreen>
                 ),
               ),
               const SizedBox(height: 14),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (!offer.isFeatured) {
-                    _setAsFeatured(offer);
-                  }
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  decoration: BoxDecoration(
-                    color: offer.isFeatured ? _Pal.amberSoft : _Pal.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: offer.isFeatured ? _Pal.amberLine : _Pal.line,
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        if (!offer.isFeatured) {
+                          _setAsFeatured(offer);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color:
+                              offer.isFeatured ? _Pal.amberSoft : _Pal.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color:
+                                offer.isFeatured ? _Pal.amberLine : _Pal.line,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              offer.isFeatured
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              size: 16,
+                              color:
+                                  offer.isFeatured ? _Pal.amber : _Pal.ink700,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              offer.isFeatured ? 'Featured' : 'Feature',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: offer.isFeatured
+                                    ? _Pal.amberDeep
+                                    : _Pal.ink700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        offer.isFeatured
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        size: 17,
-                        color: offer.isFeatured ? _Pal.amber : _Pal.ink700,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        offer.isFeatured
-                            ? 'Featured on your storefront'
-                            : 'Feature on your storefront',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              offer.isFeatured ? _Pal.amberDeep : _Pal.ink700,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _goToEditOffer(offer);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _Pal.ink,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.edit_outlined,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Edit',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _goToEditOffer(offer);
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: _Pal.ink,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.edit_outlined,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Edit Offer',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => Navigator.pop(ctx),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _confirmOfferDeletion(offer);
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: _Pal.surface,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: _Pal.line),
+                          border: Border.all(color: _Pal.red),
                         ),
-                        child: const Text(
-                          'Close',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: _Pal.ink700,
-                          ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              size: 16,
+                              color: _Pal.red,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: _Pal.red,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1514,7 +1526,7 @@ class _OffersScreenState extends State<OffersScreen>
                           ),
                         ),
                         child: Text(
-                          offer.isActive ? 'Pause offer' : 'Activate offer',
+                          offer.isActive ? 'Pause' : 'Activate',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -1623,6 +1635,97 @@ class _OffersScreenState extends State<OffersScreen>
         if (mounted) {
           _toast(
             res['error']?.toString() ?? 'Could not update the offer status',
+            isError: true,
+          );
+        }
+        return false;
+      }
+    }
+    return false;
+  }
+
+  Future<bool> _confirmOfferDeletion(Offer offer) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _Pal.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: _Pal.line),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          contentPadding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+          title: const Text(
+            'Delete this offer?',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: _Pal.ink,
+              letterSpacing: -0.3,
+            ),
+          ),
+          content: Text(
+            '"${offer.title}" will be permanently deleted and cannot be recovered.',
+            style: const TextStyle(
+              fontSize: 12.5,
+              height: 1.45,
+              fontWeight: FontWeight.w500,
+              color: _Pal.ink600,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: _Pal.ink500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _Pal.red,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      final res = await VendorService.deleteOffer(offer.id);
+      if (res['success'] == true) {
+        _fetchOffers();
+        return true;
+      } else {
+        if (mounted) {
+          _toast(
+            res['error']?.toString() ?? 'Could not delete the offer',
             isError: true,
           );
         }

@@ -348,10 +348,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     final qrCode = session['qr_code']?.toString() ?? '';
     if (qrCode.isNotEmpty) {
       final clean = qrCode.replaceAll('-', '').toUpperCase();
-      final code = clean.length >= 8 ? clean.substring(0, 8) : clean;
-      return '#$code';
+      return '#$clean';
     }
-    return '#C571267D';
+    return '#UNKNOWN';
   }
 
   OrderStatus _parseStatusType(Map<String, dynamic> session) {

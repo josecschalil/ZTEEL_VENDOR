@@ -38,6 +38,7 @@ class _OrdersScreenState extends State<OrdersScreen>
   late int _selectedTab;
 
   bool _isLoading = true;
+  bool _isFetching = false;
   String? _errorMessage;
   List<dynamic> _redemptions = [];
   String _vendorName = '';
@@ -98,72 +99,66 @@ class _OrdersScreenState extends State<OrdersScreen>
   }
 
   Future<void> _fetchData({bool silent = false}) async {
-    if (!silent && _redemptions.isEmpty) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-    }
-
-    final profileRes = await VendorService.getVendorProfile();
-    if (profileRes['success'] == true && profileRes['data'] != null) {
-      final pData = profileRes['data'] as Map<String, dynamic>;
-      if (mounted) {
+    if (_isFetching) return;
+    _isFetching = true;
+    try {
+      if (!silent && _redemptions.isEmpty) {
         setState(() {
-          _vendorName = pData['business_name']?.toString() ?? '';
-          _vendorIconUrl = pData['icon_image']?.toString();
+          _isLoading = true;
+          _errorMessage = null;
         });
       }
-    }
 
-    final redRes = await VendorService.getVendorRedemptions();
-    if (!mounted) return;
+      final profileRes = await VendorService.getVendorProfile();
+      if (profileRes['success'] == true && profileRes['data'] != null) {
+        final pData = profileRes['data'] as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _vendorName = pData['business_name']?.toString() ?? '';
+            _vendorIconUrl = pData['icon_image']?.toString();
+          });
+        }
+      }
 
-    if (redRes['success'] == true && redRes['data'] != null) {
-      final list = redRes['data'] as List<dynamic>;
-      setState(() {
-        _redemptions = list;
-        _isLoading = false;
-        _errorMessage = null;
-      });
-    } else if (_redemptions.isEmpty) {
-      setState(() {
-        _errorMessage = 'Failed to load orders. Please check your connection and try again.';
-        _isLoading = false;
-      });
+      final redRes = await VendorService.getVendorRedemptions();
+      if (!mounted) return;
+
+      if (redRes['success'] == true && redRes['data'] != null) {
+        final list = redRes['data'] as List<dynamic>;
+        setState(() {
+          _redemptions = list;
+          _isLoading = false;
+          _errorMessage = null;
+        });
+      } else if (_redemptions.isEmpty) {
+        setState(() {
+          _errorMessage = 'Failed to load orders. Please check your connection and try again.';
+          _isLoading = false;
+        });
+      }
+    } finally {
+      if (mounted) {
+        _isFetching = false;
+      }
     }
   }
 
+  final Set<String> _confirmingOrders = {};
+  
   Future<void> _confirmOrder(String qrCode) async {
-    if (qrCode.isEmpty) return;
-    final res = await VendorService.scanVendorRedemption(qrCode);
-    if (!mounted) return;
+    if (qrCode.isEmpty || _confirmingOrders.contains(qrCode)) return;
+    
+    setState(() {
+      _confirmingOrders.add(qrCode);
+    });
+    
+    try {
+      final res = await VendorService.scanVendorRedemption(qrCode);
+      if (!mounted) return;
 
-    final orderNum = _formatOrderNumber({'qr_code': qrCode});
+      final orderNum = _formatOrderNumber({'qr_code': qrCode});
 
-    if (res['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Order $orderNum marked as completed!',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: _C.dark,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-      await _fetchData(silent: true);
-      _switchToTab(1);
-    } else {
-      // If mock/dummy order, update status locally
-      final idx = _redemptions.indexWhere((r) => r['qr_code'] == qrCode);
-      if (idx != -1) {
-        setState(() {
-          _redemptions[idx]['status'] = 'confirmed';
-          _redemptions[idx]['confirmed_at'] = DateTime.now().toIso8601String();
-        });
+      if (res['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -172,26 +167,32 @@ class _OrdersScreenState extends State<OrdersScreen>
             ),
             backgroundColor: _C.dark,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             margin: const EdgeInsets.all(16),
           ),
         );
+        await _fetchData(silent: true);
         _switchToTab(1);
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            res['error'] ?? 'Failed to update order status',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              res['error'] ?? 'Failed to update order status',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: _C.textSecondary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
           ),
-          backgroundColor: _C.textSecondary,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _confirmingOrders.remove(qrCode);
+        });
+      }
     }
   }
 
@@ -243,10 +244,9 @@ class _OrdersScreenState extends State<OrdersScreen>
     final qrCode = session['qr_code']?.toString() ?? '';
     if (qrCode.isNotEmpty) {
       final clean = qrCode.replaceAll('-', '').toUpperCase();
-      final code = clean.length >= 8 ? clean.substring(0, 8) : clean;
-      return '#$code';
+      return '#$clean';
     }
-    return '#C571267D';
+    return '#UNKNOWN';
   }
 
   Future<void> _openSessionDetails(Map<String, dynamic> session) async {
