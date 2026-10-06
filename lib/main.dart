@@ -8,7 +8,12 @@ import 'package:frontend/screens/setupShopScreen.dart';
 import 'package:frontend/screens/vendor_home.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/realtime_order_service.dart';
 import 'package:frontend/screens/splash_screen.dart';
+
+final GlobalKey<ScaffoldMessengerState> _rootMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+StreamSubscription<VendorOrderEvent>? _orderAlertSubscription;
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +21,7 @@ void main() async {
 
   final loggedIn = await AuthService.isLoggedIn();
   Widget targetScreen;
+  var shouldStartRealtime = false;
 
   if (loggedIn) {
     try {
@@ -24,11 +30,33 @@ void main() async {
     
     final hasShop = await VendorService.hasExistingShopData();
     targetScreen = hasShop ? const VendorHome() : const SetupShopScreen();
+    shouldStartRealtime = hasShop;
   } else {
     targetScreen = const LoginScreen();
   }
 
   runApp(ZTEELVendorApp(initialScreen: SplashScreen(nextScreen: targetScreen)));
+  _orderAlertSubscription ??=
+      VendorOrderRealtimeService.instance.events.where((event) => event.isNewOrder).listen(
+    (event) {
+      final orderNumber = event.order['order_number']?.toString() ?? 'new';
+      final amount = event.order['final_total']?.toString();
+      _rootMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            amount == null || amount.isEmpty
+                ? 'New order $orderNumber received.'
+                : 'New order $orderNumber received — ₹$amount.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    },
+  );
+  if (shouldStartRealtime) {
+    unawaited(VendorOrderRealtimeService.instance.start());
+  }
 }
 
 class ZTEELVendorApp extends StatelessWidget {
@@ -38,6 +66,7 @@ class ZTEELVendorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: _rootMessengerKey,
       title: 'ZTEEL Vendor',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

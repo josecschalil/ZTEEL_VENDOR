@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:frontend/screens/locationPageScreen.dart';
 import 'package:frontend/screens/vendor_home.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/realtime_order_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SetupShopScreen extends StatefulWidget {
@@ -2837,6 +2839,7 @@ class _SetupShopScreenState extends State<SetupShopScreen> {
                 icon: Icons.arrow_forward_rounded,
                 onTap: () async {
                   await AuthService.setOnboarded(true);
+                  unawaited(VendorOrderRealtimeService.instance.start());
                   if (!mounted) return;
                   Navigator.of(
                     context,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/realtime_order_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
 import 'categoryItemsScreen.dart';
 import 'orderScreen.dart';
@@ -111,28 +112,22 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
 
   double _todayRevenue = 0.0;
   int _pendingCount = 0;
-  Timer? _poller;
+  StreamSubscription<VendorOrderEvent>? _realtimeSubscription;
 
   @override
   void initState() {
     super.initState();
     _shopStatus.ensureLoaded();
     _fetchDashboardData();
-    _startPolling();
+    _realtimeSubscription = VendorOrderRealtimeService.instance.events.listen(
+      (_) => _fetchOrders(silent: true),
+    );
   }
 
   @override
   void dispose() {
-    _poller?.cancel();
+    _realtimeSubscription?.cancel();
     super.dispose();
-  }
-
-  void _startPolling() {
-    _poller?.cancel();
-    _poller = Timer.periodic(const Duration(milliseconds: 3000), (_) {
-      if (!mounted) return;
-      _fetchDashboardData(silent: true, isBackgroundPoll: true);
-    });
   }
 
   bool _isFetching = false;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/setupShopScreen.dart';
@@ -5,6 +7,7 @@ import 'package:frontend/screens/terms_policy_screen.dart';
 import 'package:frontend/screens/vendor_home.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/realtime_order_service.dart';
 
 // ── OTP Screen ────────────────────────────────
 class OtpScreen extends StatefulWidget {
@@ -150,6 +153,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     if (res['success'] == true) {
       final hasShop = await VendorService.hasExistingShopData();
       if (!mounted) return;
+      if (hasShop) {
+        unawaited(VendorOrderRealtimeService.instance.start());
+      }
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) =>

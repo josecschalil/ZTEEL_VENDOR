@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/realtime_order_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
 import 'package:frontend/screens/terms_policy_screen.dart';
@@ -496,6 +497,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   Future<void> _handleLogout() async {
+    await VendorOrderRealtimeService.instance.stop();
     await AuthService.logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

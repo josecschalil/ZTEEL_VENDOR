@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/orderDetailScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
+import 'package:frontend/services/realtime_order_service.dart';
 
 // ─── Color tokens (mirrors profile_edit_screen.dart _Dt) ─────────────────────
 class _C {
@@ -43,8 +43,6 @@ class _OrdersScreenState extends State<OrdersScreen>
   List<dynamic> _redemptions = [];
   String _vendorName = '';
   String? _vendorIconUrl;
-  Timer? _poller;
-
   final _shopStatus = ShopStatusService.instance;
 
   @override
@@ -64,7 +62,7 @@ class _OrdersScreenState extends State<OrdersScreen>
       setState(() => _selectedTab = _tabController.index);
     });
     _fetchData();
-    _startPolling();
+    VendorLiveOrderStore.instance.latestEvent.addListener(_applyRealtimeEvent);
     _shopStatus.ensureLoaded();
   }
 
@@ -82,17 +80,27 @@ class _OrdersScreenState extends State<OrdersScreen>
     }
   }
 
-  void _startPolling() {
-    _poller?.cancel();
-    _poller = Timer.periodic(const Duration(milliseconds: 2000), (_) {
-      if (!mounted) return;
-      _fetchData(silent: true);
+  /// Applies the full server snapshot from the shared socket without changing
+  /// any page layout or performing another full-list request.
+  void _applyRealtimeEvent() {
+    if (!mounted) return;
+    final event = VendorLiveOrderStore.instance.latestEvent.value;
+    if (event == null) return;
+    setState(() {
+      final index = _redemptions.indexWhere(
+        (item) => item is Map && item['id']?.toString() == event.orderId,
+      );
+      if (index >= 0) {
+        _redemptions[index] = event.order;
+      } else {
+        _redemptions = [event.order, ..._redemptions];
+      }
     });
   }
 
   @override
   void dispose() {
-    _poller?.cancel();
+    VendorLiveOrderStore.instance.latestEvent.removeListener(_applyRealtimeEvent);
     _tabController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -124,7 +132,20 @@ class _OrdersScreenState extends State<OrdersScreen>
       if (!mounted) return;
 
       if (redRes['success'] == true && redRes['data'] != null) {
-        final list = redRes['data'] as List<dynamic>;
+        final list = List<dynamic>.from(redRes['data'] as List<dynamic>);
+        // A socket event can arrive while the initial HTTP request is in
+        // flight. Merge its newer snapshot so a stale REST response never
+        // erases a just-received order.
+        for (final entry in VendorLiveOrderStore.instance.orders.value.entries) {
+          final index = list.indexWhere(
+            (item) => item is Map && item['id']?.toString() == entry.key,
+          );
+          if (index >= 0) {
+            list[index] = entry.value;
+          } else {
+            list.insert(0, entry.value);
+          }
+        }
         setState(() {
           _redemptions = list;
           _isLoading = false;

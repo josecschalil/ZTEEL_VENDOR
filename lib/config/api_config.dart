@@ -35,6 +35,29 @@ class ApiConfig {
   static String get vendorReviewsUrl =>
       '$baseUrl/api/v1/vendor/reviews/';
 
+  // ── Realtime order endpoints ──────────────────────────────────────────────
+  static String get vendorRealtimeTicketUrl =>
+      '$baseUrl/api/v1/realtime/vendor-ticket/';
+
+  /// Builds `ws://` locally and `wss://` for HTTPS deployments.
+  static Uri vendorOrdersSocketUri(
+    String ticket, {
+    String? after,
+    String? afterEventId,
+  }) {
+    final api = Uri.parse(baseUrl);
+    return api.replace(
+      scheme: api.scheme == 'https' ? 'wss' : 'ws',
+      path: '/ws/v1/vendor/orders/',
+      queryParameters: {
+        'ticket': ticket,
+        if (after != null && after.isNotEmpty) 'after': after,
+        if (afterEventId != null && afterEventId.isNotEmpty)
+          'after_event_id': afterEventId,
+      },
+    );
+  }
+
   /// Helper to convert relative media path to full backend URL
   static String? getImageUrl(String? path) {
     if (path == null || path.isEmpty) return null;
