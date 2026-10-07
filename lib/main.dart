@@ -9,6 +9,7 @@ import 'package:frontend/screens/vendor_home.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/realtime_order_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 import 'package:frontend/screens/splash_screen.dart';
 
 final GlobalKey<ScaffoldMessengerState> _rootMessengerKey =
@@ -18,6 +19,7 @@ StreamSubscription<VendorOrderEvent>? _orderAlertSubscription;
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  await VendorCacheService.initialize();
 
   final loggedIn = await AuthService.isLoggedIn();
   Widget targetScreen;
@@ -55,6 +57,7 @@ void main() async {
     },
   );
   if (shouldStartRealtime) {
+    unawaited(VendorService.refreshEssentialData());
     unawaited(VendorOrderRealtimeService.instance.start());
   }
 }
@@ -98,23 +101,38 @@ class _OfflineWrapperState extends State<_OfflineWrapper> {
     super.initState();
     _checkInitialConnectivity();
     _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
-      if (mounted) {
-        setState(() {
-          _isOffline = results.contains(ConnectivityResult.none) && results.length == 1 
-                       || results.every((r) => r == ConnectivityResult.none);
-        });
-      }
+      _updateConnectivity(results);
     });
   }
 
   Future<void> _checkInitialConnectivity() async {
     final results = await Connectivity().checkConnectivity();
+    _updateConnectivity(results);
+  }
+
+  void _updateConnectivity(List<ConnectivityResult> results) {
+    final nextOffline =
+        (results.contains(ConnectivityResult.none) && results.length == 1) ||
+        results.every((result) => result == ConnectivityResult.none);
+    final wasOffline = _isOffline;
     if (mounted) {
       setState(() {
-        _isOffline = results.contains(ConnectivityResult.none) && results.length == 1
-                       || results.every((r) => r == ConnectivityResult.none);
+        _isOffline = nextOffline;
       });
     }
+    if (wasOffline && !nextOffline) {
+      // `Image.network` can hold an error result after an offline request.
+      // Drop that result and notify cache-backed pages to bind their current
+      // data again while the manifest sync runs in the background.
+      PaintingBinding.instance.imageCache.clear();
+      VendorCacheService.notifyVisibleDataMayHaveChanged();
+      unawaited(_syncAfterReconnect());
+    }
+  }
+
+  Future<void> _syncAfterReconnect() async {
+    await VendorService.refreshEssentialData();
+    VendorCacheService.notifyVisibleDataMayHaveChanged();
   }
 
   @override

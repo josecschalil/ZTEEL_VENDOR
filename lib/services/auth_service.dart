@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/config/api_config.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 
 class AuthService {
   static const String _keyAccess = 'access_token';
@@ -56,6 +57,7 @@ class AuthService {
     required bool isOnboarded,
     String? businessName,
   }) async {
+    await VendorCacheService.beginSession(phone);
     if (access.isNotEmpty) await _storage.write(key: _keyAccess, value: access);
     if (refresh.isNotEmpty) await _storage.write(key: _keyRefresh, value: refresh);
     
@@ -205,6 +207,7 @@ class AuthService {
       }
     }
 
+    await VendorCacheService.clearActiveVendorData();
     await _storage.delete(key: _keyAccess);
     await _storage.delete(key: _keyRefresh);
     

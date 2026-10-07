@@ -293,8 +293,19 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     );
 
     try {
-      // 1. Fetch live redemptions for this vendor
-      final redRes = await VendorService.getVendorRedemptions();
+      // QR ownership and status are security-sensitive. Never use an offline
+      // order cache to accept or reject a code.
+      final redRes = await VendorService.getVendorRedemptions(
+        forceRefresh: true,
+        allowStale: false,
+      );
+      if (redRes['success'] != true) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        _showSnackBar('A live connection is required to verify this QR code.');
+        return;
+      }
       List<dynamic> vendorOrders = [];
       if (redRes['success'] == true && redRes['data'] is List) {
         vendorOrders = redRes['data'] as List<dynamic>;

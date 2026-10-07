@@ -154,6 +154,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       final hasShop = await VendorService.hasExistingShopData();
       if (!mounted) return;
       if (hasShop) {
+        unawaited(VendorService.refreshEssentialData());
         unawaited(VendorOrderRealtimeService.instance.start());
       }
       Navigator.of(context).pushAndRemoveUntil(

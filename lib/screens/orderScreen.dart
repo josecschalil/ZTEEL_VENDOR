@@ -5,6 +5,7 @@ import 'package:frontend/screens/orderDetailScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
 import 'package:frontend/services/realtime_order_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 
 // ─── Color tokens (mirrors profile_edit_screen.dart _Dt) ─────────────────────
 class _C {
@@ -44,6 +45,7 @@ class _OrdersScreenState extends State<OrdersScreen>
   String _vendorName = '';
   String? _vendorIconUrl;
   final _shopStatus = ShopStatusService.instance;
+  bool _cacheRefreshScheduled = false;
 
   @override
   void initState() {
@@ -63,6 +65,7 @@ class _OrdersScreenState extends State<OrdersScreen>
     });
     _fetchData();
     VendorLiveOrderStore.instance.latestEvent.addListener(_applyRealtimeEvent);
+    VendorCacheService.revision.addListener(_onCacheRevision);
     _shopStatus.ensureLoaded();
   }
 
@@ -101,12 +104,13 @@ class _OrdersScreenState extends State<OrdersScreen>
   @override
   void dispose() {
     VendorLiveOrderStore.instance.latestEvent.removeListener(_applyRealtimeEvent);
+    VendorCacheService.revision.removeListener(_onCacheRevision);
     _tabController.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchData({bool silent = false}) async {
+  Future<void> _fetchData({bool silent = false, bool forceRefresh = false}) async {
     if (_isFetching) return;
     _isFetching = true;
     try {
@@ -117,7 +121,7 @@ class _OrdersScreenState extends State<OrdersScreen>
         });
       }
 
-      final profileRes = await VendorService.getVendorProfile();
+      final profileRes = await VendorService.getVendorProfile(forceRefresh: forceRefresh);
       if (profileRes['success'] == true && profileRes['data'] != null) {
         final pData = profileRes['data'] as Map<String, dynamic>;
         if (mounted) {
@@ -128,7 +132,7 @@ class _OrdersScreenState extends State<OrdersScreen>
         }
       }
 
-      final redRes = await VendorService.getVendorRedemptions();
+      final redRes = await VendorService.getVendorRedemptions(forceRefresh: forceRefresh);
       if (!mounted) return;
 
       if (redRes['success'] == true && redRes['data'] != null) {
@@ -164,6 +168,15 @@ class _OrdersScreenState extends State<OrdersScreen>
     }
   }
 
+  void _onCacheRevision() {
+    if (_cacheRefreshScheduled) return;
+    _cacheRefreshScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      _cacheRefreshScheduled = false;
+      if (mounted) _fetchData(silent: true);
+    });
+  }
+
   final Set<String> _confirmingOrders = {};
   
   Future<void> _confirmOrder(String qrCode) async {
@@ -192,7 +205,7 @@ class _OrdersScreenState extends State<OrdersScreen>
             margin: const EdgeInsets.all(16),
           ),
         );
-        await _fetchData(silent: true);
+        await _fetchData(silent: true, forceRefresh: true);
         _switchToTab(1);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -217,9 +230,63 @@ class _OrdersScreenState extends State<OrdersScreen>
     }
   }
 
+  Future<void> _rejectOrder(String qrCode) async {
+    if (qrCode.isEmpty || _confirmingOrders.contains(qrCode)) return;
+    final shouldReject = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reject this order?'),
+        content: const Text(
+          'The customer will see that this order was rejected and can place a new order.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep order'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _C.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Reject order', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (shouldReject != true || !mounted) return;
+
+    setState(() => _confirmingOrders.add(qrCode));
+    try {
+      final res = await VendorService.rejectVendorRedemption(qrCode);
+      if (!mounted) return;
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Order rejected.'),
+            backgroundColor: _C.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        await _fetchData(silent: true, forceRefresh: true);
+        _switchToTab(2);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['error']?.toString() ?? 'Failed to reject order.'),
+            backgroundColor: _C.textSecondary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _confirmingOrders.remove(qrCode));
+    }
+  }
+
   bool _isExpiredSession(Map<String, dynamic> r) {
     final status = (r['status'] ?? '').toString().toLowerCase();
-    if (status == 'expired' || status == 'cancelled') return true;
+    if (status == 'expired' || status == 'cancelled' || status == 'rejected') return true;
     if (status == 'pending') {
       final expiresAtStr = r['expires_at']?.toString();
       if (expiresAtStr != null && expiresAtStr.isNotEmpty) {
@@ -392,7 +459,7 @@ class _OrdersScreenState extends State<OrdersScreen>
         ),
       ),
     );
-    await _fetchData(silent: true);
+    await _fetchData(silent: true, forceRefresh: true);
     if (result == true && mounted) {
       _switchToTab(1);
     }
@@ -608,7 +675,7 @@ class _OrdersScreenState extends State<OrdersScreen>
 
     return RefreshIndicator(
       color: _C.dark,
-      onRefresh: _fetchData,
+      onRefresh: () => _fetchData(forceRefresh: true),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -727,7 +794,6 @@ class _OrdersScreenState extends State<OrdersScreen>
 
     final status = (session['status'] ?? '').toString().toLowerCase();
     final isConfirmed = status == 'confirmed';
-    final isExpired = status == 'expired';
 
     final finalTotal = session['final_total']?.toString() ??
         session['subtotal']?.toString() ??
@@ -857,54 +923,51 @@ class _OrdersScreenState extends State<OrdersScreen>
               children: [
                 // Action / status badge
                 if (!isConfirmed && status == 'pending')
-                  GestureDetector(
-                    onTap: () => _confirmOrder(qrCode),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _C.emerald,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _C.emerald),
-                      ),
-                      child: const Text(
-                        'Mark Completed',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  )
-                else if (!isConfirmed && isExpired)
-                  GestureDetector(
-                    onTap: () => _confirmOrder(qrCode),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD97706),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFD97706)),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.history_rounded,
-                              size: 13, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Complete Expired',
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _confirmOrder(qrCode),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _C.emerald,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _C.emerald),
+                          ),
+                          child: const Text(
+                            'Mark Completed',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _rejectOrder(qrCode),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _C.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _C.red),
+                          ),
+                          child: const Text(
+                            'Reject',
+                            style: TextStyle(
+                              color: _C.red,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   )
                 else
                   Container(

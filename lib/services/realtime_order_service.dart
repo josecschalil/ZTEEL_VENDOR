@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config/api_config.dart';
+import 'vendor_cache_service.dart';
 import 'vendor_service.dart';
 
 /// Connection status exposed for diagnostics and future non-visual indicators.
@@ -45,7 +46,9 @@ class VendorOrderEvent {
       final eventId = map['event_id']?.toString() ?? '';
       final orderId = aggregate['id']?.toString() ?? '';
       final type = map['type']?.toString() ?? '';
-      if (eventId.isEmpty || orderId.isEmpty || type.isEmpty) return null;
+      if (eventId.isEmpty || orderId.isEmpty || !type.startsWith('order.')) {
+        return null;
+      }
 
       return VendorOrderEvent(
         eventId: eventId,
@@ -53,6 +56,51 @@ class VendorOrderEvent {
         orderId: orderId,
         revision: int.tryParse(aggregate['revision']?.toString() ?? '') ?? 0,
         order: Map<String, dynamic>.from(data['order'] as Map),
+        occurredAt: DateTime.tryParse(map['occurred_at']?.toString() ?? ''),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// A compact invalidation event for non-order vendor data. It contains no
+/// business payload; the client re-fetches the permission-scoped resource.
+class VendorResourceChangeEvent {
+  const VendorResourceChangeEvent({
+    required this.eventId,
+    required this.resource,
+    required this.action,
+    required this.revision,
+    required this.occurredAt,
+  });
+
+  final String eventId;
+  final String resource;
+  final String action;
+  final int revision;
+  final DateTime? occurredAt;
+
+  static VendorResourceChangeEvent? tryParse(Object? raw) {
+    try {
+      final dynamic decoded = raw is String ? jsonDecode(raw) : raw;
+      if (decoded is! Map) return null;
+      final map = Map<String, dynamic>.from(decoded);
+      if (map['type']?.toString() != 'vendor.resource_changed') return null;
+      final aggregate = map['aggregate'];
+      final data = map['data'];
+      if (aggregate is! Map || data is! Map || data['order'] is! Map) {
+        return null;
+      }
+      final payload = Map<String, dynamic>.from(data['order'] as Map);
+      final eventId = map['event_id']?.toString() ?? '';
+      final resource = payload['resource']?.toString() ?? '';
+      if (eventId.isEmpty || resource.isEmpty) return null;
+      return VendorResourceChangeEvent(
+        eventId: eventId,
+        resource: resource,
+        action: payload['action']?.toString() ?? 'updated',
+        revision: int.tryParse(aggregate['revision']?.toString() ?? '') ?? 0,
         occurredAt: DateTime.tryParse(map['occurred_at']?.toString() ?? ''),
       );
     } catch (_) {
@@ -128,6 +176,7 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
   StreamSubscription<dynamic>? _socketSubscription;
   Timer? _reconnectTimer;
   Timer? _heartbeatTimer;
+  Timer? _resourceSyncTimer;
   bool _running = false;
   bool _intentionallyDisconnected = false;
   int _failedAttempts = 0;
@@ -135,6 +184,10 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
   String? _vendorId;
   DateTime? _lastEventAt;
   String? _lastEventId;
+  final Map<String, int> _resourceRevisions = <String, int>{};
+  final Set<String> _pendingResources = <String>{};
+  bool _resourceSyncInFlight = false;
+  int _resourceSyncFailures = 0;
 
   Future<void> start() async {
     if (_running) return;
@@ -152,6 +205,11 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
     _reconnectTimer = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
+    _resourceSyncTimer?.cancel();
+    _resourceSyncTimer = null;
+    _pendingResources.clear();
+    _resourceRevisions.clear();
+    _resourceSyncFailures = 0;
     await _closeSocket();
     state.value = VendorRealtimeState.stopped;
     store.reset();
@@ -164,6 +222,7 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
       _intentionallyDisconnected = false;
       _failedAttempts = 0;
       _connect();
+      if (_pendingResources.isNotEmpty) _scheduleResourceSync();
     } else if (appState == AppLifecycleState.inactive ||
         appState == AppLifecycleState.paused ||
         appState == AppLifecycleState.detached) {
@@ -194,6 +253,7 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
       final vendorId = decoded is Map ? decoded['vendor_id']?.toString() ?? '' : '';
       if (ticket.isEmpty) throw StateError('Realtime ticket was missing.');
       if (vendorId.isEmpty) throw StateError('Realtime vendor identity was missing.');
+      await VendorCacheService.setActiveVendor(vendorId);
       await _loadCursor(vendorId);
 
       final channel = WebSocketChannel.connect(
@@ -227,21 +287,83 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
 
   void _onSocketMessage(dynamic message) {
     final event = VendorOrderEvent.tryParse(message);
-    if (event == null) {
-      // `realtime.subscribed` is the protocol acknowledgement, not an order.
-      if (message is String && message.contains('realtime.subscribed')) {
-        _failedAttempts = 0;
-        state.value = VendorRealtimeState.connected;
+    if (event != null) {
+      _failedAttempts = 0;
+      state.value = VendorRealtimeState.connected;
+      if (store.apply(event)) {
+        unawaited(VendorCacheService.upsertOrder(event.order));
+        _saveCursor(eventId: event.eventId, occurredAt: event.occurredAt);
+        _events.add(event);
       }
       return;
     }
 
-    _failedAttempts = 0;
-    state.value = VendorRealtimeState.connected;
-    if (store.apply(event)) {
-      _saveCursor(event);
-      _events.add(event);
+    final resourceEvent = VendorResourceChangeEvent.tryParse(message);
+    if (resourceEvent != null) {
+      _failedAttempts = 0;
+      state.value = VendorRealtimeState.connected;
+      final currentRevision = _resourceRevisions[resourceEvent.resource] ?? 0;
+      if (resourceEvent.revision > currentRevision) {
+        _resourceRevisions[resourceEvent.resource] = resourceEvent.revision;
+        _pendingResources.add(resourceEvent.resource);
+        _scheduleResourceSync();
+      }
+      _saveCursor(
+        eventId: resourceEvent.eventId,
+        occurredAt: resourceEvent.occurredAt,
+      );
+      return;
     }
+
+    // `realtime.subscribed` is the protocol acknowledgement, not an event.
+    if (message is String && message.contains('realtime.subscribed')) {
+      _failedAttempts = 0;
+      state.value = VendorRealtimeState.connected;
+    }
+  }
+
+  void _scheduleResourceSync({Duration delay = const Duration(milliseconds: 250)}) {
+    if (_resourceSyncTimer != null || _resourceSyncInFlight) return;
+    _resourceSyncTimer = Timer(delay, () async {
+      _resourceSyncTimer = null;
+      if (!_running ||
+          _intentionallyDisconnected ||
+          _resourceSyncInFlight ||
+          _pendingResources.isEmpty) {
+        return;
+      }
+      _resourceSyncInFlight = true;
+      final resources = Set<String>.from(_pendingResources);
+      _pendingResources.clear();
+      var synced = false;
+      try {
+        synced = await VendorService.refreshResources(resources);
+      } catch (_) {
+        // Treat unexpected parsing/client errors like a transient network
+        // failure. The resource invalidation remains queued below.
+        synced = false;
+      } finally {
+        _resourceSyncInFlight = false;
+        // Do not spin background retries or resurrect a logged-out session.
+        // Resume will reconcile through the manifest and re-schedule pending
+        // resources above.
+        if (!_running || _intentionallyDisconnected) return;
+        if (!synced) {
+          _pendingResources.addAll(resources);
+          _resourceSyncFailures += 1;
+        } else {
+          _resourceSyncFailures = 0;
+        }
+        if (_pendingResources.isNotEmpty) {
+          final retrySeconds = min(60, 1 << min(_resourceSyncFailures, 6));
+          _scheduleResourceSync(
+            delay: synced
+                ? const Duration(milliseconds: 250)
+                : Duration(seconds: retrySeconds),
+          );
+        }
+      }
+    });
   }
 
   void _onSocketClosed() {
@@ -282,17 +404,16 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
     _lastEventId = preferences.getString('vendor_realtime_cursor_event_$vendorId');
   }
 
-  void _saveCursor(VendorOrderEvent event) {
-    final occurredAt = event.occurredAt;
+  void _saveCursor({required String eventId, required DateTime? occurredAt}) {
     if (occurredAt == null || _vendorId == null) return;
     final isOlder = _lastEventAt != null && occurredAt.isBefore(_lastEventAt!);
     final isSameOrOlderId = _lastEventAt != null &&
         occurredAt.isAtSameMomentAs(_lastEventAt!) &&
         _lastEventId != null &&
-        event.eventId.compareTo(_lastEventId!) <= 0;
+        eventId.compareTo(_lastEventId!) <= 0;
     if (isOlder || isSameOrOlderId) return;
     _lastEventAt = occurredAt;
-    _lastEventId = event.eventId;
+    _lastEventId = eventId;
     SharedPreferences.getInstance().then(
       (preferences) async {
         await preferences.setString(
@@ -301,7 +422,7 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
         );
         await preferences.setString(
           'vendor_realtime_cursor_event_$_vendorId',
-          event.eventId,
+          eventId,
         );
       },
     );

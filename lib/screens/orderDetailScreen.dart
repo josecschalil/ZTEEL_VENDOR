@@ -173,6 +173,49 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  Future<void> _handleReject() async {
+    if (widget.qrCode.isEmpty || _isSubmitting) return;
+    final shouldReject = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reject this order?'),
+        content: const Text(
+          'This cannot be undone. The customer will be notified that the order was rejected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep order'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _Pal.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Reject order', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (shouldReject != true || !mounted) return;
+
+    setState(() => _isSubmitting = true);
+    final res = await VendorService.rejectVendorRedemption(widget.qrCode);
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (res['success'] == true) {
+      setState(() => _currentStatus = 'rejected');
+      widget.onOrderCompleted?.call();
+      _toast('Order ${widget.orderId} rejected.', _Pal.red);
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        }
+      });
+    } else {
+      _toast(res['error']?.toString() ?? 'Failed to reject order.', _Pal.red);
+    }
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -368,31 +411,38 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final isPending = _currentStatus == 'pending';
     final isConfirmed = _currentStatus == 'confirmed';
     final isExpired = _currentStatus == 'expired';
-    final canComplete = (isPending || isExpired) && !_isSubmitting;
+    final isRejected = _currentStatus == 'rejected';
+    final canComplete = isPending && !_isSubmitting;
 
     final label = isPending
         ? 'Mark complete'
         : isConfirmed
             ? 'Order completed'
             : isExpired
-                ? 'Complete Expired Order'
+                ? 'Order expired'
+                : isRejected
+                    ? 'Order rejected'
                 : 'Order cancelled';
     final icon = isPending
         ? Icons.check_rounded
         : isConfirmed
             ? Icons.check_circle_rounded
             : isExpired
-                ? Icons.history_rounded
+                ? Icons.timer_off_rounded
+                : isRejected
+                    ? Icons.cancel_rounded
                 : Icons.block_rounded;
     final bg = isPending
         ? _Pal.ink
         : isConfirmed
             ? _Pal.green
             : isExpired
-                ? const Color(0xFFD97706)
+                ? _Pal.wash
+                : isRejected
+                    ? _Pal.wash
                 : _Pal.wash;
     final fg =
-        (isPending || isConfirmed || isExpired) ? Colors.white : _Pal.ink500;
+        (isPending || isConfirmed) ? Colors.white : _Pal.ink500;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -437,13 +487,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ],
           ),
           const SizedBox(width: 18),
+          if (isPending) ...[
+            Material(
+              color: _Pal.wash,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: _Pal.red),
+              ),
+              child: InkWell(
+                onTap: _isSubmitting ? null : _handleReject,
+                child: const SizedBox(
+                  height: 52,
+                  width: 52,
+                  child: Icon(Icons.close_rounded, color: _Pal.red),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: Material(
               color: bg,
               clipBehavior: Clip.antiAlias,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
-                side: (isPending || isConfirmed || isExpired)
+                side: (isPending || isConfirmed)
                     ? BorderSide.none
                     : const BorderSide(color: _Pal.line),
               ),

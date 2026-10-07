@@ -46,11 +46,19 @@ class AllCategoriesScreen extends StatefulWidget {
 class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   late List<MenuCategory> _categoryList;
   _CatSort _sort = _CatSort.menuOrder;
+  bool _cacheRefreshScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _categoryList = List.of(widget.categories);
+    VendorCacheService.revision.addListener(_onCacheRevision);
+  }
+
+  @override
+  void dispose() {
+    VendorCacheService.revision.removeListener(_onCacheRevision);
+    super.dispose();
   }
 
   @override
@@ -99,6 +107,15 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
   void _triggerRefresh() => widget.onRefreshCategories?.call();
+
+  void _onCacheRevision() {
+    if (_cacheRefreshScheduled) return;
+    _cacheRefreshScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      _cacheRefreshScheduled = false;
+      if (mounted) _fetchCategoriesFromApi();
+    });
+  }
 
   Future<MenuCategory> _loadCategory(Map<String, dynamic> cat) async {
     final catId = cat['id']?.toString() ?? '';

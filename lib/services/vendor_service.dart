@@ -4,8 +4,15 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 
 class VendorService {
+  static const _profileCacheTtl = Duration(hours: 12);
+  static const _catalogCacheTtl = Duration(hours: 6);
+  static const _offersCacheTtl = Duration(minutes: 30);
+  static const _ordersCacheTtl = Duration(minutes: 2);
+  static const _reviewsCacheTtl = Duration(hours: 6);
+  static Future<List<dynamic>>? _menuItemsInFlight;
   static Future<String?> _getAccessToken() async {
     return await AuthService.getValidAccessToken();
   }
@@ -122,8 +129,167 @@ class VendorService {
     return fallback;
   }
 
+  static Future<Map<String, dynamic>?> _freshCachedMap(
+    String resource,
+    Duration ttl, {
+    required bool forceRefresh,
+  }) async {
+    final entry = await VendorCacheService.readEntry(resource);
+    if (forceRefresh || entry == null || !entry.isFresh(ttl) || entry.value is! Map) {
+      return null;
+    }
+    return {
+      'success': true,
+      'data': Map<String, dynamic>.from(entry.value as Map),
+      'from_cache': true,
+      'is_stale': false,
+    };
+  }
+
+  static Future<Map<String, dynamic>?> _freshCachedList(
+    String resource,
+    Duration ttl, {
+    required bool forceRefresh,
+  }) async {
+    final entry = await VendorCacheService.readEntry(resource);
+    if (forceRefresh || entry == null || !entry.isFresh(ttl) || entry.value is! List) {
+      return null;
+    }
+    return {
+      'success': true,
+      'data': List<dynamic>.from(entry.value as List),
+      'from_cache': true,
+      'is_stale': false,
+    };
+  }
+
+  static Future<Map<String, dynamic>> _staleMapOrError(
+    String resource,
+    Object error,
+  ) async {
+    final cached = await VendorCacheService.readMap(resource);
+    if (cached != null) {
+      return {
+        'success': true,
+        'data': cached,
+        'from_cache': true,
+        'is_stale': true,
+      };
+    }
+    return {'success': false, 'error': error.toString()};
+  }
+
+  static Future<Map<String, dynamic>> _staleListOrError(
+    String resource,
+    Object error,
+  ) async {
+    final cached = await VendorCacheService.readList(resource);
+    if (cached != null) {
+      return {
+        'success': true,
+        'data': cached,
+        'from_cache': true,
+        'is_stale': true,
+      };
+    }
+    return {'success': false, 'error': error.toString()};
+  }
+
+  static Future<Map<String, dynamic>?> _getCacheManifest() async {
+    try {
+      final response = await authGet(Uri.parse(ApiConfig.vendorCacheManifestUrl));
+      final data = jsonDecode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300 && data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+    } catch (_) {
+      // Offline operation intentionally keeps the last known cache.
+    }
+    return null;
+  }
+
+  /// Revalidates only collections whose server revision advanced. Individual
+  /// fetches fall back to cache, so a weak connection cannot blank a screen.
+  static Future<void> refreshEssentialData() async {
+    final manifest = await _getCacheManifest();
+    if (manifest == null) return;
+    final vendorId = manifest['vendor_id']?.toString() ?? '';
+    if (vendorId.isEmpty) return;
+    await VendorCacheService.setActiveVendor(vendorId);
+    final previous = await VendorCacheService.readMap('sync_manifest') ??
+        <String, dynamic>{};
+    bool changed(String resource) => previous[resource]?.toString() != manifest[resource]?.toString();
+
+    final results = await Future.wait([
+      if (changed('profile')) getVendorProfile(forceRefresh: true),
+      if (changed('categories')) getMenuCategories(forceRefresh: true),
+      if (changed('menu_items')) getMenuItems(forceRefresh: true),
+      if (changed('offers')) getOffers(forceRefresh: true),
+      if (changed('reward_milestones')) getRewardMilestones(forceRefresh: true),
+      if (changed('orders')) getVendorRedemptions(forceRefresh: true),
+      if (changed('reviews')) getVendorReviews(forceRefresh: true),
+    ]);
+    // Never acknowledge a manifest whose changed collections were served from
+    // stale cache after a network failure. Keeping the old manifest makes the
+    // next resume/reconnect retry safely.
+    if (results.any((result) =>
+        result['success'] != true || result['is_stale'] == true)) {
+      return;
+    }
+    await VendorCacheService.write('sync_manifest', manifest);
+  }
+
+  /// Refreshes only resources announced by the vendor realtime stream.
+  /// The manifest remains the reconnect safety net; this path keeps an active
+  /// second device current without waiting for a lifecycle transition.
+  static Future<bool> refreshResources(Iterable<String> resources) async {
+    final requested = resources.toSet();
+    if (requested.isEmpty) return true;
+
+    final futures = <Future<Map<String, dynamic>>>[];
+    if (requested.contains('profile')) {
+      futures.add(getVendorProfile(forceRefresh: true));
+    }
+    if (requested.contains('categories')) {
+      futures.add(getMenuCategories(forceRefresh: true));
+    }
+    if (requested.contains('menu_items') || requested.contains('categories')) {
+      futures.add(getMenuItems(forceRefresh: true));
+    }
+    if (requested.contains('offers')) {
+      futures.add(getOffers(forceRefresh: true));
+    }
+    if (requested.contains('reward_milestones')) {
+      futures.add(getRewardMilestones(forceRefresh: true));
+    }
+    if (requested.contains('reviews')) {
+      futures.add(getVendorReviews(forceRefresh: true));
+    }
+    if (requested.contains('orders')) {
+      futures.add(getVendorRedemptions(forceRefresh: true));
+    }
+    final results = await Future.wait(futures);
+    if (results.any((result) =>
+        result['success'] != true || result['is_stale'] == true)) {
+      return false;
+    }
+
+    // Do not advance the whole manifest here. Another invalidation can arrive
+    // while these requests are in flight; only the manifest reconciliation
+    // path can atomically acknowledge its complete changed-resource set.
+    return true;
+  }
+
   /// Fetch vendor profile from backend
-  static Future<Map<String, dynamic>> getVendorProfile() async {
+  static Future<Map<String, dynamic>> getVendorProfile({
+    bool forceRefresh = false,
+  }) async {
+    final cached = await _freshCachedMap(
+      'profile',
+      _profileCacheTtl,
+      forceRefresh: forceRefresh,
+    );
+    if (cached != null) return cached;
     try {
       final response = await authGet(Uri.parse(ApiConfig.vendorProfileUrl));
       final data = jsonDecode(response.body);
@@ -140,12 +306,17 @@ class VendorService {
           await AuthService.setOnboarded(true);
         }
 
+        await VendorCacheService.writeProfile(data);
+
         return {'success': true, 'data': data};
       } else {
-        return {'success': false, 'error': _extractApiError(data, 'Failed to fetch vendor profile.')};
+        return _staleMapOrError(
+          'profile',
+          _extractApiError(data, 'Failed to fetch vendor profile.'),
+        );
       }
     } catch (e) {
-      return {'success': false, 'error': 'Network error: $e'};
+      return _staleMapOrError('profile', 'Network error: $e');
     }
   }
 
@@ -233,6 +404,7 @@ class VendorService {
             isOnboarded: isOnboarded,
             businessName: businessName,
           );
+          await VendorCacheService.writeProfile(data);
           return {'success': true, 'data': data};
         } else {
           return {'success': false, 'error': _extractApiError(data, 'Failed to update shop profile.')};
@@ -261,6 +433,7 @@ class VendorService {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setBool('is_onboarded', isOnboarded);
           await prefs.setString('business_name', businessName);
+          await VendorCacheService.writeProfile(data);
           return {'success': true, 'data': data};
         } else {
           return {'success': false, 'error': _extractApiError(data, 'Failed to update shop profile.')};
@@ -303,6 +476,11 @@ class VendorService {
       }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.writeProfile(data);
+        } else {
+          await VendorCacheService.invalidate('profile');
+        }
         return {
           'success': true,
           if (data is Map<String, dynamic>) 'data': data,
@@ -345,6 +523,7 @@ class VendorService {
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200 || response.statusCode == 201) {
+        await VendorCacheService.writeProfile(data);
         return {'success': true, 'data': data};
       } else {
         return {'success': false, 'error': data['detail'] ?? data.toString()};
@@ -372,6 +551,7 @@ class VendorService {
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        await VendorCacheService.invalidate('profile');
         return {'success': true};
       } else {
         final data = jsonDecode(response.body);
@@ -409,6 +589,7 @@ class VendorService {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        await VendorCacheService.writeProfile(data);
         return {
           'success': true,
           'icon_image': ApiConfig.getImageUrl(data['icon_image']?.toString()),
@@ -458,7 +639,15 @@ class VendorService {
   }
 
   /// Get all menu categories for vendor
-  static Future<Map<String, dynamic>> getMenuCategories() async {
+  static Future<Map<String, dynamic>> getMenuCategories({
+    bool forceRefresh = false,
+  }) async {
+    final cached = await _freshCachedList(
+      'categories',
+      _catalogCacheTtl,
+      forceRefresh: forceRefresh,
+    );
+    if (cached != null) return cached;
     final token = await _getAccessToken();
     if (token == null || token.isEmpty) {
       return {'success': false, 'error': 'Not authenticated'};
@@ -466,9 +655,10 @@ class VendorService {
 
     try {
       final list = await _fetchAllPages(ApiConfig.vendorMenuCategoriesUrl, token);
+      await VendorCacheService.write('categories', list);
       return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return _staleListOrError('categories', e);
     }
   }
 
@@ -497,6 +687,11 @@ class VendorService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('categories', data);
+        } else {
+          await VendorCacheService.invalidate('categories');
+        }
         return {'success': true, 'data': data};
       } else {
         String errorMsg = 'Failed to create category';
@@ -539,6 +734,11 @@ class VendorService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('categories', data);
+        } else {
+          await VendorCacheService.invalidate('categories');
+        }
         return {'success': true, 'data': data};
       } else {
         String errorMsg = 'Failed to update category';
@@ -572,6 +772,10 @@ class VendorService {
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
+        await VendorCacheService.removeListRecord('categories', id);
+        // Categories and items are a single aggregate from the UI's point of
+        // view, so a deletion invalidates item/category derived caches too.
+        await VendorCacheService.invalidate('menu_items');
         return {'success': true};
       } else {
         final data = jsonDecode(response.body);
@@ -613,36 +817,68 @@ class VendorService {
   // ── Menu Items CRUD ────────────────────────────────────────────────────────
 
   /// Get menu items (optionally filtered by category_id)
-  static Future<Map<String, dynamic>> getMenuItems({String? categoryId}) async {
+  static Future<Map<String, dynamic>> getMenuItems({
+    String? categoryId,
+    bool forceRefresh = false,
+  }) async {
+    final cached = await _freshCachedList(
+      'menu_items',
+      _catalogCacheTtl,
+      forceRefresh: forceRefresh,
+    );
+    if (cached != null) {
+      final list = cached['data'] as List<dynamic>;
+      return {
+        ...cached,
+        'data': _filterItemsForCategory(list, categoryId),
+      };
+    }
     final token = await _getAccessToken();
     if (token == null || token.isEmpty) {
       return {'success': false, 'error': 'Not authenticated'};
     }
 
     try {
-      var urlStr = ApiConfig.vendorMenuItemsUrl;
-      if (categoryId != null && categoryId.isNotEmpty) {
-        urlStr += '?category_id=$categoryId';
+      // Fetch the complete menu once, then filter locally. This avoids an
+      // N+1 request burst when dashboard categories are rendered.
+      final activeRequest = _menuItemsInFlight;
+      final request = activeRequest ?? _fetchAllPages(ApiConfig.vendorMenuItemsUrl, token);
+      if (activeRequest == null) {
+        _menuItemsInFlight = request;
       }
-
-      final list = await _fetchAllPages(urlStr, token);
-
-      if (categoryId != null && categoryId.isNotEmpty) {
-        final filtered = list.where((item) {
-          if (item is Map<String, dynamic>) {
-            final catField = item['category'];
-            if (catField is String) return catField == categoryId;
-            if (catField is Map) return catField['id']?.toString() == categoryId;
-          }
-          return false;
-        }).toList();
-        return {'success': true, 'data': filtered};
+      final list = await request;
+      await VendorCacheService.write('menu_items', list);
+      if (identical(_menuItemsInFlight, request)) {
+        _menuItemsInFlight = null;
       }
-
-      return {'success': true, 'data': list};
+      return {'success': true, 'data': _filterItemsForCategory(list, categoryId)};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      _menuItemsInFlight = null;
+      final fallback = await _staleListOrError('menu_items', e);
+      if (fallback['success'] == true && fallback['data'] is List) {
+        fallback['data'] = _filterItemsForCategory(
+          fallback['data'] as List<dynamic>,
+          categoryId,
+        );
+      }
+      return fallback;
     }
+  }
+
+  static List<dynamic> _filterItemsForCategory(
+    List<dynamic> list,
+    String? categoryId,
+  ) {
+    if (categoryId == null || categoryId.isEmpty) return List<dynamic>.from(list);
+    return list.where((item) {
+      if (item is Map) {
+        final category = item['category'];
+        return category is String
+            ? category == categoryId
+            : category is Map && category['id']?.toString() == categoryId;
+      }
+      return false;
+    }).toList();
   }
 
   /// Create a new menu item
@@ -678,6 +914,11 @@ class VendorService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('menu_items', data);
+        } else {
+          await VendorCacheService.invalidate('menu_items');
+        }
         return {'success': true, 'data': data};
       } else {
         return {'success': false, 'error': data.toString()};
@@ -726,6 +967,11 @@ class VendorService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 204) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('menu_items', data);
+        } else {
+          await VendorCacheService.invalidate('menu_items');
+        }
         return {'success': true, 'data': data};
       } else {
         return {'success': false, 'error': data.toString()};
@@ -752,6 +998,7 @@ class VendorService {
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
+        await VendorCacheService.removeListRecord('menu_items', id);
         return {'success': true};
       } else {
         final data = jsonDecode(response.body);
@@ -767,7 +1014,13 @@ class VendorService {
   // ── Offers CRUD ────────────────────────────────────────────────────────────
 
   /// Get vendor offers
-  static Future<Map<String, dynamic>> getOffers() async {
+  static Future<Map<String, dynamic>> getOffers({bool forceRefresh = false}) async {
+    final cached = await _freshCachedList(
+      'offers',
+      _offersCacheTtl,
+      forceRefresh: forceRefresh,
+    );
+    if (cached != null) return cached;
     final token = await _getAccessToken();
     if (token == null || token.isEmpty) {
       return {'success': false, 'error': 'Not authenticated'};
@@ -775,9 +1028,10 @@ class VendorService {
 
     try {
       final list = await _fetchAllPages(ApiConfig.vendorOffersUrl, token);
+      await VendorCacheService.write('offers', list);
       return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return _staleListOrError('offers', e);
     }
   }
 
@@ -800,6 +1054,11 @@ class VendorService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('offers', data);
+        } else {
+          await VendorCacheService.invalidate('offers');
+        }
         return {'success': true, 'data': data};
       } else {
         String err = 'Failed to create offer';
@@ -835,6 +1094,11 @@ class VendorService {
 
       final resData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (resData is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('offers', resData);
+        } else {
+          await VendorCacheService.invalidate('offers');
+        }
         return {'success': true, 'data': resData};
       } else {
         return {'success': false, 'error': resData['detail'] ?? 'Failed to update offer'};
@@ -861,6 +1125,7 @@ class VendorService {
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
+        await VendorCacheService.removeListRecord('offers', id);
         return {'success': true};
       } else {
         final data = jsonDecode(response.body);
@@ -874,7 +1139,15 @@ class VendorService {
   // ── Reward Milestones CRUD ─────────────────────────────────────────────────
 
   /// Get vendor reward milestones
-  static Future<Map<String, dynamic>> getRewardMilestones() async {
+  static Future<Map<String, dynamic>> getRewardMilestones({
+    bool forceRefresh = false,
+  }) async {
+    final cached = await _freshCachedList(
+      'reward_milestones',
+      _offersCacheTtl,
+      forceRefresh: forceRefresh,
+    );
+    if (cached != null) return cached;
     final token = await _getAccessToken();
     if (token == null || token.isEmpty) {
       return {'success': false, 'error': 'Not authenticated'};
@@ -882,9 +1155,10 @@ class VendorService {
 
     try {
       final list = await _fetchAllPages(ApiConfig.vendorRewardMilestonesUrl, token);
+      await VendorCacheService.write('reward_milestones', list);
       return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return _staleListOrError('reward_milestones', e);
     }
   }
 
@@ -907,6 +1181,11 @@ class VendorService {
 
       final resData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (resData is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('reward_milestones', resData);
+        } else {
+          await VendorCacheService.invalidate('reward_milestones');
+        }
         return {'success': true, 'data': resData};
       } else {
         String err = 'Failed to create reward milestone';
@@ -942,6 +1221,11 @@ class VendorService {
 
       final resData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (resData is Map<String, dynamic>) {
+          await VendorCacheService.upsertListRecord('reward_milestones', resData);
+        } else {
+          await VendorCacheService.invalidate('reward_milestones');
+        }
         return {'success': true, 'data': resData};
       } else {
         String err = 'Failed to update reward milestone';
@@ -972,6 +1256,7 @@ class VendorService {
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 204 || response.statusCode == 200) {
+        await VendorCacheService.removeListRecord('reward_milestones', id);
         return {'success': true};
       } else {
         final data = jsonDecode(response.body);
@@ -983,7 +1268,16 @@ class VendorService {
   }
 
   /// Fetch vendor redemption sessions (orders)
-  static Future<Map<String, dynamic>> getVendorRedemptions() async {
+  static Future<Map<String, dynamic>> getVendorRedemptions({
+    bool forceRefresh = false,
+    bool allowStale = true,
+  }) async {
+    final cached = await _freshCachedList(
+      'orders',
+      _ordersCacheTtl,
+      forceRefresh: forceRefresh,
+    );
+    if (cached != null) return cached;
     final token = await _getAccessToken();
     if (token == null || token.isEmpty) {
       return {'success': false, 'error': 'Not authenticated'};
@@ -991,9 +1285,12 @@ class VendorService {
 
     try {
       final list = await _fetchAllPages(ApiConfig.vendorRedemptionsUrl, token);
+      // Keep offline history bounded. The server remains the canonical archive.
+      await VendorCacheService.write('orders', list.take(500).toList());
       return {'success': true, 'data': list};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      if (!allowStale) return {'success': false, 'error': e.toString()};
+      return _staleListOrError('orders', e);
     }
   }
 
@@ -1015,6 +1312,11 @@ class VendorService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.upsertOrder(data);
+        } else {
+          await VendorCacheService.invalidate('orders');
+        }
         return {'success': true, 'data': data};
       } else {
         return {'success': false, 'error': data['detail'] ?? 'Failed to confirm order'};
@@ -1024,8 +1326,52 @@ class VendorService {
     }
   }
 
+  /// Reject an unexpired pending redemption session.
+  static Future<Map<String, dynamic>> rejectVendorRedemption(String qrCode) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.vendorRejectRedemptionUrl(qrCode)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        if (data is Map<String, dynamic>) {
+          await VendorCacheService.upsertOrder(data);
+        } else {
+          await VendorCacheService.invalidate('orders');
+        }
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'error': data is Map
+            ? (data['message'] ?? data['detail'] ?? 'Failed to reject order')
+            : 'Failed to reject order',
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Error rejecting order: $e'};
+    }
+  }
+
   /// Fetch all customer reviews and ratings summary for the logged in vendor
-  static Future<Map<String, dynamic>> getVendorReviews() async {
+  static Future<Map<String, dynamic>> getVendorReviews({
+    bool forceRefresh = false,
+  }) async {
+    final cached = await _freshCachedMap(
+      'reviews',
+      _reviewsCacheTtl,
+      forceRefresh: forceRefresh,
+    );
+    if (cached != null) return cached;
     final token = await _getAccessToken();
     if (token == null || token.isEmpty) {
       return {'success': false, 'error': 'Not authenticated'};
@@ -1042,15 +1388,16 @@ class VendorService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        await VendorCacheService.write('reviews', data);
         return {'success': true, 'data': data};
       } else {
-        return {
-          'success': false,
-          'error': data is Map ? (data['detail'] ?? 'Failed to fetch reviews') : 'Failed to fetch reviews',
-        };
+        return _staleMapOrError(
+          'reviews',
+          data is Map ? (data['detail'] ?? 'Failed to fetch reviews') : 'Failed to fetch reviews',
+        );
       }
     } catch (e) {
-      return {'success': false, 'error': 'Error fetching reviews: $e'};
+      return _staleMapOrError('reviews', 'Error fetching reviews: $e');
     }
   }
 }

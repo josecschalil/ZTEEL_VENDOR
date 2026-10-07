@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 class _Colors {
@@ -28,21 +29,23 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   String? _errorMessage;
   Map<String, dynamic>? _data;
   late String _selectedFilter;
+  bool _cacheRefreshScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _selectedFilter = widget.initialFilter;
     _loadReviews();
+    VendorCacheService.revision.addListener(_onCacheRevision);
   }
 
-  Future<void> _loadReviews() async {
+  Future<void> _loadReviews({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    final res = await VendorService.getVendorReviews();
+    final res = await VendorService.getVendorReviews(forceRefresh: forceRefresh);
 
     if (!mounted) return;
 
@@ -57,6 +60,21 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _onCacheRevision() {
+    if (_cacheRefreshScheduled) return;
+    _cacheRefreshScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      _cacheRefreshScheduled = false;
+      if (mounted) _loadReviews();
+    });
+  }
+
+  @override
+  void dispose() {
+    VendorCacheService.revision.removeListener(_onCacheRevision);
+    super.dispose();
   }
 
   List<dynamic> _getFilteredReviews(List<dynamic> allReviews) {
@@ -111,7 +129,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
             )
           : RefreshIndicator(
               color: _Colors.primary,
-              onRefresh: _loadReviews,
+              onRefresh: () => _loadReviews(forceRefresh: true),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

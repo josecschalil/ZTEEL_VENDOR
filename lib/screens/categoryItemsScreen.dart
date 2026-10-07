@@ -4,6 +4,7 @@ import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
 import 'package:frontend/screens/foodItemDetailScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 
 // ─── Color tokens (same palette as dashboard / profile / orders) ─────────────
 // NOTE: `_K` is private to each library. If you want one source of truth,
@@ -97,6 +98,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
 
   List<FoodItem> _items = [];
   bool _isLoading = true;
+  bool _cacheRefreshScheduled = false;
 
   // ── Entry animation (one calm reveal: hero → visibility card → dishes) ─────
   late final AnimationController _entryAc = AnimationController(
@@ -171,6 +173,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     });
     _entryAc.forward();
     _fetchItems();
+    VendorCacheService.revision.addListener(_onCacheRevision);
   }
 
   @override
@@ -178,13 +181,24 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     _entryAc.dispose();
     _searchCtrl.dispose();
     _searchFocus.dispose();
+    VendorCacheService.revision.removeListener(_onCacheRevision);
     super.dispose();
   }
 
   // ── Data ───────────────────────────────────────────────────────────────────
-  Future<void> _fetchItems() async {
+  void _onCacheRevision() {
+    if (_cacheRefreshScheduled) return;
+    _cacheRefreshScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      _cacheRefreshScheduled = false;
+      if (mounted) _fetchItems();
+    });
+  }
+
+  Future<void> _fetchItems({bool forceRefresh = false}) async {
     final res = await VendorService.getMenuItems(
       categoryId: widget.categoryId.isNotEmpty ? widget.categoryId : null,
+      forceRefresh: forceRefresh,
     );
     if (!mounted) return;
 
@@ -451,7 +465,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               Expanded(
                 child: RefreshIndicator(
                   color: _K.dark,
-                  onRefresh: _fetchItems,
+                  onRefresh: () => _fetchItems(forceRefresh: true),
                   child: SingleChildScrollView(
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,

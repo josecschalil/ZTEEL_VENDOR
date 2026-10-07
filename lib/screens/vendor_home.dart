@@ -5,6 +5,7 @@ import 'package:frontend/screens/orderScreen.dart';
 import 'package:frontend/screens/profileEditScreen.dart';
 import 'package:frontend/widgets/app_bottom_nav.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:frontend/services/vendor_service.dart';
 
 class VendorHome extends StatefulWidget {
   const VendorHome({super.key});
@@ -13,8 +14,9 @@ class VendorHome extends StatefulWidget {
   State<VendorHome> createState() => _VendorHomeState();
 }
 
-class _VendorHomeState extends State<VendorHome> {
+class _VendorHomeState extends State<VendorHome> with WidgetsBindingObserver {
   int _selectedTabIndex = 0;
+  final Map<int, Widget> _visitedScreens = {};
 
   final List<VendorTab> _tabs = [
     VendorTab.dashboard,
@@ -24,12 +26,45 @@ class _VendorHomeState extends State<VendorHome> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Cache is displayed immediately. A resume performs one consolidated
+      // revalidation instead of every screen independently reloading.
+      VendorService.refreshEssentialData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: KeyedSubtree(
-        key: ValueKey(_selectedTabIndex),
-        child: _buildCurrentScreen(),
+      body: IndexedStack(
+        index: _selectedTabIndex,
+        children: List<Widget>.generate(
+          _tabs.length,
+          (index) {
+            final existing = _visitedScreens[index];
+            if (existing != null) return existing;
+            if (index == _selectedTabIndex) {
+              final screen = _buildScreen(index);
+              _visitedScreens[index] = screen;
+              return screen;
+            }
+            return const SizedBox.shrink();
+          },
+        ),
       ),
       bottomNavigationBar: VendorBottomNav(
         currentTab: _tabs[_selectedTabIndex],
@@ -42,8 +77,8 @@ class _VendorHomeState extends State<VendorHome> {
     );
   }
 
-  Widget _buildCurrentScreen() {
-    switch (_tabs[_selectedTabIndex]) {
+  Widget _buildScreen(int index) {
+    switch (_tabs[index]) {
       case VendorTab.dashboard:
         return const RestaurantDashboard();
       case VendorTab.offers:

@@ -5,6 +5,7 @@ import 'package:frontend/config/api_config.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/realtime_order_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 import 'categoryItemsScreen.dart';
 import 'orderScreen.dart';
 import 'orderDetailScreen.dart';
@@ -113,6 +114,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
   double _todayRevenue = 0.0;
   int _pendingCount = 0;
   StreamSubscription<VendorOrderEvent>? _realtimeSubscription;
+  bool _cacheRefreshScheduled = false;
 
   @override
   void initState() {
@@ -120,30 +122,45 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     _shopStatus.ensureLoaded();
     _fetchDashboardData();
     _realtimeSubscription = VendorOrderRealtimeService.instance.events.listen(
-      (_) => _fetchOrders(silent: true),
+      (_) => _fetchOrders(silent: true, forceRefresh: true),
     );
+    VendorCacheService.revision.addListener(_onCacheRevision);
   }
 
   @override
   void dispose() {
     _realtimeSubscription?.cancel();
+    VendorCacheService.revision.removeListener(_onCacheRevision);
     super.dispose();
   }
 
   bool _isFetching = false;
 
-  Future<void> _fetchDashboardData({bool silent = false, bool isBackgroundPoll = false}) async {
+  void _onCacheRevision() {
+    if (_cacheRefreshScheduled) return;
+    _cacheRefreshScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      _cacheRefreshScheduled = false;
+      if (mounted) _fetchDashboardData(silent: true);
+    });
+  }
+
+  Future<void> _fetchDashboardData({
+    bool silent = false,
+    bool isBackgroundPoll = false,
+    bool forceRefresh = false,
+  }) async {
     if (_isFetching) return;
     _isFetching = true;
     try {
       if (isBackgroundPoll) {
         // Only fetch fast-changing data during rapid polling
-        await _fetchOrders(silent: silent);
+        await _fetchOrders(silent: silent, forceRefresh: forceRefresh);
       } else {
         await Future.wait([
-          _fetchVendorProfile(silent: silent),
-          _fetchCategories(silent: silent),
-          _fetchOrders(silent: silent),
+          _fetchVendorProfile(silent: silent, forceRefresh: forceRefresh),
+          _fetchCategories(silent: silent, forceRefresh: forceRefresh),
+          _fetchOrders(silent: silent, forceRefresh: forceRefresh),
         ]);
       }
     } finally {
@@ -151,8 +168,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     }
   }
 
-  Future<void> _fetchVendorProfile({bool silent = false}) async {
-    final profileRes = await VendorService.getVendorProfile();
+  Future<void> _fetchVendorProfile({bool silent = false, bool forceRefresh = false}) async {
+    final profileRes = await VendorService.getVendorProfile(forceRefresh: forceRefresh);
     if (!mounted) return;
     if (profileRes['success'] == true && profileRes['data'] != null) {
       final pData = profileRes['data'] as Map<String, dynamic>;
@@ -164,7 +181,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     }
   }
 
-  Future<void> _fetchCategories({bool silent = false}) async {
+  Future<void> _fetchCategories({bool silent = false, bool forceRefresh = false}) async {
     if (!silent && _categories.isEmpty) {
       setState(() {
         _isLoadingCategories = true;
@@ -172,11 +189,16 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       });
     }
 
-    final catRes = await VendorService.getMenuCategories();
+    final catRes = await VendorService.getMenuCategories(forceRefresh: forceRefresh);
     if (!mounted) return;
 
     if (catRes['success'] == true && catRes['data'] != null) {
       final rawList = catRes['data'] as List<dynamic>;
+      final allItemsRes = await VendorService.getMenuItems(forceRefresh: forceRefresh);
+      if (!mounted) return;
+      final allItems = allItemsRes['success'] == true && allItemsRes['data'] is List
+          ? allItemsRes['data'] as List<dynamic>
+          : const <dynamic>[];
       List<MenuCategory> categoryList = [];
 
       for (final cat in rawList) {
@@ -184,13 +206,16 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
           final catId = cat['id']?.toString() ?? '';
           final catName = cat['name']?.toString() ?? 'Category';
 
-          final itemRes = await VendorService.getMenuItems(categoryId: catId);
           List<MenuItem> itemList = [];
 
-          if (itemRes['success'] == true && itemRes['data'] != null) {
-            final rawItems = itemRes['data'] as List<dynamic>;
-            for (final it in rawItems) {
-              if (it is Map<String, dynamic>) {
+          for (final it in allItems) {
+            if (it is Map &&
+                it['category']?.toString() != catId &&
+                (it['category'] is! Map ||
+                    (it['category'] as Map)['id']?.toString() != catId)) {
+              continue;
+            }
+            if (it is Map<String, dynamic>) {
                 final priceNum = it['price'];
                 final rawPrice = (priceNum is num)
                     ? priceNum.toDouble()
@@ -207,7 +232,6 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
                   isVegetarian: it['is_vegetarian'] as bool? ?? false,
                   isAvailable: it['is_available'] as bool? ?? true,
                 ));
-              }
             }
           }
 
@@ -252,7 +276,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     }
   }
 
-  Future<void> _fetchOrders({bool silent = false}) async {
+  Future<void> _fetchOrders({bool silent = false, bool forceRefresh = false}) async {
     if (!silent && _orders.isEmpty) {
       setState(() {
         _isLoadingOrders = true;
@@ -260,7 +284,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       });
     }
 
-    final redRes = await VendorService.getVendorRedemptions();
+    final redRes = await VendorService.getVendorRedemptions(forceRefresh: forceRefresh);
     if (!mounted) return;
 
     if (redRes['success'] == true && redRes['data'] != null) {
@@ -353,7 +377,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     if (status == 'confirmed' || status == 'completed' || status == 'delivered') {
       return OrderStatus.completed;
     }
-    if (status == 'expired' || status == 'cancelled') {
+    if (status == 'expired' || status == 'cancelled' || status == 'rejected') {
       return OrderStatus.expired;
     }
     final expiresAt = session['expires_at']?.toString();
@@ -603,7 +627,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         body: RefreshIndicator(
-          onRefresh: () => _fetchDashboardData(),
+          onRefresh: () => _fetchDashboardData(forceRefresh: true),
           color: const Color(0xFF0F172A),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(

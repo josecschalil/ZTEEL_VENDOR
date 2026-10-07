@@ -13,6 +13,8 @@ class ApiConfig {
 
   // ── Vendor Profile & Setup Endpoints ─────────────────────────────────────
   static String get vendorProfileUrl => '$baseUrl/api/v1/vendor/profile/';
+  static String get vendorCacheManifestUrl =>
+      '$baseUrl/api/v1/vendor/cache-manifest/';
   static String get vendorBusinessHoursUrl => '$baseUrl/api/v1/vendor/hours/';
   static String get vendorMenuCategoriesUrl =>
       '$baseUrl/api/v1/vendor/menu-categories/';
@@ -32,6 +34,8 @@ class ApiConfig {
       '$baseUrl/api/v1/vendor/redemptions/';
   static String vendorScanRedemptionUrl(String qrCode) =>
       '$baseUrl/api/v1/vendor/redemptions/$qrCode/scan/';
+  static String vendorRejectRedemptionUrl(String qrCode) =>
+      '$baseUrl/api/v1/vendor/redemptions/$qrCode/reject/';
   static String get vendorReviewsUrl =>
       '$baseUrl/api/v1/vendor/reviews/';
 

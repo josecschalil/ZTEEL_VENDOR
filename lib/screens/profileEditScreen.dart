@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/realtime_order_service.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
 import 'package:frontend/screens/terms_policy_screen.dart';
 
@@ -65,6 +66,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   bool _isUploadingIcon = false;
   bool _isUploadingCover = false;
   bool _isMapInteractive = false;
+  bool _cacheRefreshScheduled = false;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -72,10 +74,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   void initState() {
     super.initState();
     _loadVendorProfile();
+    VendorCacheService.revision.addListener(_onCacheRevision);
   }
 
-  Future<void> _loadVendorProfile() async {
-    final res = await VendorService.getVendorProfile();
+  Future<void> _loadVendorProfile({bool forceRefresh = false}) async {
+    final res = await VendorService.getVendorProfile(forceRefresh: forceRefresh);
     if (!mounted) return;
 
     if (res['success'] == true && res['data'] != null) {
@@ -105,6 +108,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     } else {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _onCacheRevision() {
+    if (_cacheRefreshScheduled) return;
+    _cacheRefreshScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      _cacheRefreshScheduled = false;
+      if (mounted) _loadVendorProfile();
+    });
   }
 
   TimeOfDay _parseTimeOfDay(String timeStr) {
@@ -508,6 +520,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   @override
   void dispose() {
+    VendorCacheService.revision.removeListener(_onCacheRevision);
     _shopNameController.dispose();
     _addressController.dispose();
     _descriptionController.dispose();
@@ -1057,7 +1070,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         body: _isLoading
             ? const Center(child: CircularProgressIndicator(color: _Dt.emerald))
             : RefreshIndicator(
-                onRefresh: _loadVendorProfile,
+            onRefresh: () => _loadVendorProfile(forceRefresh: true),
                 color: _Dt.dark,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(

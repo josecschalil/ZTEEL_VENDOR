@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:frontend/screens/MilestoneScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
+import 'package:frontend/services/vendor_cache_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
@@ -145,6 +146,7 @@ class _OffersScreenState extends State<OffersScreen>
   bool _isLoading = true;
   int _activeMilestonesCount = 0;
   int _totalMilestonesCount = 0;
+  bool _cacheRefreshScheduled = false;
 
   final _shopStatus = ShopStatusService.instance;
 
@@ -163,21 +165,32 @@ class _OffersScreenState extends State<OffersScreen>
       curve: Curves.easeOut,
     );
     _fetchOffers();
+    VendorCacheService.revision.addListener(_onCacheRevision);
     _shopStatus.ensureLoaded();
   }
 
   @override
   void dispose() {
+    VendorCacheService.revision.removeListener(_onCacheRevision);
     _heroController.dispose();
     super.dispose();
   }
 
   // ── Data ───────────────────────────────────────────────────────────────────
 
-  Future<void> _fetchOffers() async {
+  void _onCacheRevision() {
+    if (_cacheRefreshScheduled) return;
+    _cacheRefreshScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      _cacheRefreshScheduled = false;
+      if (mounted) _fetchOffers();
+    });
+  }
+
+  Future<void> _fetchOffers({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
-    final res = await VendorService.getOffers();
-    final milestoneRes = await VendorService.getRewardMilestones();
+    final res = await VendorService.getOffers(forceRefresh: forceRefresh);
+    final milestoneRes = await VendorService.getRewardMilestones(forceRefresh: forceRefresh);
     if (!mounted) return;
 
     int activeM = 0;
@@ -544,7 +557,7 @@ class _OffersScreenState extends State<OffersScreen>
       child: Scaffold(
         backgroundColor: _Pal.bg,
         body: RefreshIndicator(
-          onRefresh: _fetchOffers,
+          onRefresh: () => _fetchOffers(forceRefresh: true),
           color: _Pal.ink,
           backgroundColor: Colors.white,
           child: SingleChildScrollView(
