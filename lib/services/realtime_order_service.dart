@@ -9,6 +9,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config/api_config.dart';
 import 'vendor_cache_service.dart';
+import 'vendor_notification_service.dart';
 import 'vendor_service.dart';
 
 /// Connection status exposed for diagnostics and future non-visual indicators.
@@ -194,6 +195,9 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
     _running = true;
     _intentionallyDisconnected = false;
     WidgetsBinding.instance.addObserver(this);
+    // Starts only after vendor authentication/onboarding, which is the right
+    // point to request notification access. The inbox works if this is denied.
+    unawaited(VendorNotificationService.requestPermission());
     await _connect();
   }
 
@@ -254,6 +258,7 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
       if (ticket.isEmpty) throw StateError('Realtime ticket was missing.');
       if (vendorId.isEmpty) throw StateError('Realtime vendor identity was missing.');
       await VendorCacheService.setActiveVendor(vendorId);
+      await VendorNotificationService.reload();
       await _loadCursor(vendorId);
 
       final channel = WebSocketChannel.connect(
@@ -277,6 +282,12 @@ class VendorOrderRealtimeService with WidgetsBindingObserver {
           _channel?.sink.add(jsonEncode({'type': 'realtime.ping'}));
         } catch (_) {
           _onSocketClosed();
+        }
+        // The socket is the low-latency path. This compact manifest check is
+        // deliberately silent and recovers any resource event that was lost
+        // across a short network, worker, or process interruption.
+        if (_running && !_intentionallyDisconnected) {
+          unawaited(VendorService.refreshEssentialData());
         }
       });
     } catch (_) {

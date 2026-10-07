@@ -10,6 +10,7 @@ import 'categoryItemsScreen.dart';
 import 'orderScreen.dart';
 import 'orderDetailScreen.dart';
 import 'NotificationScreen.dart';
+import '../services/vendor_notification_service.dart';
 import 'reviewsScreen.dart';
 part 'dashboard_all_categories.dart';
 
@@ -889,19 +890,34 @@ class _HeroHeader extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              top: 9,
-              right: 9,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
-                  shape: BoxShape.circle,
-                  border:
-                      Border.all(color: const Color(0xFF0F172A), width: 1.5),
-                ),
-              ),
+            ValueListenableBuilder<List<VendorNotification>>(
+              valueListenable: VendorNotificationService.notifications,
+              builder: (_, notifications, __) {
+                final unread = notifications.where((item) => !item.read).length;
+                if (unread == 0) return const SizedBox.shrink();
+                return Positioned(
+                  top: 3,
+                  right: 1,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+                    ),
+                    child: Text(
+                      unread > 9 ? '9+' : '$unread',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

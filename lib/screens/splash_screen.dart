@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -13,9 +13,16 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _opacityAnimation;
+  static const Color _bgDeep = Color(0xFF0F172A);
+  static const Color _bgSpotlight = Color(0xFF1E293B);
+  static const Color _trackColor = Color(0x1FFFFFFF); // white @ 12%
+  static const Color _titleColor = Color(0xB3FFFFFF); // white @ 70%
+
+  late final AnimationController _controller;
+  late final Animation<double> _logoOpacity;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _titleOpacity;
+  late final Animation<double> _progress;
 
   @override
   void initState() {
@@ -23,40 +30,49 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1600),
     );
 
-    // Smooth zoom in effect for the logo
-    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    // Logo: gentle fade and settle into place.
+    _logoOpacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+    );
+    _logoScale = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic),
+      ),
+    );
 
-    // Fade in for the loader and text
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(
-            parent: _controller,
-            curve: const Interval(0.4, 1.0, curve: Curves.easeIn)));
+    // Title appears just after the logo.
+    _titleOpacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.3, 0.65, curve: Curves.easeOut),
+    );
 
-    _controller.forward().then((_) {
-      // Hold for a moment before navigating to the main app
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                widget.nextScreen,
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 800),
-          ));
-        }
-      });
-    });
+    // Slim progress line fills across the whole duration.
+    _progress = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.1, 1.0, curve: Curves.easeInOut),
+    );
 
-    // Remove the native splash screen as soon as the first frame of this custom splash is rendered
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      FlutterNativeSplash.remove();
-    });
+    _run();
+  }
+
+  Future<void> _run() async {
+    await _controller.forward();
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => widget.nextScreen,
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
   }
 
   @override
@@ -68,53 +84,80 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          const Color(0xFF0F172A), // Matches flutter_native_splash config
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: _scaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: child,
-                );
-              },
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 160,
+      backgroundColor: _bgDeep,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0, -0.1),
+            radius: 0.9,
+            colors: [_bgSpotlight, _bgDeep],
+          ),
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              // Centered brand block
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FadeTransition(
+                      opacity: _logoOpacity,
+                      child: ScaleTransition(
+                        scale: _logoScale,
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 140,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    FadeTransition(
+                      opacity: _titleOpacity,
+                      child: const Text(
+                        'Vendor Portal',
+                        style: TextStyle(
+                          color: _titleColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 50),
-            FadeTransition(
-              opacity: _opacityAnimation,
-              child: const Column(
-                children: [
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.orangeWarm),
-                      strokeWidth: 2.5,
+
+              // Bottom progress line
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 56),
+                  child: SizedBox(
+                    width: 120,
+                    child: AnimatedBuilder(
+                      animation: _progress,
+                      builder: (context, _) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: LinearProgressIndicator(
+                            value: _progress.value,
+                            minHeight: 3,
+                            backgroundColor: _trackColor,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.orangeWarm,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  SizedBox(height: 24),
-                  Text(
-                    'VENDOR PORTAL',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 13,
-                      letterSpacing: 6,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

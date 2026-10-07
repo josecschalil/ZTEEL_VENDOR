@@ -13,6 +13,9 @@ class VendorService {
   static const _ordersCacheTtl = Duration(minutes: 2);
   static const _reviewsCacheTtl = Duration(hours: 6);
   static Future<List<dynamic>>? _menuItemsInFlight;
+  static int? _menuItemsInFlightGeneration;
+  static int _menuItemsGeneration = 0;
+  static Future<void>? _essentialRefreshInFlight;
   static Future<String?> _getAccessToken() async {
     return await AuthService.getValidAccessToken();
   }
@@ -210,7 +213,21 @@ class VendorService {
 
   /// Revalidates only collections whose server revision advanced. Individual
   /// fetches fall back to cache, so a weak connection cannot blank a screen.
-  static Future<void> refreshEssentialData() async {
+  static Future<void> refreshEssentialData() {
+    final existing = _essentialRefreshInFlight;
+    if (existing != null) return existing;
+
+    late final Future<void> request;
+    request = _refreshEssentialData().whenComplete(() {
+      if (identical(_essentialRefreshInFlight, request)) {
+        _essentialRefreshInFlight = null;
+      }
+    });
+    _essentialRefreshInFlight = request;
+    return request;
+  }
+
+  static Future<void> _refreshEssentialData() async {
     final manifest = await _getCacheManifest();
     if (manifest == null) return;
     final vendorId = manifest['vendor_id']?.toString() ?? '';
@@ -838,22 +855,40 @@ class VendorService {
       return {'success': false, 'error': 'Not authenticated'};
     }
 
+    Future<List<dynamic>>? menuRequest;
     try {
-      // Fetch the complete menu once, then filter locally. This avoids an
-      // N+1 request burst when dashboard categories are rendered.
-      final activeRequest = _menuItemsInFlight;
-      final request = activeRequest ?? _fetchAllPages(ApiConfig.vendorMenuItemsUrl, token);
-      if (activeRequest == null) {
-        _menuItemsInFlight = request;
+      // A realtime invalidation must never join an older in-flight fetch: that
+      // response may predate the mutation. A generation also prevents an old
+      // request finishing late from overwriting the newer cache snapshot.
+      final activeRequest = forceRefresh ? null : _menuItemsInFlight;
+      final Future<List<dynamic>> request;
+      final int requestGeneration;
+      if (activeRequest != null) {
+        request = activeRequest;
+        requestGeneration = _menuItemsInFlightGeneration ?? _menuItemsGeneration;
+      } else {
+        requestGeneration = ++_menuItemsGeneration;
+        request = _fetchAllPages(ApiConfig.vendorMenuItemsUrl, token);
       }
+      if (activeRequest == null && !forceRefresh) {
+        _menuItemsInFlight = request;
+        _menuItemsInFlightGeneration = requestGeneration;
+      }
+      menuRequest = request;
       final list = await request;
-      await VendorCacheService.write('menu_items', list);
-      if (identical(_menuItemsInFlight, request)) {
+      if (requestGeneration == _menuItemsGeneration) {
+        await VendorCacheService.write('menu_items', list);
+      }
+      if (identical(_menuItemsInFlight, menuRequest)) {
         _menuItemsInFlight = null;
+        _menuItemsInFlightGeneration = null;
       }
       return {'success': true, 'data': _filterItemsForCategory(list, categoryId)};
     } catch (e) {
-      _menuItemsInFlight = null;
+      if (menuRequest != null && identical(_menuItemsInFlight, menuRequest)) {
+        _menuItemsInFlight = null;
+        _menuItemsInFlightGeneration = null;
+      }
       final fallback = await _staleListOrError('menu_items', e);
       if (fallback['success'] == true && fallback['data'] is List) {
         fallback['data'] = _filterItemsForCategory(

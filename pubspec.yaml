@@ -47,6 +47,7 @@ dependencies:
   flutter_native_splash: ^2.4.8
   web_socket_channel: ^3.0.1
   hive_flutter: ^1.1.0
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

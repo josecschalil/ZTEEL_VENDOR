@@ -4,22 +4,26 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:frontend/app_colors.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
+import 'package:frontend/screens/order_detail_route.dart';
 import 'package:frontend/screens/setupShopScreen.dart';
 import 'package:frontend/screens/vendor_home.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/realtime_order_service.dart';
 import 'package:frontend/services/vendor_cache_service.dart';
+import 'package:frontend/services/vendor_notification_service.dart';
 import 'package:frontend/screens/splash_screen.dart';
 
-final GlobalKey<ScaffoldMessengerState> _rootMessengerKey =
-    GlobalKey<ScaffoldMessengerState>();
-StreamSubscription<VendorOrderEvent>? _orderAlertSubscription;
+StreamSubscription<VendorOrderEvent>? _orderNotificationSubscription;
+StreamSubscription<void>? _notificationTapSubscription;
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+bool _openingNotificationOrder = false;
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await VendorCacheService.initialize();
+  await VendorNotificationService.initialize();
 
   final loggedIn = await AuthService.isLoggedIn();
   Widget targetScreen;
@@ -38,27 +42,62 @@ void main() async {
   }
 
   runApp(ZTEELVendorApp(initialScreen: SplashScreen(nextScreen: targetScreen)));
-  _orderAlertSubscription ??=
+  _orderNotificationSubscription ??=
       VendorOrderRealtimeService.instance.events.where((event) => event.isNewOrder).listen(
-    (event) {
-      final orderNumber = event.order['order_number']?.toString() ?? 'new';
-      final amount = event.order['final_total']?.toString();
-      _rootMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text(
-            amount == null || amount.isEmpty
-                ? 'New order $orderNumber received.'
-                : 'New order $orderNumber received — ₹$amount.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
-        ),
-      );
-    },
+    (event) => unawaited(VendorNotificationService.recordNewOrder(
+      eventId: event.eventId,
+      orderId: event.orderId,
+      order: event.order,
+      occurredAt: event.occurredAt,
+    )),
   );
+  _notificationTapSubscription ??=
+      VendorNotificationService.orderTapEvents.listen((_) {
+    unawaited(_openNextNotificationOrder());
+  });
+  unawaited(_openNextNotificationOrder());
   if (shouldStartRealtime) {
     unawaited(VendorService.refreshEssentialData());
     unawaited(VendorOrderRealtimeService.instance.start());
+  }
+}
+
+Future<void> _openNextNotificationOrder() async {
+  if (_openingNotificationOrder) return;
+  final orderId = VendorNotificationService.takePendingOrderTap();
+  if (orderId == null) return;
+
+  _openingNotificationOrder = true;
+  try {
+    // A cold-start tap can arrive before MaterialApp has mounted its navigator.
+    await WidgetsBinding.instance.endOfFrame;
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null) {
+      VendorNotificationService.openOrder(orderId);
+      return;
+    }
+    Map<String, dynamic>? order =
+        VendorLiveOrderStore.instance.orders.value[orderId];
+    if (order == null) {
+      final response = await VendorService.getVendorRedemptions(forceRefresh: true);
+      final data = response['data'];
+      if (response['success'] == true && data is List) {
+        for (final item in data) {
+          if (item is Map && item['id']?.toString() == orderId) {
+            order = Map<String, dynamic>.from(item);
+            break;
+          }
+        }
+      }
+    }
+    if (order != null) {
+      await navigator.push(
+        MaterialPageRoute(builder: (_) => orderDetailScreenForSession(order!)),
+      );
+    }
+  } finally {
+    _openingNotificationOrder = false;
+    unawaited(_openNextNotificationOrder());
   }
 }
 
@@ -69,7 +108,7 @@ class ZTEELVendorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      scaffoldMessengerKey: _rootMessengerKey,
+      navigatorKey: _navigatorKey,
       title: 'ZTEEL Vendor',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

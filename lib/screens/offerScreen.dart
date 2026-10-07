@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:frontend/screens/MilestoneScreen.dart';
+import 'package:frontend/screens/NotificationScreen.dart';
 import 'package:frontend/screens/createOfferScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/vendor_cache_service.dart';
+import 'package:frontend/services/vendor_notification_service.dart';
 import 'package:frontend/services/shop_status_service.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
@@ -139,8 +141,6 @@ class _OffersScreenState extends State<OffersScreen>
     with SingleTickerProviderStateMixin {
   static const String _heroImageUrl =
       'https://images.unsplash.com/photo-1544025162-d76694265947?w=1000&auto=format&fit=crop&q=80';
-  static const int _notificationCount = 2;
-
   int _selectedTab = 0;
   List<Offer> _offers = [];
   bool _isLoading = true;
@@ -797,7 +797,15 @@ class _OffersScreenState extends State<OffersScreen>
           ),
         ),
         const SizedBox(width: 8),
-        _NotificationButton(count: _notificationCount, onTap: () {}),
+        ValueListenableBuilder<List<VendorNotification>>(
+          valueListenable: VendorNotificationService.notifications,
+          builder: (context, notifications, _) => _NotificationButton(
+            count: notifications.where((item) => !item.read).length,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            ),
+          ),
+        ),
       ],
     );
   }

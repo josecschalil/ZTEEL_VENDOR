@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:frontend/services/vendor_notification_service.dart';
 
 class NotifColors {
   static const primary = Color(0xFFEE5B2B);
@@ -38,14 +41,16 @@ class NotifItem {
   final NotifType type;
   final String title;
   final String message;
-  final String time;
+  final DateTime createdAt;
+  final String? orderId;
   bool read;
   NotifItem({
     required this.id,
     required this.type,
     required this.title,
     required this.message,
-    required this.time,
+    required this.createdAt,
+    this.orderId,
     this.read = false,
   });
 }
@@ -67,103 +72,102 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final List<NotifSection> _sections = [
-    NotifSection(
-      label: 'Today',
-      items: [
-        NotifItem(
-          id: 'n1',
-          type: NotifType.order,
-          title: 'Order confirmed',
-          message: 'Your order #C571267D at The Golden Spoon is being prepared.',
-          time: '2m ago',
-        ),
-        NotifItem(
-          id: 'n2',
-          type: NotifType.promo,
-          title: 'Flash deal near you 🔥',
-          message: '50% off all Pasta dishes at The Golden Spoon, ends soon.',
-          time: '1h ago',
-        ),
-        NotifItem(
-          id: 'n3',
-          type: NotifType.reward,
-          title: 'Almost there!',
-          message: "Spend \$11.50 more this week to unlock a FREE item.",
-          time: '3h ago',
-          read: true,
-        ),
-      ],
-    ),
-    NotifSection(
-      label: 'Yesterday',
-      items: [
-        NotifItem(
-          id: 'n4',
-          type: NotifType.order,
-          title: 'Order delivered',
-          message: 'Your order from Urban Bites & Co. was delivered. Enjoy!',
-          time: '1d ago',
-          read: true,
-        ),
-        NotifItem(
-          id: 'n5',
-          type: NotifType.account,
-          title: 'Profile updated',
-          message: 'Your phone number was changed successfully.',
-          time: '1d ago',
-          read: true,
-        ),
-      ],
-    ),
-    NotifSection(
-      label: 'This Week',
-      items: [
-        NotifItem(
-          id: 'n6',
-          type: NotifType.reward,
-          title: "You're now a Gold Member!",
-          message: 'Enjoy exclusive discounts and priority offers.',
-          time: '4d ago',
-          read: true,
-        ),
-        NotifItem(
-          id: 'n7',
-          type: NotifType.promo,
-          title: 'New restaurant added',
-          message: 'The Smokehouse just joined ZTEEL — 20% off this week.',
-          time: '6d ago',
-          read: true,
-        ),
-      ],
-    ),
-  ];
+  List<NotifItem> _items = <NotifItem>[];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    VendorNotificationService.notifications.addListener(_syncFromInbox);
+    unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    VendorNotificationService.notifications.removeListener(_syncFromInbox);
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    await VendorNotificationService.initialize();
+    await VendorNotificationService.reload();
+    if (mounted) setState(() => _loading = false);
+  }
+
+  void _syncFromInbox() {
+    if (!mounted) return;
+    setState(() {
+      _items = VendorNotificationService.notifications.value
+          .map(_toNotifItem)
+          .toList();
+      _loading = false;
+    });
+  }
+
+  NotifItem _toNotifItem(VendorNotification item) => NotifItem(
+        id: item.id,
+        type: switch (item.type) {
+          'order' => NotifType.order,
+          'promo' => NotifType.promo,
+          'reward' => NotifType.reward,
+          _ => NotifType.account,
+        },
+        title: item.title,
+        message: item.message,
+        createdAt: item.createdAt,
+        orderId: item.orderId,
+        read: item.read,
+      );
+
+  List<NotifSection> get _sections {
+    final today = <NotifItem>[];
+    final yesterday = <NotifItem>[];
+    final thisWeek = <NotifItem>[];
+    final earlier = <NotifItem>[];
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfYesterday = startOfToday.subtract(const Duration(days: 1));
+    final startOfWeek = startOfToday.subtract(Duration(days: startOfToday.weekday - 1));
+
+    for (final item in _items) {
+      if (!item.createdAt.isBefore(startOfToday)) {
+        today.add(item);
+      } else if (!item.createdAt.isBefore(startOfYesterday)) {
+        yesterday.add(item);
+      } else if (!item.createdAt.isBefore(startOfWeek)) {
+        thisWeek.add(item);
+      } else {
+        earlier.add(item);
+      }
+    }
+    return [
+      NotifSection(label: 'Today', items: today),
+      NotifSection(label: 'Yesterday', items: yesterday),
+      NotifSection(label: 'This Week', items: thisWeek),
+      NotifSection(label: 'Earlier', items: earlier),
+    ];
+  }
 
   int get _unreadCount =>
       _sections.expand((s) => s.items).where((i) => !i.read).length;
 
   void _markAllRead() {
-    setState(() {
-      for (final section in _sections) {
-        for (final item in section.items) {
-          item.read = true;
-        }
-      }
-    });
+    unawaited(VendorNotificationService.markAllRead());
   }
 
-  void _dismiss(NotifSection section, NotifItem item) {
-    setState(() => section.items.remove(item));
+  void _dismiss(NotifItem item) {
+    unawaited(VendorNotificationService.dismiss(item.id));
   }
 
   void _toggleRead(NotifItem item) {
-    setState(() => item.read = true);
+    if (!item.read) unawaited(VendorNotificationService.markRead(item.id));
+    VendorNotificationService.openOrder(item.orderId);
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasAny = _sections.any((s) => s.items.isNotEmpty);
+    final hasAny = _items.isNotEmpty;
     final bgColor = isDark ? NotifColors.backgroundDark : NotifColors.backgroundLight;
 
     return Scaffold(
@@ -177,7 +181,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onMarkAllRead: _markAllRead,
             ),
             Expanded(
-              child: hasAny
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : hasAny
                   ? ListView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                       children: [
@@ -186,7 +192,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             _NotifSectionWidget(
                               isDark: isDark,
                               section: section,
-                              onDismiss: (item) => _dismiss(section, item),
+                              onDismiss: _dismiss,
                               onTap: _toggleRead,
                             ),
                       ],
@@ -473,7 +479,7 @@ class _NotifCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      item.time,
+                      _relativeTime(item.createdAt),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -489,6 +495,16 @@ class _NotifCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _relativeTime(DateTime dateTime) {
+  final elapsed = DateTime.now().difference(dateTime);
+  if (elapsed.inMinutes < 1) return 'Just now';
+  if (elapsed.inHours < 1) return '${elapsed.inMinutes}m ago';
+  if (elapsed.inDays < 1) return '${elapsed.inHours}h ago';
+  if (elapsed.inDays == 1) return 'Yesterday';
+  if (elapsed.inDays < 7) return '${elapsed.inDays}d ago';
+  return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
 }
 
 /// ---------------------------------------------------------------------
