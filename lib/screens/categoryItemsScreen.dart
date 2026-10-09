@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/screens/editFoodItemScreen.dart';
@@ -449,48 +450,48 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     final top = MediaQuery.paddingOf(context).top;
     final list = _filtered;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: _K.bg,
-        floatingActionButton: _buildFab(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Column(
-            children: [
-              _reveal(0, _buildHero(top)),
-              Expanded(
-                child: RefreshIndicator(
-                  color: _K.dark,
-                  onRefresh: () => _fetchItems(forceRefresh: true),
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics()),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _reveal(
-                          1,
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                            child: _buildVisibilityCard(),
-                          ),
-                        ),
-                        _buildSectionHeader(list.length),
-                        _reveal(2, _buildContent(list)),
-                        const SizedBox(height: 110), // FAB clearance
-                      ],
-                    ),
+    return Scaffold(
+      backgroundColor: _K.bg,
+      floatingActionButton: _buildFab(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: RefreshIndicator(
+          color: _K.dark,
+          onRefresh: () => _fetchItems(forceRefresh: true),
+          child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            slivers: [
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _CategoryHeroDelegate(
+                  topPadding: top,
+                  expandedHeight: top + 130.0,
+                  collapsedHeight: top + 64.0,
+                  builder: (context, shrinkOffset, progress) {
+                    return _buildHeroAnim(top, progress);
+                  },
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _reveal(
+                  1,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: _buildVisibilityCard(),
                   ),
                 ),
+              ),
+              SliverToBoxAdapter(
+                child: _buildSectionHeader(list.length),
+              ),
+              SliverToBoxAdapter(
+                child: _reveal(2, _buildContent(list)),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(height: MediaQuery.sizeOf(context).height * 0.65),
               ),
             ],
           ),
@@ -499,153 +500,204 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
-  // ─── Hero: title + search live together in the dark header ─────────────────
+    Widget _buildHeroAnim(double top, double progress) {
+    final bgColor = Color.lerp(_K.dark, Colors.white, progress)!;
+    final titleOpacity = (1.0 - (progress * 2)).clamp(0.0, 1.0);
+    
+    // Search bar background: dark translucent -> iOS light grey
+    final searchBg = Color.lerp(
+      _searchFocused ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.02),
+      const Color(0xFFF2F2F7),
+      progress
+    )!;
+    
+    // Search bar border: subtle white -> transparent
+    final searchBorder = Color.lerp(
+      _searchFocused ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+      Colors.transparent,
+      progress
+    )!;
+    
+    final searchTextColor = Color.lerp(Colors.white, _K.textPrimary, progress)!;
+    final searchHintColor = Color.lerp(Colors.white.withValues(alpha: 0.8), _K.textMuted, progress)!;
+    final searchIconColor = Color.lerp(Colors.white.withValues(alpha: 0.75), _K.textMuted, progress)!;
+    final backIconColor = Color.lerp(Colors.white.withValues(alpha: 0.9), _K.dark, progress)!;
+    final backBgColor = Color.lerp(Colors.white.withValues(alpha: 0.1), Colors.transparent, progress)!;
+    final backBorderColor = Color.lerp(Colors.white.withValues(alpha: 0.1), Colors.transparent, progress)!;
 
-  Widget _buildHero(double top) {
+    final radius = Radius.circular(lerpDouble(36, 0, progress)!);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: _K.dark,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(36),
-          bottomRight: Radius.circular(36),
-        ),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8)),
-        ],
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.only(bottomLeft: radius, bottomRight: radius),
+        // Just a very subtle 1px border at the bottom when scrolled, rather than shadow, for a clean appbar
+        border: progress > 0.9 ? Border(bottom: BorderSide(color: _K.border, width: 0.5)) : null,
+        boxShadow: progress > 0.9 
+            ? [] 
+            : [const BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8))],
       ),
-      padding: EdgeInsets.fromLTRB(20, top + 16, 20, 22),
-      child: Column(
+      padding: EdgeInsets.fromLTRB(20, top + 10, 20, 10),
+      child: Stack(
         children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 40,
-                  height: 40,
+          // Row with Title and Back button (Fades out)
+          Opacity(
+            opacity: titleOpacity,
+            child: Row(
+              children: [
+                const SizedBox(width: 54), // Spacing for back button
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Category',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.5),
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        widget.categoryName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                   ),
-                  child: Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 16, color: Colors.white.withValues(alpha: 0.9)),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Category',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.5),
-                        letterSpacing: 0.4,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.restaurant_menu_rounded, size: 12, color: Colors.white.withValues(alpha: 0.7)),
+                      const SizedBox(width: 6),
+                      Text(
+                        ' dishes',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      widget.categoryName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.restaurant_menu_rounded,
-                        size: 12, color: Colors.white.withValues(alpha: 0.7)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${_items.length} dishes',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 18),
-          _buildSearch(),
+
+          // Search Bar (Slides up and expands, shrinks right side to make room for Cancel)
+          Positioned(
+            left: lerpDouble(0, 48, progress),
+            right: lerpDouble(0, 68, progress),
+            top: lerpDouble(58, 3, progress),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                color: searchBg,
+                borderRadius: BorderRadius.circular(10), // Standard slightly rounded pill
+                border: Border.all(color: searchBorder, width: 1.2),
+              ),
+              child: TextField(
+                controller: _searchCtrl,
+                focusNode: _searchFocus,
+                textInputAction: TextInputAction.search,
+                cursorColor: const Color(0xFF475569), // Strict slate-600
+                style: TextStyle(color: searchTextColor, fontSize: 15, fontWeight: FontWeight.w400),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Search',
+                  hintStyle: TextStyle(color: searchHintColor, fontSize: 15, fontWeight: FontWeight.w400),
+                  prefixIcon: Icon(Icons.search_rounded, color: searchIconColor, size: 19),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.cancel, color: searchIconColor.withValues(alpha: 0.5), size: 18),
+                          onPressed: _searchCtrl.clear,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: lerpDouble(12, 8, progress)!),
+                ),
+              ),
+            ),
+          ),
+
+          // Cancel Button (Fades in)
+          Positioned(
+            right: 0,
+            top: lerpDouble(58, 3, progress),
+            child: Opacity(
+              opacity: progress,
+              child: IgnorePointer(
+                ignoring: progress < 0.5,
+                child: SizedBox(
+                  height: 36, // Match the search bar height
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      _searchFocus.unfocus();
+                    },
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: const Color(0xFF475569), // Strict slate-600
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // Back Button (Always stays, but changes colors)
+          Positioned(
+            left: -8, // Slight alignment correction to match standard iOS spacing
+            top: 2,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: backBgColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: backBorderColor),
+                ),
+                child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: backIconColor),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-
-  Widget _buildSearch() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: _searchFocused ? 0.04 : 0.02),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _searchFocused
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.05),
-          width: 1.2,
-        ),
-      ),
-      child: TextField(
-        controller: _searchCtrl,
-        focusNode: _searchFocus,
-        textInputAction: TextInputAction.search,
-        cursorColor: Colors.white.withValues(alpha: 0.7),
-        style: const TextStyle(
-            color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: 'Search dishes in ${widget.categoryName}',
-          hintStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 13.5,
-            fontWeight: FontWeight.w400,
-          ),
-          prefixIcon: Icon(Icons.search_rounded,
-              color: Colors.white.withValues(alpha: 0.75), size: 19),
-          prefixIconConstraints:
-              const BoxConstraints(minWidth: 44, minHeight: 44),
-          suffixIcon: _query.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.close_rounded,
-                      color: Colors.white.withValues(alpha: 0.6), size: 17),
-                  onPressed: _searchCtrl.clear,
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 13),
-        ),
-      ),
-    );
-  }
-
-  // ─── Visibility card: a live meter that doubles as the filter ──────────────
 
   Widget _buildVisibilityCard() {
     final total = _items.length;
@@ -1433,4 +1485,35 @@ class _SkeletonTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CategoryHeroDelegate extends SliverPersistentHeaderDelegate {
+  final double topPadding;
+  final Widget Function(BuildContext context, double shrinkOffset, double progress) builder;
+  final double expandedHeight;
+  final double collapsedHeight;
+
+  _CategoryHeroDelegate({
+    required this.topPadding,
+    required this.builder,
+    required this.expandedHeight,
+    required this.collapsedHeight,
+  });
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final progress = (maxExtent == minExtent) ? 0.0 : (shrinkOffset / (maxExtent - minExtent)).clamp(0.0, 1.0);
+    return SizedBox.expand(
+      child: builder(context, shrinkOffset, progress),
+    );
+  }
+
+  @override
+  double get maxExtent => expandedHeight;
+
+  @override
+  double get minExtent => collapsedHeight;
+
+  @override
+  bool shouldRebuild(covariant _CategoryHeroDelegate oldDelegate) => true;
 }

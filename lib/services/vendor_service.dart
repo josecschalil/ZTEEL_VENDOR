@@ -1515,6 +1515,48 @@ class VendorService {
     }
   }
 
+  /// Reads one server-side page of completed orders for a reporting window.
+  /// Unlike the dashboard cache, this deliberately never downloads the full
+  /// order archive.
+  static Future<Map<String, dynamic>> getCompletedRedemptionsPage({
+    required DateTime confirmedAfter,
+    required DateTime confirmedBefore,
+    required int page,
+    int pageSize = 20,
+  }) async {
+    final uri = Uri.parse(ApiConfig.vendorRedemptionsUrl).replace(
+      queryParameters: {
+        'status': 'confirmed',
+        'confirmed_after': confirmedAfter.toUtc().toIso8601String(),
+        'confirmed_before': confirmedBefore.toUtc().toIso8601String(),
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      },
+    );
+
+    try {
+      final response = await authGet(uri);
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200 && decoded is Map) {
+        final payload = Map<String, dynamic>.from(decoded);
+        final rawResults = payload['results'];
+        return {
+          'success': true,
+          'data': rawResults is List ? List<dynamic>.from(rawResults) : <dynamic>[],
+          'count': (payload['count'] as num?)?.toInt() ?? 0,
+          'next': payload['next'],
+          'previous': payload['previous'],
+        };
+      }
+      return {
+        'success': false,
+        'error': _extractApiError(decoded, 'Unable to load completed orders.'),
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
   /// Scan / confirm vendor redemption session (order)
   static Future<Map<String, dynamic>> scanVendorRedemption(String qrCode) async {
     final token = await _getAccessToken();

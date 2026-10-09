@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:frontend/screens/completed_orders_screen.dart';
 import 'package:frontend/services/vendor_service.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -125,6 +126,22 @@ String _inrShort(double v) {
     body = a.round().toString();
   }
   return '${v < 0 ? '-' : ''}₹$body';
+}
+
+String _compactCount(num v) {
+  final value = v.toDouble();
+  final absolute = value.abs();
+  final String body;
+  if (absolute >= 10000000) {
+    body = '${_trim1(absolute / 10000000)}Cr';
+  } else if (absolute >= 100000) {
+    body = '${_trim1(absolute / 100000)}L';
+  } else if (absolute >= 1000) {
+    body = '${_trim1(absolute / 1000)}k';
+  } else {
+    body = absolute.round().toString();
+  }
+  return '${value < 0 ? '-' : ''}$body';
 }
 
 double _num(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0;
@@ -577,16 +594,14 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
           onRetry: () => _loadData(forceRefresh: true),
         ),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _RevenueCarousel(cur: cur, prev: prev, rangeLabel: _rangeLabel),
-        const SizedBox(height: 12),
-        _RevenueSummary(snapshot: cur),
+        _RevenueCarousel(
+            cur: cur, prev: prev, rangeLabel: _rangeLabel, range: range),
       ]),
       _buildKpis(cur, prev),
       if (cur.total == 0)
         _buildEmpty()
       else ...[
         _Bleed(child: _buildInsights(cur, prev)),
-        _buildHealth(cur),
         _DemandPanel(hours: cur.hours, weekdays: cur.weekdays),
         _buildTopItems(cur),
       ],
@@ -635,90 +650,96 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
 
   Widget _buildKpis(_Snapshot s, _Snapshot p) {
     final rate = s.rate;
-    final rateColor = rate >= 85 ? _C.green : (rate >= 60 ? _C.amber : _C.rose);
-    Widget row(Widget a, Widget b) => IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Expanded(child: a),
-            const SizedBox(width: 12),
-            Expanded(child: b),
-          ]),
-        );
-    return Column(children: [
-      row(
-        _KpiTile(
-          icon: Icons.receipt_long_rounded,
-          color: _C.indigo,
-          tint: _C.indigoTint,
-          label: 'Completed orders',
-          value: '${s.completed}',
-          delta: _DeltaPill(
-              cur: s.completed.toDouble(), prev: p.completed.toDouble()),
-          footer: Text('${s.pending} pending, ${s.closed} closed',
+    final best = s.best;
+    const footerStyle = TextStyle(
+        color: Color(0xE6FFFFFF),
+        fontSize: 10,
+        fontWeight: FontWeight.w700);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Text('At a glance', style: _T.title),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+              color: _C.wash, borderRadius: BorderRadius.circular(99)),
+          child: Text('${_compactCount(s.total)} ${s.total == 1 ? 'order' : 'orders'}',
               style: _T.caption),
         ),
-        _KpiTile(
-          icon: Icons.shopping_bag_outlined,
-          color: _C.sky,
-          tint: _C.skyTint,
-          label: 'Average order',
-          value: _inr(s.average),
-          delta: _DeltaPill(cur: s.average, prev: p.average),
-          footer: Text(
-              p.completed == 0 ? 'No earlier data' : 'Was ${_inr(p.average)}',
-              style: _T.caption),
-        ),
-      ),
-      const SizedBox(height: 12),
-      row(
-        _KpiTile(
-          icon: Icons.verified_rounded,
-          color: _C.green,
-          tint: _C.greenTint,
-          label: 'Confirmation rate',
-          value: '${rate.round()}%',
-          delta: p.total == 0
-              ? null
-              : _DeltaPill(cur: rate, prev: p.rate, asPoints: true),
-          footer: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Bar(
-                    value: rate / 100,
-                    color: rateColor,
-                    height: 7,
-                    track: Colors.white),
-                const SizedBox(height: 6),
-                Text('${s.completed} of ${s.total} confirmed',
-                    style: _T.caption),
-              ]),
-        ),
-        _KpiTile(
-          icon: Icons.star_rounded,
-          color: _C.amber,
-          tint: _C.amberTint,
-          label: 'Customer rating',
-          value: _rating == 0 ? '—' : _rating.toStringAsFixed(1),
-          footer: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              for (var i = 0; i < 5; i++)
-                Icon(
-                  _rating >= i + 1
-                      ? Icons.star_rounded
-                      : (_rating >= i + .5
-                          ? Icons.star_half_rounded
-                          : Icons.star_outline_rounded),
-                  size: 15,
-                  color: _C.amber,
-                ),
-              const SizedBox(width: 6),
-              Text('$_reviewCount ${_reviewCount == 1 ? 'review' : 'reviews'}',
-                  style: _T.caption),
-            ]),
+      ]),
+      const SizedBox(height: 10),
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Expanded(
+            child: _KpiTile(
+              compact: true,
+              icon: Icons.receipt_long_rounded,
+              color: _C.indigo,
+              tint: _C.indigoTint,
+              label: 'Completed',
+              value: _compactCount(s.completed),
+              valueSuffix: s.completed == 1 ? 'Order' : 'Orders',
+              footer: Text('${_compactCount(s.pending)} pending',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: footerStyle),
+            ),
           ),
-        ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _KpiTile(
+              compact: true,
+              icon: Icons.shopping_bag_outlined,
+              color: _C.sky,
+              tint: _C.skyTint,
+              label: 'Average order',
+              value: _inrShort(s.average),
+              valueSuffix: 'Rupees',
+              footer: Text(
+                  p.completed == 0
+                      ? 'No prior data'
+                      : 'Prior ${_inrShort(p.average)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: footerStyle),
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 10),
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Expanded(
+            child: _KpiTile(
+              compact: true,
+              icon: Icons.verified_rounded,
+              color: _C.green,
+              tint: _C.greenTint,
+              label: 'Confirmation',
+              value: '${rate.round()}%',
+              footer: Text(
+                  '${_compactCount(s.completed)}/${_compactCount(s.total)} confirmed',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: footerStyle),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _KpiTile(
+              compact: true,
+              icon: Icons.workspace_premium_rounded,
+              color: _C.amberDeep,
+              tint: _C.amberTint,
+              label: 'Best ${s.unit}',
+              value: best == null ? '—' : _inrShort(best.value),
+              footer: Text(best?.title ?? 'No completed orders',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: footerStyle),
+            ),
+          ),
+        ]),
       ),
     ]);
   }
@@ -866,74 +887,6 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
     ]);
   }
 
-  // ── Order health ────────────────────────────────────────────────────────
-
-  Widget _buildHealth(_Snapshot s) {
-    String share(int v) =>
-        s.total == 0 ? '0%' : '${(v / s.total * 100).round()}%';
-    final closedParts = <String>[
-      if (s.rejected > 0) '${s.rejected} rejected',
-      if (s.cancelled > 0) '${s.cancelled} cancelled',
-      if (s.expired > 0) '${s.expired} expired',
-    ];
-    return _Panel(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _SectionHeader('Order health',
-            subtitle:
-                '${s.total} ${s.total == 1 ? 'order' : 'orders'} in this period'),
-        const SizedBox(height: 18),
-        Row(children: [
-          _Donut(
-              completed: s.completed,
-              pending: s.pending,
-              closed: s.closed,
-              rate: s.rate),
-          const SizedBox(width: 22),
-          Expanded(
-            child: Column(children: [
-              _StatusRow(
-                  color: _C.green,
-                  label: 'Completed',
-                  count: s.completed,
-                  share: share(s.completed)),
-              const SizedBox(height: 14),
-              _StatusRow(
-                  color: _C.amber,
-                  label: 'Pending',
-                  count: s.pending,
-                  share: share(s.pending)),
-              const SizedBox(height: 14),
-              _StatusRow(
-                  color: _C.rose,
-                  label: 'Closed',
-                  count: s.closed,
-                  share: share(s.closed)),
-            ]),
-          ),
-        ]),
-        if (closedParts.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-                color: _C.roseTint, borderRadius: BorderRadius.circular(14)),
-            child: Row(children: [
-              const Icon(Icons.info_outline_rounded, size: 16, color: _C.rose),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: Text('Closed orders: ${closedParts.join(', ')}',
-                      style: const TextStyle(
-                          color: _C.inkMid,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600))),
-            ]),
-          ),
-        ],
-      ]),
-    );
-  }
-
   // ── Top items ───────────────────────────────────────────────────────────
 
   Widget _buildTopItems(_Snapshot s) {
@@ -1001,9 +954,13 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
 
 class _RevenueCarousel extends StatefulWidget {
   const _RevenueCarousel(
-      {required this.cur, required this.prev, required this.rangeLabel});
+      {required this.cur,
+      required this.prev,
+      required this.rangeLabel,
+      required this.range});
   final _Snapshot cur, prev;
   final String rangeLabel;
+  final DateTimeRange range;
 
   @override
   State<_RevenueCarousel> createState() => _RevenueCarouselState();
@@ -1028,7 +985,15 @@ class _RevenueCarouselState extends State<_RevenueCarousel> {
             onPageChanged: (page) => setState(() => _page = page),
             children: [
               _DashboardHeroCard(
-                  revenueText: _inr(widget.cur.revenue), title: 'PERFORMANCE'),
+                  revenueText: _inr(widget.cur.revenue),
+                  title: 'PERFORMANCE',
+                  revenueLabel: '${widget.rangeLabel.toUpperCase()} REVENUE',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => CompletedOrdersScreen(
+                          range: widget.range,
+                          rangeLabel: widget.rangeLabel,
+                        ),
+                      ))),
               _RevenueHero(
                   cur: widget.cur,
                   prev: widget.prev,
@@ -1058,8 +1023,14 @@ class _RevenueCarouselState extends State<_RevenueCarousel> {
 
 /// Adapted from the supplied DashboardHeroCard for the Performance carousel.
 class _DashboardHeroCard extends StatelessWidget {
-  const _DashboardHeroCard({required this.revenueText, required this.title});
-  final String revenueText, title;
+  const _DashboardHeroCard({
+    required this.revenueText,
+    required this.title,
+    required this.revenueLabel,
+    required this.onTap,
+  });
+  final String revenueText, title, revenueLabel;
+  final VoidCallback onTap;
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -1091,9 +1062,11 @@ class _DashboardHeroCard extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) => Container(
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
           gradient: const LinearGradient(
               colors: [Color(0xFF1F2937), Color(0xFF111827)],
               begin: Alignment.topLeft,
@@ -1168,10 +1141,10 @@ class _DashboardHeroCard extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
                       decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: .05),
+                          color: Colors.white.withValues(alpha: .04),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                              color: Colors.white.withValues(alpha: .1),
+                              color: Colors.white.withValues(alpha: .08),
                               width: .7)),
                       child: Row(children: [
                         Expanded(
@@ -1179,7 +1152,7 @@ class _DashboardHeroCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('LAST MONTH REVENUE',
+                                Text(revenueLabel,
                                     style: TextStyle(
                                         color:
                                             Colors.white.withValues(alpha: .64),
@@ -1190,13 +1163,13 @@ class _DashboardHeroCard extends StatelessWidget {
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   alignment: Alignment.centerLeft,
-                                  child: Text(revenueText,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 27,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -1,
-                                          height: 1)),
+                      child: Text(revenueText,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 27,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1,
+                              height: 1)),
                                 ),
                               ]),
                         ),
@@ -1215,7 +1188,8 @@ class _DashboardHeroCard extends StatelessWidget {
                   ]),
             ),
           ),
-        ]),
+          ]),
+        ),
       );
 }
 
@@ -1372,8 +1346,7 @@ class _RevenueHeroState extends State<_RevenueHero> {
                     onHorizontalDragEnd: (_) => setState(() => _sel = null),
                     onHorizontalDragCancel: () => setState(() => _sel = null),
                     onLongPressStart: (d) => _pick(d.localPosition.dx, w),
-                    onLongPressMoveUpdate: (d) =>
-                        _pick(d.localPosition.dx, w),
+                    onLongPressMoveUpdate: (d) => _pick(d.localPosition.dx, w),
                     onLongPressEnd: (_) => setState(() => _sel = null),
                     child: TweenAnimationBuilder<double>(
                       key: ValueKey(
@@ -1419,69 +1392,6 @@ class _RangeLabel extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w700)),
-        ]),
-      );
-}
-
-class _RevenueSummary extends StatelessWidget {
-  const _RevenueSummary({required this.snapshot});
-  final _Snapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    final best = snapshot.best;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-          color: _C.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: _C.line)),
-      child: IntrinsicHeight(
-        child: Row(children: [
-          Expanded(
-              child: _RevenueStat(
-                  value: '${snapshot.itemsSold}', label: 'Items sold')),
-          const VerticalDivider(width: 1, thickness: 1, color: _C.line),
-          Expanded(
-              child: _RevenueStat(
-                  value: best == null ? '—' : _inrShort(best.value),
-                  label: best == null
-                      ? 'Best ${snapshot.unit}'
-                      : 'Best ${snapshot.unit} (${best.axis})')),
-          const VerticalDivider(width: 1, thickness: 1, color: _C.line),
-          Expanded(
-              child: _RevenueStat(
-                  value: _inrShort(snapshot.pendingValue),
-                  label: 'Pending value')),
-        ]),
-      ),
-    );
-  }
-}
-
-class _RevenueStat extends StatelessWidget {
-  const _RevenueStat({required this.value, required this.label});
-  final String value, label;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(value,
-                style: const TextStyle(
-                    color: _C.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4)),
-          ),
-          const SizedBox(height: 3),
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: _T.caption),
         ]),
       );
 }
@@ -1551,7 +1461,8 @@ class _TrendPainter extends CustomPainter {
     tp.paint(canvas, Offset(dx, anchor.dy - tp.height / 2));
   }
 
-  static void _tooltip(Canvas canvas, Size size, Offset anchor, _Bucket bucket) {
+  static void _tooltip(
+      Canvas canvas, Size size, Offset anchor, _Bucket bucket) {
     final detail = TextPainter(
       text: TextSpan(
           text:
@@ -1874,136 +1785,6 @@ class _MiniToggle extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Order-health donut
-// ════════════════════════════════════════════════════════════════════════════
-
-class _Donut extends StatelessWidget {
-  const _Donut(
-      {required this.completed,
-      required this.pending,
-      required this.closed,
-      required this.rate});
-  final int completed, pending, closed;
-  final double rate;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 124,
-        height: 124,
-        child: TweenAnimationBuilder<double>(
-          key: ValueKey('$completed-$pending-$closed'),
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 900),
-          curve: Curves.easeOutCubic,
-          builder: (context, t, _) => CustomPaint(
-            painter: _DonutPainter(completed, pending, closed, t),
-            child: Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('${rate.round()}%',
-                    style: const TextStyle(
-                        color: _C.ink,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -1)),
-                const Text('confirmed',
-                    style: TextStyle(
-                        color: _C.muted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600)),
-              ]),
-            ),
-          ),
-        ),
-      );
-}
-
-class _DonutPainter extends CustomPainter {
-  const _DonutPainter(this.completed, this.pending, this.closed, this.t);
-  final int completed, pending, closed;
-  final double t;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const stroke = 14.0;
-    final rect = Rect.fromLTWH(
-        stroke / 2, stroke / 2, size.width - stroke, size.height - stroke);
-    canvas.drawArc(
-      rect,
-      0,
-      math.pi * 2,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..color = _C.wash,
-    );
-    final values = [completed, pending, closed];
-    final colors = [_C.green, _C.amber, _C.rose];
-    final total = completed + pending + closed;
-    if (total == 0) return;
-    final active = values.where((v) => v > 0).length;
-    final gap = active > 1 ? 0.38 : 0.0;
-    final avail = math.pi * 2 - gap * active;
-    var start = -math.pi / 2 + gap / 2;
-    for (var i = 0; i < values.length; i++) {
-      if (values[i] == 0) continue;
-      final full = avail * values[i] / total;
-      canvas.drawArc(
-        rect,
-        start,
-        math.max(0.001, full * t),
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke
-          ..strokeCap = StrokeCap.round
-          ..color = colors[i],
-      );
-      start += full + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DonutPainter old) =>
-      old.t != t ||
-      old.completed != completed ||
-      old.pending != pending ||
-      old.closed != closed;
-}
-
-class _StatusRow extends StatelessWidget {
-  const _StatusRow(
-      {required this.color,
-      required this.label,
-      required this.count,
-      required this.share});
-  final Color color;
-  final String label, share;
-  final int count;
-  @override
-  Widget build(BuildContext context) => Row(children: [
-        Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(3))),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text(label,
-                style: const TextStyle(
-                    color: _C.inkMid,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600))),
-        Text('$count',
-            style: const TextStyle(
-                color: _C.ink, fontSize: 15, fontWeight: FontWeight.w800)),
-        SizedBox(
-            width: 40,
-            child: Text(share, textAlign: TextAlign.right, style: _T.caption)),
-      ]);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
 //  Top items
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -2141,53 +1922,176 @@ class _KpiTile extends StatelessWidget {
       required this.label,
       required this.value,
       required this.footer,
-      this.delta});
+      this.delta,
+      this.valueSuffix,
+      this.compact = false});
   final IconData icon;
   final Color color, tint;
   final String label, value;
   final Widget footer;
   final Widget? delta;
+  final String? valueSuffix;
+  final bool compact;
+
+  List<Color> get _compactGradient {
+    if (color == _C.indigo) {
+      return const [Color(0xFF6477E8), Color(0xFF7056D9)];
+    }
+    if (color == _C.sky) {
+      return const [Color(0xFF4B9AF4), Color(0xFF4786D8)];
+    }
+    if (color == _C.green) {
+      return const [Color(0xFF2EAF8A), Color(0xFF178B73)];
+    }
+    return const [Color(0xFFF28A66), Color(0xFFE76672)];
+  }
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration:
-            BoxDecoration(color: tint, borderRadius: BorderRadius.circular(22)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                  color: color, borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: Colors.white, size: 18),
-            ),
-            const Spacer(),
-            if (delta != null) delta!,
-          ]),
-          const SizedBox(height: 16),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(value,
-                style: const TextStyle(
-                    color: _C.ink,
-                    fontSize: 27,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1)),
+  Widget build(BuildContext context) {
+    if (compact) {
+      return Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+            gradient: LinearGradient(
+                colors: _compactGradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x2412261F),
+                  blurRadius: 14,
+                  offset: Offset(0, 6))
+            ]),
+        child: Stack(children: [
+          Positioned(
+              top: -34,
+              right: -28,
+              child: Container(
+                  width: 116,
+                  height: 116,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: .13),
+                          width: 1.2)))),
+          Positioned(
+              top: -12,
+              right: -6,
+              child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: .06)))),
+          Padding(
+            padding: const EdgeInsets.all(13),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Container(
+                      width: 27,
+                      height: 27,
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .18),
+                          borderRadius: BorderRadius.circular(9)),
+                      child: Icon(icon, color: Colors.white, size: 15),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                        child: Text(label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: .9),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800))),
+                  ]),
+                  const SizedBox(height: 15),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text.rich(TextSpan(children: [
+                      TextSpan(
+                          text: value,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1)),
+                      if (valueSuffix != null)
+                        TextSpan(
+                            text: ' $valueSuffix',
+                            style: const TextStyle(
+                                color: Color(0xE6FFFFFF),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -.2)),
+                    ])),
+                  ),
+                  const SizedBox(height: 11),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .14),
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: .12),
+                            width: .6)),
+                    child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: footer),
+                  ),
+                ]),
           ),
-          const SizedBox(height: 2),
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: _C.inkMid,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          footer,
         ]),
       );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration:
+          BoxDecoration(color: tint, borderRadius: BorderRadius.circular(22)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+          const Spacer(),
+          if (delta != null) delta!,
+        ]),
+        const SizedBox(height: 16),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(value,
+              style: const TextStyle(
+                  color: _C.ink,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1)),
+        ),
+        const SizedBox(height: 2),
+        Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                color: _C.inkMid,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        footer,
+      ]),
+    );
+  }
 }
 
 class _DeltaPill extends StatelessWidget {

@@ -696,66 +696,85 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
-                    _QuickActionsBar(
-                      onMenuTap: _openAllCategories,
-                      onOrdersTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const OrdersScreen()),
-                        );
-                      },
-                      onReviewsTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ReviewsScreen()),
-                        );
-                      },
-                      onRatingsTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  const PerformanceAnalysisScreen()),
-                        );
-                      },
+                    Stack(
+                      children: [
+                        Container(
+                          height: 50,
+                          color: const Color(0xFF0F172A),
+                        ),
+                        Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+                          ),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 24),
+                              _QuickActionsBar(
+                                onMenuTap: _openAllCategories,
+                                onOrdersTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const OrdersScreen()),
+                                  );
+                                },
+                                onReviewsTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const ReviewsScreen()),
+                                  );
+                                },
+                                onRatingsTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const PerformanceAnalysisScreen()),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 24),
+                              _MajorCategoriesSection(
+                                categories: _categories,
+                                isLoading: _isLoadingCategories,
+                                errorMessage: _categoryError,
+                                onSeeAll: _openAllCategories,
+                                onRetry: () => _fetchCategories(),
+                              ),
+                              const SizedBox(height: 24),
+                              _LatestOrdersSection(
+                                orders: _orders,
+                                isLoading: _isLoadingOrders,
+                                errorMessage: _orderError,
+                                onSeeAll: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const OrdersScreen()),
+                                  );
+                                },
+                                onOrderTap: (order) {
+                                  if (order.rawSession.isNotEmpty) {
+                                    _openSessionDetails(order.rawSession);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) => const OrdersScreen()),
+                                    );
+                                  }
+                                },
+                                onRetry: () => _fetchOrders(),
+                              ),
+                              const SizedBox(height: 32),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    _MajorCategoriesSection(
-                      categories: _categories,
-                      isLoading: _isLoadingCategories,
-                      errorMessage: _categoryError,
-                      onSeeAll: _openAllCategories,
-                      onRetry: () => _fetchCategories(),
-                    ),
-                    const SizedBox(height: 20),
-                    _LatestOrdersSection(
-                      orders: _orders,
-                      isLoading: _isLoadingOrders,
-                      errorMessage: _orderError,
-                      onSeeAll: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const OrdersScreen()),
-                        );
-                      },
-                      onOrderTap: (order) {
-                        if (order.rawSession.isNotEmpty) {
-                          _openSessionDetails(order.rawSession);
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const OrdersScreen()),
-                          );
-                        }
-                      },
-                      onRetry: () => _fetchOrders(),
-                    ),
-                    const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -792,17 +811,6 @@ class _HeroCard extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF0F172A),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(36),
-          bottomRight: Radius.circular(36),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
       ),
       padding: EdgeInsets.only(
         top: topPadding + 20,
