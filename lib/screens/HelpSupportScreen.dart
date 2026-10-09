@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/app_colors.dart';
+import '../services/auth_service.dart';
+import 'PhoneAuthScreen.dart';
 
 class SupportTicket {
   final String id;
@@ -200,19 +202,77 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: _QuickActionCard(
-            icon: Icons.mail_rounded,
-            label: 'Email Us',
-            accent: AppColors.green,
-            tint: AppColors.greenDim,
-            onTap: () => _showActionSheet(
-              title: 'Email the ZTEEL team',
-              message:
-                  'support@zteel.app\n\nWe usually reply within one business day.',
-              icon: Icons.mail_rounded,
-            ),
+            icon: Icons.delete_forever_rounded,
+            label: 'Delete\nAccount',
+            accent: const Color(0xFFEF4444),
+            tint: const Color(0x1AEF4444),
+            onTap: _showDeleteAccountConfirmation,
           ),
         ),
       ],
+    );
+  }
+
+  void _showDeleteAccountConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Account?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Are you sure you want to delete your account?\n\nThis action cannot be undone. Your data will be permanently deleted within 24 hours.',
+          style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textPrimary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.orange)),
+              );
+
+              final res = await AuthService.deleteAccount();
+              
+              if (!mounted) return;
+              Navigator.pop(context); // pop loading
+
+              if (res['success'] == true) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Account deletion request received.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(res['error']?.toString() ?? 'Failed to delete account.'),
+                    backgroundColor: const Color(0xFFEF4444),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 

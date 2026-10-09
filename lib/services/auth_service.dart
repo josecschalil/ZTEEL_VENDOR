@@ -43,7 +43,8 @@ class AuthService {
       final exp = map['exp'] as int?;
       if (exp == null) return false;
       final expiryDate = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
-      return DateTime.now().isAfter(expiryDate.subtract(Duration(seconds: thresholdSeconds)));
+      return DateTime.now()
+          .isAfter(expiryDate.subtract(Duration(seconds: thresholdSeconds)));
     } catch (_) {
       return false;
     }
@@ -59,8 +60,9 @@ class AuthService {
   }) async {
     await VendorCacheService.beginSession(phone);
     if (access.isNotEmpty) await _storage.write(key: _keyAccess, value: access);
-    if (refresh.isNotEmpty) await _storage.write(key: _keyRefresh, value: refresh);
-    
+    if (refresh.isNotEmpty)
+      await _storage.write(key: _keyRefresh, value: refresh);
+
     final prefs = await SharedPreferences.getInstance();
     if (phone.isNotEmpty) await prefs.setString(_keyPhone, phone);
     await prefs.setBool(_keyIsOnboarded, isOnboarded);
@@ -126,11 +128,13 @@ class AuthService {
         return currentAccess;
       }
 
-      final response = await http.post(
-        Uri.parse(ApiConfig.tokenRefreshUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh': refresh}),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.tokenRefreshUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh': refresh}),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -166,8 +170,10 @@ class AuthService {
   /// Persistently true unless explicitly logged out or app data wiped.
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-    final hasAccess = ((await _storage.read(key: _keyAccess))?.trim().isNotEmpty ?? false);
-    final hasRefresh = ((await _storage.read(key: _keyRefresh))?.trim().isNotEmpty ?? false);
+    final hasAccess =
+        ((await _storage.read(key: _keyAccess))?.trim().isNotEmpty ?? false);
+    final hasRefresh =
+        ((await _storage.read(key: _keyRefresh))?.trim().isNotEmpty ?? false);
     final loggedIn = prefs.getBool(_keyIsLoggedIn) ?? false;
 
     if (hasAccess || hasRefresh) {
@@ -191,17 +197,47 @@ class AuthService {
     await prefs.setBool(_keyIsOnboarded, value);
   }
 
+  /// Request account deletion
+  static Future<Map<String, dynamic>> deleteAccount() async {
+    final token = await getValidAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+    try {
+      final response = await http.delete(
+        Uri.parse(ApiConfig.deleteAccountUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        await logout();
+        return {'success': true};
+      } else {
+        final data = jsonDecode(response.body);
+        String err = data['detail'] ?? 'Failed to delete account.';
+        return {'success': false, 'error': err};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error deleting account'};
+    }
+  }
+
   /// Clear session on explicit logout
   static Future<void> logout() async {
     final refresh = await _storage.read(key: _keyRefresh);
 
     if (refresh != null && refresh.isNotEmpty) {
       try {
-        await http.post(
-          Uri.parse(ApiConfig.logoutUrl),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'refresh': refresh}),
-        ).timeout(const Duration(seconds: 4));
+        await http
+            .post(
+              Uri.parse(ApiConfig.logoutUrl),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'refresh': refresh}),
+            )
+            .timeout(const Duration(seconds: 4));
       } catch (_) {
         // Ignore network errors on logout
       }
@@ -210,7 +246,7 @@ class AuthService {
     await VendorCacheService.clearActiveVendorData();
     await _storage.delete(key: _keyAccess);
     await _storage.delete(key: _keyRefresh);
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyPhone);
     await prefs.remove(_keyIsOnboarded);
@@ -222,11 +258,13 @@ class AuthService {
   static Future<Map<String, dynamic>> sendOtp(String rawPhone) async {
     final phone = formatPhoneNumber(rawPhone);
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.sendOtpUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone_number': phone}),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.sendOtpUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'phone_number': phone}),
+          )
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -259,14 +297,16 @@ class AuthService {
   }) async {
     final phone = formatPhoneNumber(rawPhone);
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.vendorVerifyOtpUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phone_number': phone,
-          'otp': otp,
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.vendorVerifyOtpUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'phone_number': phone,
+              'otp': otp,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200 || response.statusCode == 201) {

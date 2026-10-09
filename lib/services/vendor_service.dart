@@ -712,6 +712,29 @@ class VendorService {
 
   // ── Menu Categories CRUD ──────────────────────────────────────────────────
 
+  /// Keep every page request on the API origin initially chosen by the app.
+  /// A reverse proxy can emit an absolute HTTP or alternate-host `next` URL;
+  /// following it from the HTTPS web app can trigger mixed-content/CORS errors
+  /// and lose the Authorization header on a cross-host redirect.
+  static String _sameApiOriginPageUrl(String nextUrl, String initialUrl) {
+    final next = Uri.tryParse(nextUrl);
+    final initial = Uri.parse(initialUrl);
+    if (next == null) return nextUrl;
+    if (!next.hasScheme) return initial.resolveUri(next).toString();
+
+    if (next.scheme != initial.scheme ||
+        next.host != initial.host ||
+        next.port != initial.port) {
+      return initial
+          .replace(
+            path: next.path,
+            query: next.hasQuery ? next.query : null,
+          )
+          .toString();
+    }
+    return next.toString();
+  }
+
   static Future<List<dynamic>> _fetchAllPages(String initialUrl, String token) async {
     List<dynamic> allResults = [];
     String? nextUrl = initialUrl;
@@ -732,7 +755,10 @@ class VendorService {
           break;
         } else if (data is Map<String, dynamic>) {
           allResults.addAll(data['results'] ?? []);
-          nextUrl = data['next']?.toString();
+          final next = data['next']?.toString();
+          nextUrl = next == null || next.isEmpty
+              ? null
+              : _sameApiOriginPageUrl(next, initialUrl);
         } else {
           break;
         }

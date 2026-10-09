@@ -1,7 +1,7 @@
 /// Global API Configuration for ZTEEL Vendor App
 class ApiConfig {
   /// Base URL of the backend.
-  static String baseUrl = 'http://68.233.116.23:8000';
+  static String baseUrl = 'https://api.zteel.in';
 
   // ── Auth Endpoints ────────────────────────────────────────────────────────
   static String get sendOtpUrl => '$baseUrl/api/v1/auth/send-otp/';
@@ -10,6 +10,7 @@ class ApiConfig {
   static String get tokenRefreshUrl => '$baseUrl/api/v1/auth/refresh/';
   static String get meUrl => '$baseUrl/api/v1/auth/me/';
   static String get logoutUrl => '$baseUrl/api/v1/auth/logout/';
+  static String get deleteAccountUrl => '$baseUrl/api/v1/auth/delete-account/';
 
   // ── Vendor Profile & Setup Endpoints ─────────────────────────────────────
   static String get vendorProfileUrl => '$baseUrl/api/v1/vendor/profile/';
@@ -66,7 +67,25 @@ class ApiConfig {
   /// Helper to convert relative media path to full backend URL
   static String? getImageUrl(String? path) {
     if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http://') || path.startsWith('https://')) {
+    final parsed = Uri.tryParse(path);
+    if (parsed != null && parsed.hasScheme) {
+      // Production API responses may contain legacy `http://zteel.in/media/...`
+      // URLs. Loading those from the HTTPS vendor web app is mixed content, so
+      // keep media on the configured secure API origin.
+      final api = Uri.parse(baseUrl);
+      final isKnownApiHost = {
+        'zteel.in',
+        'api.zteel.in',
+        '68.233.116.23',
+      }.contains(parsed.host);
+      if (isKnownApiHost &&
+          (parsed.scheme != api.scheme ||
+              parsed.host != api.host ||
+              parsed.port != api.port)) {
+        return api
+            .replace(path: parsed.path, query: parsed.hasQuery ? parsed.query : null)
+            .toString();
+      }
       return path;
     }
     if (path.startsWith('/')) {

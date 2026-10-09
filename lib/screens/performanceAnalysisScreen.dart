@@ -367,7 +367,7 @@ class PerformanceAnalysisScreen extends StatefulWidget {
 class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
   _RangePreset _preset = _RangePreset.month;
   DateTimeRange? _customRange;
-  bool _loading = true, _refreshing = false, _loaded = false;
+  bool _loading = true, _loaded = false;
   String? _loadError;
   List<Map<String, dynamic>> _orders = [];
   double _rating = 0;
@@ -384,11 +384,7 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
   Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
       _loadError = null;
-      if (_loaded) {
-        _refreshing = true;
-      } else {
-        _loading = true;
-      }
+      if (!_loaded) _loading = true;
     });
     try {
       final results = await Future.wait([
@@ -420,14 +416,12 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
             : (orderResult['error']?.toString() ?? 'Unable to refresh');
         _loaded = true;
         _loading = false;
-        _refreshing = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loadError = e.toString();
         _loading = false;
-        _refreshing = false;
       });
     }
   }
@@ -496,20 +490,6 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
         : '${_shortDate(r.start)} – ${_shortDate(last)}';
   }
 
-  String get _compareSuffix {
-    if (_isLiveDay(_range)) return 'yesterday';
-    switch (_preset) {
-      case _RangePreset.today:
-        return 'yesterday';
-      case _RangePreset.week:
-        return 'in the previous 7 days';
-      case _RangePreset.month:
-        return 'in the previous 30 days';
-      case _RangePreset.custom:
-        return 'in the previous period';
-    }
-  }
-
   Future<void> _chooseCustomRange() async {
     final today = DateTime.now();
     final lastDay = DateTime(today.year, today.month, today.day);
@@ -565,10 +545,6 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
                     child: _buildHeader()),
               ),
-              SliverPersistentHeader(
-                  pinned: true,
-                  delegate:
-                      _PinnedDelegate(extent: 62, child: _buildRangePicker())),
               if (_loading)
                 const SliverToBoxAdapter(child: _Skeleton())
               else
@@ -600,11 +576,11 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
               : 'We couldn’t load your orders. Check your connection and retry.',
           onRetry: () => _loadData(forceRefresh: true),
         ),
-      _RevenueHero(
-          cur: cur,
-          prev: prev,
-          rangeLabel: _rangeLabel,
-          compareSuffix: _compareSuffix),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _RevenueCarousel(cur: cur, prev: prev, rangeLabel: _rangeLabel),
+        const SizedBox(height: 12),
+        _RevenueSummary(snapshot: cur),
+      ]),
       _buildKpis(cur, prev),
       if (cur.total == 0)
         _buildEmpty()
@@ -644,40 +620,18 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
               Text(_subtitle, style: _T.sub),
             ]),
           ),
-          _RoundButton(
-              icon: Icons.refresh_rounded,
-              busy: _refreshing,
-              onTap: () => _loadData(forceRefresh: true)),
+          _RangeDropdown(
+              preset: _preset, label: _rangeLabel, onSelected: _selectRange),
         ],
       );
 
-  Widget _buildRangePicker() => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-              color: _C.wash, borderRadius: BorderRadius.circular(18)),
-          child: Row(children: [
-            _Seg(
-                label: 'Today',
-                selected: _preset == _RangePreset.today,
-                onTap: () => setState(() => _preset = _RangePreset.today)),
-            _Seg(
-                label: '7 days',
-                selected: _preset == _RangePreset.week,
-                onTap: () => setState(() => _preset = _RangePreset.week)),
-            _Seg(
-                label: '30 days',
-                selected: _preset == _RangePreset.month,
-                onTap: () => setState(() => _preset = _RangePreset.month)),
-            _Seg(
-                label: 'Custom',
-                icon: Icons.calendar_month_rounded,
-                selected: _preset == _RangePreset.custom,
-                onTap: _chooseCustomRange),
-          ]),
-        ),
-      );
+  Future<void> _selectRange(_RangePreset preset) async {
+    if (preset == _RangePreset.custom) {
+      await _chooseCustomRange();
+      return;
+    }
+    if (mounted) setState(() => _preset = preset);
+  }
 
   Widget _buildKpis(_Snapshot s, _Snapshot p) {
     final rate = s.rate;
@@ -1045,21 +999,305 @@ class _PerformanceAnalysisScreenState extends State<PerformanceAnalysisScreen> {
 //  Hero: revenue headline + scrubbable trend chart
 // ════════════════════════════════════════════════════════════════════════════
 
+class _RevenueCarousel extends StatefulWidget {
+  const _RevenueCarousel(
+      {required this.cur, required this.prev, required this.rangeLabel});
+  final _Snapshot cur, prev;
+  final String rangeLabel;
+
+  @override
+  State<_RevenueCarousel> createState() => _RevenueCarouselState();
+}
+
+class _RevenueCarouselState extends State<_RevenueCarousel> {
+  final _controller = PageController();
+  var _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        SizedBox(
+          height: 240,
+          child: PageView(
+            controller: _controller,
+            onPageChanged: (page) => setState(() => _page = page),
+            children: [
+              _DashboardHeroCard(
+                  revenueText: _inr(widget.cur.revenue), title: 'PERFORMANCE'),
+              _RevenueHero(
+                  cur: widget.cur,
+                  prev: widget.prev,
+                  rangeLabel: widget.rangeLabel),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+              2,
+              (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: _page == index ? 18 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                        color: _page == index
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(99)),
+                  )),
+        ),
+      ]);
+}
+
+/// Adapted from the supplied DashboardHeroCard for the Performance carousel.
+class _DashboardHeroCard extends StatelessWidget {
+  const _DashboardHeroCard({required this.revenueText, required this.title});
+  final String revenueText, title;
+
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
+
+  String get _formattedDate {
+    final now = DateTime.now();
+    return '${_fullWeekdays[now.weekday - 1]}, ${_months[now.month - 1]} ${now.day}';
+  }
+
+  Widget _ring(double size, double opacity) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+                color: Colors.white.withValues(alpha: opacity), width: 1)),
+      );
+
+  Widget _dot(double size, double opacity) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: opacity),
+            shape: BoxShape.circle),
+      );
+
+  @override
+  Widget build(BuildContext context) => Container(
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+              colors: [Color(0xFF1F2937), Color(0xFF111827)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x330F172A), blurRadius: 28, offset: Offset(0, 10))
+          ],
+        ),
+        child: Stack(children: [
+          Positioned(right: -55, top: -55, child: _ring(210, .09)),
+          Positioned(right: -15, top: -15, child: _ring(135, .10)),
+          Positioned(right: 32, top: 32, child: _ring(55, .12)),
+          Positioned(right: 20, bottom: 30, child: _dot(6, .25)),
+          Positioned(right: 56, bottom: 18, child: _dot(4, .18)),
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 5),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: .14),
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: .20),
+                                width: .6)),
+                        child: Text(title,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2.1)),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: .12),
+                            borderRadius: BorderRadius.circular(11)),
+                        child: const Icon(Icons.insights_rounded,
+                            color: Colors.white, size: 18),
+                      ),
+                    ]),
+                    const Spacer(),
+                    Text('$_greeting, Chef',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -.5,
+                            height: 1.1)),
+                    const SizedBox(height: 5),
+                    Row(children: [
+                      Icon(Icons.calendar_today_rounded,
+                          color: Colors.white.withValues(alpha: .68), size: 11),
+                      const SizedBox(width: 5),
+                      Text(_formattedDate,
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: .72),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500)),
+                    ]),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .05),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: .1),
+                              width: .7)),
+                      child: Row(children: [
+                        Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('LAST MONTH REVENUE',
+                                    style: TextStyle(
+                                        color:
+                                            Colors.white.withValues(alpha: .64),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: .75)),
+                                const SizedBox(height: 2),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(revenueText,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 27,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -1,
+                                          height: 1)),
+                                ),
+                              ]),
+                        ),
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 236, 241, 239)
+                                  .withValues(alpha: .08),
+                              shape: BoxShape.circle),
+                          child: const Icon(Icons.payments_rounded,
+                              color: Colors.white, size: 18),
+                        ),
+                      ]),
+                    ),
+                  ]),
+            ),
+          ),
+        ]),
+      );
+}
+
+class _RangeDropdown extends StatelessWidget {
+  const _RangeDropdown(
+      {required this.preset, required this.label, required this.onSelected});
+
+  final _RangePreset preset;
+  final String label;
+  final Future<void> Function(_RangePreset) onSelected;
+
+  PopupMenuItem<_RangePreset> _item(_RangePreset value, String text,
+          {IconData? icon}) =>
+      PopupMenuItem(
+        value: value,
+        child: Row(children: [
+          SizedBox(
+            width: 22,
+            child: preset == value
+                ? const Icon(Icons.check_rounded, color: _C.hero, size: 18)
+                : (icon == null ? null : Icon(icon, color: _C.muted, size: 18)),
+          ),
+          const SizedBox(width: 8),
+          Text(text,
+              style: const TextStyle(
+                  color: _C.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<_RangePreset>(
+        tooltip: 'Change date range',
+        offset: const Offset(0, 44),
+        color: _C.surface,
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        onSelected: (value) => onSelected(value),
+        itemBuilder: (context) => [
+          _item(_RangePreset.today, 'Today'),
+          _item(_RangePreset.week, 'Last 7 days'),
+          _item(_RangePreset.month, 'Last 30 days'),
+          const PopupMenuDivider(),
+          _item(_RangePreset.custom, 'Custom range',
+              icon: Icons.calendar_month_rounded),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+              color: _C.surface,
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: _C.line)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.calendar_today_rounded, size: 12, color: _C.muted),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 112),
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: _C.ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 3),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 17, color: _C.muted),
+          ]),
+        ),
+      );
+}
+
 class _RevenueHero extends StatefulWidget {
   const _RevenueHero(
-      {required this.cur,
-      required this.prev,
-      required this.rangeLabel,
-      required this.compareSuffix});
+      {required this.cur, required this.prev, required this.rangeLabel});
   final _Snapshot cur, prev;
-  final String rangeLabel, compareSuffix;
+  final String rangeLabel;
 
   @override
   State<_RevenueHero> createState() => _RevenueHeroState();
 }
 
 class _RevenueHeroState extends State<_RevenueHero> {
-  static const double _chartHeight = 156;
   int? _sel;
 
   @override
@@ -1069,14 +1307,14 @@ class _RevenueHeroState extends State<_RevenueHero> {
         old.cur.buckets.length != widget.cur.buckets.length) _sel = null;
   }
 
-  void _pick(double dx, double width, {bool toggle = false}) {
+  void _pick(double dx, double width) {
     final n = widget.cur.buckets.length;
     if (n == 0) return;
     final plotW =
         math.max(1.0, width - _TrendPainter.leftPad - _TrendPainter.rightPad);
     final raw = ((dx - _TrendPainter.leftPad) / plotW * (n - 1)).round();
     final i = n == 1 ? 0 : math.min(n - 1, math.max(0, raw));
-    setState(() => _sel = (toggle && _sel == i) ? null : i);
+    setState(() => _sel = i);
   }
 
   @override
@@ -1087,80 +1325,36 @@ class _RevenueHeroState extends State<_RevenueHero> {
     final shown = sel == null ? null : buckets[sel];
     final before =
         (sel != null && sel < prev.buckets.length) ? prev.buckets[sel] : null;
-    final best = cur.best;
     final value = shown?.value ?? cur.revenue;
-    const numStyle = TextStyle(
-        color: Colors.white,
-        fontSize: 42,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -1.8,
-        height: 1.05);
-
-    final String detail;
-    if (shown != null) {
-      final orderText =
-          '${shown.orders} ${shown.orders == 1 ? 'order' : 'orders'}';
-      detail = before == null
-          ? orderText
-          : '$orderText, vs ${_inr(before.value)} before';
-    } else {
-      detail = 'vs ${_inr(prev.revenue)} ${widget.compareSuffix}';
-    }
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            colors: [_C.hero, _C.heroDeep],
+            colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x33064E3B), blurRadius: 28, offset: Offset(0, 14))
+              color: Color(0x330F172A), blurRadius: 28, offset: Offset(0, 14))
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-            decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(99)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.calendar_today_rounded,
-                  size: 12, color: Colors.white.withValues(alpha: .75)),
-              const SizedBox(width: 6),
-              Text(widget.rangeLabel,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
-            ]),
-          ),
+          _RangeLabel(label: widget.rangeLabel),
           const Spacer(),
           _DeltaPill(
               cur: value, prev: before?.value ?? prev.revenue, onDark: true),
         ]),
-        const SizedBox(height: 22),
-        Text(shown?.title ?? 'Revenue from completed orders',
+        const SizedBox(height: 16),
+        Text(shown?.title ?? 'Revenue trend',
             style: TextStyle(
                 color: Colors.white.withValues(alpha: .72),
                 fontSize: 13,
                 fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        sel == null
-            ? _CountUp(value: value, format: _inr, style: numStyle)
-            : Text(_inr(value), style: numStyle),
-        const SizedBox(height: 6),
-        Text(detail,
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: .62),
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         SizedBox(
-          height: _chartHeight,
+          height: 122,
           child: cur.revenue == 0
               ? Center(
                   child: Text(
@@ -1174,8 +1368,13 @@ class _RevenueHeroState extends State<_RevenueHero> {
                   final w = c.maxWidth;
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTapUp: (d) => _pick(d.localPosition.dx, w, toggle: true),
                     onHorizontalDragUpdate: (d) => _pick(d.localPosition.dx, w),
+                    onHorizontalDragEnd: (_) => setState(() => _sel = null),
+                    onHorizontalDragCancel: () => setState(() => _sel = null),
+                    onLongPressStart: (d) => _pick(d.localPosition.dx, w),
+                    onLongPressMoveUpdate: (d) =>
+                        _pick(d.localPosition.dx, w),
+                    onLongPressEnd: (_) => setState(() => _sel = null),
                     child: TweenAnimationBuilder<double>(
                       key: ValueKey(
                           '${buckets.length}-${cur.revenue.round()}-${prev.revenue.round()}'),
@@ -1189,71 +1388,100 @@ class _RevenueHeroState extends State<_RevenueHero> {
                             prev: prev.values,
                             labels: cur.labels,
                             selected: sel,
+                            selectedBucket: shown,
                             progress: t),
                       ),
                     ),
                   );
                 }),
         ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .09),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: .12)),
-          ),
-          child: IntrinsicHeight(
-            child: Row(children: [
-              Expanded(
-                  child: _HeroStat(
-                      value: '${cur.itemsSold}', label: 'Items sold')),
-              const VerticalDivider(
-                  width: 1, thickness: 1, color: Color(0x24FFFFFF)),
-              Expanded(
-                  child: _HeroStat(
-                      value: best == null ? '—' : _inrShort(best.value),
-                      label: best == null
-                          ? 'Best ${cur.unit}'
-                          : 'Best ${cur.unit} (${best.axis})')),
-              const VerticalDivider(
-                  width: 1, thickness: 1, color: Color(0x24FFFFFF)),
-              Expanded(
-                  child: _HeroStat(
-                      value: _inrShort(cur.pendingValue),
-                      label: 'Pending value')),
-            ]),
-          ),
-        ),
       ]),
     );
   }
 }
 
-class _HeroStat extends StatelessWidget {
-  const _HeroStat({required this.value, required this.label});
+class _RangeLabel extends StatelessWidget {
+  const _RangeLabel({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(99)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.calendar_today_rounded,
+              size: 12, color: Colors.white.withValues(alpha: .75)),
+          const SizedBox(width: 6),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+        ]),
+      );
+}
+
+class _RevenueSummary extends StatelessWidget {
+  const _RevenueSummary({required this.snapshot});
+  final _Snapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final best = snapshot.best;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      decoration: BoxDecoration(
+          color: _C.surface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _C.line)),
+      child: IntrinsicHeight(
+        child: Row(children: [
+          Expanded(
+              child: _RevenueStat(
+                  value: '${snapshot.itemsSold}', label: 'Items sold')),
+          const VerticalDivider(width: 1, thickness: 1, color: _C.line),
+          Expanded(
+              child: _RevenueStat(
+                  value: best == null ? '—' : _inrShort(best.value),
+                  label: best == null
+                      ? 'Best ${snapshot.unit}'
+                      : 'Best ${snapshot.unit} (${best.axis})')),
+          const VerticalDivider(width: 1, thickness: 1, color: _C.line),
+          Expanded(
+              child: _RevenueStat(
+                  value: _inrShort(snapshot.pendingValue),
+                  label: 'Pending value')),
+        ]),
+      ),
+    );
+  }
+}
+
+class _RevenueStat extends StatelessWidget {
+  const _RevenueStat({required this.value, required this.label});
   final String value, label;
+
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value,
+                style: const TextStyle(
+                    color: _C.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4)),
+          ),
           const SizedBox(height: 3),
           Text(label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: .62),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600)),
+              style: _T.caption),
         ]),
       );
 }
@@ -1264,12 +1492,14 @@ class _TrendPainter extends CustomPainter {
       required this.prev,
       required this.labels,
       required this.selected,
+      required this.selectedBucket,
       required this.progress});
 
-  static const leftPad = 40.0, rightPad = 4.0, topPad = 8.0, bottomPad = 24.0;
+  static const leftPad = 32.0, rightPad = 4.0, topPad = 8.0, bottomPad = 24.0;
   final List<double> cur, prev;
   final List<String> labels;
   final int? selected;
+  final _Bucket? selectedBucket;
   final double progress;
 
   static double _nice(double v) {
@@ -1321,6 +1551,39 @@ class _TrendPainter extends CustomPainter {
     tp.paint(canvas, Offset(dx, anchor.dy - tp.height / 2));
   }
 
+  static void _tooltip(Canvas canvas, Size size, Offset anchor, _Bucket bucket) {
+    final detail = TextPainter(
+      text: TextSpan(
+          text:
+              '${_inr(bucket.value)}  •  ${bucket.orders} ${bucket.orders == 1 ? 'order' : 'orders'}',
+          style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final width = detail.width + 20;
+    final height = detail.height + 14;
+    final left =
+        (anchor.dx - width / 2).clamp(4.0, size.width - width - 4).toDouble();
+    var top = anchor.dy - height - 13;
+    if (top < 4) top = math.min(size.height - height - 4, anchor.dy + 13);
+    final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(left, top, width, height), const Radius.circular(10));
+    canvas.drawRRect(
+        rect,
+        Paint()
+          ..color = Colors.white
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1));
+    canvas.drawRRect(
+        rect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = const Color(0xFFE2E8F0));
+    detail.paint(canvas, Offset(left + 10, top + 7));
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final n = cur.length;
@@ -1337,7 +1600,7 @@ class _TrendPainter extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       final y = plot.bottom - plot.height * i / 2;
       canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
-      _text(canvas, _inrShort(top * i / 2), Offset(plot.left - 8, y),
+      _text(canvas, _inrShort(top * i / 2), Offset(plot.left - 4, y),
           right: true);
     }
 
@@ -1384,15 +1647,15 @@ class _TrendPainter extends CustomPainter {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              _C.mint.withValues(alpha: .34),
-              _C.mint.withValues(alpha: 0)
+              Colors.white.withValues(alpha: .24),
+              Colors.white.withValues(alpha: 0)
             ],
           ).createShader(plot),
       );
       canvas.drawPath(
         line,
         Paint()
-          ..color = _C.mint
+          ..color = Colors.white
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3
           ..strokeCap = StrokeCap.round
@@ -1402,12 +1665,12 @@ class _TrendPainter extends CustomPainter {
 
     if (n <= 14) {
       for (final p in pts) {
-        canvas.drawCircle(p, 3.4, Paint()..color = _C.hero);
+        canvas.drawCircle(p, 3.4, Paint()..color = const Color(0xFF0F172A));
         canvas.drawCircle(
           p,
           3.4,
           Paint()
-            ..color = _C.mint
+            ..color = Colors.white
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.8,
         );
@@ -1427,6 +1690,8 @@ class _TrendPainter extends CustomPainter {
       canvas.drawCircle(
           p, 9, Paint()..color = Colors.white.withValues(alpha: .22));
       canvas.drawCircle(p, 4.8, Paint()..color = Colors.white);
+      final bucket = selectedBucket;
+      if (bucket != null) _tooltip(canvas, size, p, bucket);
     }
     canvas.restore();
   }
@@ -1953,7 +2218,7 @@ class _DeltaPill extends StatelessWidget {
     final Color fg, bg;
     if (onDark) {
       fg = dir > 0
-          ? _C.mint
+          ? Colors.white
           : (dir < 0 ? const Color(0xFFFECDD3) : const Color(0xFFCBD5E1));
       bg = Colors.white.withValues(alpha: .13);
     } else {
@@ -2078,55 +2343,6 @@ class _CountUp extends StatelessWidget {
       );
 }
 
-class _Seg extends StatelessWidget {
-  const _Seg(
-      {required this.label,
-      required this.selected,
-      required this.onTap,
-      this.icon});
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final IconData? icon;
-  @override
-  Widget build(BuildContext context) => Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: selected ? Colors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: selected
-                  ? const [
-                      BoxShadow(
-                          color: Color(0x14064E3B),
-                          blurRadius: 8,
-                          offset: Offset(0, 2))
-                    ]
-                  : null,
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              if (icon != null) ...[
-                Icon(icon, size: 15, color: selected ? _C.hero : _C.muted),
-                const SizedBox(width: 5)
-              ],
-              Text(label,
-                  style: TextStyle(
-                      color: selected ? _C.ink : _C.muted,
-                      fontSize: 12.5,
-                      fontWeight:
-                          selected ? FontWeight.w800 : FontWeight.w600)),
-            ]),
-          ),
-        ),
-      );
-}
-
 class _RoundButton extends StatelessWidget {
   const _RoundButton(
       {required this.icon, required this.onTap, this.busy = false});
@@ -2155,22 +2371,6 @@ class _RoundButton extends StatelessWidget {
           ),
         ),
       );
-}
-
-class _PinnedDelegate extends SliverPersistentHeaderDelegate {
-  const _PinnedDelegate({required this.child, required this.extent});
-  final Widget child;
-  final double extent;
-  @override
-  double get minExtent => extent;
-  @override
-  double get maxExtent => extent;
-  @override
-  Widget build(
-          BuildContext context, double shrinkOffset, bool overlapsContent) =>
-      Container(color: _C.bg, alignment: Alignment.topCenter, child: child);
-  @override
-  bool shouldRebuild(covariant _PinnedDelegate old) => true;
 }
 
 class _Notice extends StatelessWidget {

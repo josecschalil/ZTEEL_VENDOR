@@ -724,7 +724,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         }
       }
     });
-
   }
 
   void _applyHoursToWeekdays(int sourceDayIndex) {
@@ -738,7 +737,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         }
       }
     });
-      }
+  }
 
   void _applyHoursToCustomDays(int sourceDayIndex, List<int> targetDayIndices) {
     final sourceSessions = _daySessions[sourceDayIndex];
@@ -751,7 +750,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         }
       }
     });
-
   }
 
   void _showApplyHoursModal(int sourceDayIndex) {
@@ -1593,7 +1591,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       borderRadius: BorderRadius.circular(8),
                       child: const Padding(
                         padding: EdgeInsets.all(4),
-                        child: Icon(Icons.edit_outlined,
+                        child: Icon(Icons.edit_note,
                             size: 16, color: _Dt.textSecondary),
                       ),
                     ),
@@ -1632,7 +1630,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: _Dt.dark, width: 1.2),
+                      borderSide:
+                          const BorderSide(color: _Dt.border, width: 1.2),
                     ),
                     isDense: true,
                     contentPadding: const EdgeInsets.all(11),
@@ -1792,8 +1791,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         onPressed: _savingProfilePart == null ? _startHoursEditing : null,
         tooltip: 'Edit opening hours',
         visualDensity: VisualDensity.compact,
-        icon: const Icon(Icons.edit_outlined,
-            color: _Dt.textSecondary, size: 18),
+        icon:
+            const Icon(Icons.edit_outlined, color: _Dt.textSecondary, size: 18),
       );
     }
 
@@ -1910,8 +1909,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 GestureDetector(
                   onTap: () => _addSession(_selectedDayIndex),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: _Dt.surfaceRaised,
                       borderRadius: BorderRadius.circular(8),
@@ -1963,8 +1962,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       child: _TimeChip(
                         label: _formatTime(session.start),
                         onTap: _isEditingHours
-                            ? () => _pickSessionTime(
-                                _selectedDayIndex, idx, true)
+                            ? () =>
+                                _pickSessionTime(_selectedDayIndex, idx, true)
                             : null,
                       ),
                     ),
@@ -1980,8 +1979,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       child: _TimeChip(
                         label: _formatTime(session.end),
                         onTap: _isEditingHours
-                            ? () => _pickSessionTime(
-                                _selectedDayIndex, idx, false)
+                            ? () =>
+                                _pickSessionTime(_selectedDayIndex, idx, false)
                             : null,
                       ),
                     ),
@@ -2200,7 +2199,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   icon: Icons.support_agent_outlined,
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const HelpSupportScreen()),
                   ),
                 ),
               ],
