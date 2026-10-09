@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/app_typography.dart';
 import 'package:frontend/config/api_config.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/realtime_order_service.dart';
@@ -12,6 +13,7 @@ import 'orderDetailScreen.dart';
 import 'NotificationScreen.dart';
 import '../services/vendor_notification_service.dart';
 import 'reviewsScreen.dart';
+import 'performanceAnalysisScreen.dart';
 part 'dashboard_all_categories.dart';
 
 // ─── Data Models ─────────────────────────────────────────────────────────────
@@ -70,6 +72,7 @@ class OrderItem {
   final OrderStatus statusType;
   final double amount;
   final int itemCount;
+  final String imageUrl;
   final Map<String, dynamic> rawSession;
 
   const OrderItem({
@@ -82,6 +85,7 @@ class OrderItem {
     required this.statusType,
     required this.amount,
     required this.itemCount,
+    this.imageUrl = '',
     this.rawSession = const {},
   });
 }
@@ -169,20 +173,25 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     }
   }
 
-  Future<void> _fetchVendorProfile({bool silent = false, bool forceRefresh = false}) async {
-    final profileRes = await VendorService.getVendorProfile(forceRefresh: forceRefresh);
+  Future<void> _fetchVendorProfile(
+      {bool silent = false, bool forceRefresh = false}) async {
+    final profileRes =
+        await VendorService.getVendorProfile(forceRefresh: forceRefresh);
     if (!mounted) return;
     if (profileRes['success'] == true && profileRes['data'] != null) {
       final pData = profileRes['data'] as Map<String, dynamic>;
       setState(() {
-        _vendorName = pData['business_name']?.toString().trim() ?? 'Vendor Partner';
-        _vendorCategory = pData['category']?.toString().trim() ?? 'ZTEEL Partner';
+        _vendorName =
+            pData['business_name']?.toString().trim() ?? 'Vendor Partner';
+        _vendorCategory =
+            pData['category']?.toString().trim() ?? 'ZTEEL Partner';
         _vendorAvatarUrl = pData['icon_image']?.toString();
       });
     }
   }
 
-  Future<void> _fetchCategories({bool silent = false, bool forceRefresh = false}) async {
+  Future<void> _fetchCategories(
+      {bool silent = false, bool forceRefresh = false}) async {
     if (!silent && _categories.isEmpty) {
       setState(() {
         _isLoadingCategories = true;
@@ -190,16 +199,19 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       });
     }
 
-    final catRes = await VendorService.getMenuCategories(forceRefresh: forceRefresh);
+    final catRes =
+        await VendorService.getMenuCategories(forceRefresh: forceRefresh);
     if (!mounted) return;
 
     if (catRes['success'] == true && catRes['data'] != null) {
       final rawList = catRes['data'] as List<dynamic>;
-      final allItemsRes = await VendorService.getMenuItems(forceRefresh: forceRefresh);
+      final allItemsRes =
+          await VendorService.getMenuItems(forceRefresh: forceRefresh);
       if (!mounted) return;
-      final allItems = allItemsRes['success'] == true && allItemsRes['data'] is List
-          ? allItemsRes['data'] as List<dynamic>
-          : const <dynamic>[];
+      final allItems =
+          allItemsRes['success'] == true && allItemsRes['data'] is List
+              ? allItemsRes['data'] as List<dynamic>
+              : const <dynamic>[];
       List<MenuCategory> categoryList = [];
 
       for (final cat in rawList) {
@@ -217,22 +229,22 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
               continue;
             }
             if (it is Map<String, dynamic>) {
-                final priceNum = it['price'];
-                final rawPrice = (priceNum is num)
-                    ? priceNum.toDouble()
-                    : double.tryParse(priceNum?.toString() ?? '0') ?? 0.0;
-                final priceStr = '₹${rawPrice.toStringAsFixed(0)}';
+              final priceNum = it['price'];
+              final rawPrice = (priceNum is num)
+                  ? priceNum.toDouble()
+                  : double.tryParse(priceNum?.toString() ?? '0') ?? 0.0;
+              final priceStr = '₹${rawPrice.toStringAsFixed(0)}';
 
-                itemList.add(MenuItem(
-                  id: it['id']?.toString() ?? '',
-                  name: it['name']?.toString() ?? 'Item',
-                  imageUrl: ApiConfig.getImageUrl(it['image']?.toString()) ?? '',
-                  price: priceStr,
-                  rawPrice: rawPrice,
-                  description: it['description']?.toString() ?? '',
-                  isVegetarian: it['is_vegetarian'] as bool? ?? false,
-                  isAvailable: it['is_available'] as bool? ?? true,
-                ));
+              itemList.add(MenuItem(
+                id: it['id']?.toString() ?? '',
+                name: it['name']?.toString() ?? 'Item',
+                imageUrl: ApiConfig.getImageUrl(it['image']?.toString()) ?? '',
+                price: priceStr,
+                rawPrice: rawPrice,
+                description: it['description']?.toString() ?? '',
+                isVegetarian: it['is_vegetarian'] as bool? ?? false,
+                isAvailable: it['is_available'] as bool? ?? true,
+              ));
             }
           }
 
@@ -277,7 +289,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     }
   }
 
-  Future<void> _fetchOrders({bool silent = false, bool forceRefresh = false}) async {
+  Future<void> _fetchOrders(
+      {bool silent = false, bool forceRefresh = false}) async {
     if (!silent && _orders.isEmpty) {
       setState(() {
         _isLoadingOrders = true;
@@ -285,7 +298,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       });
     }
 
-    final redRes = await VendorService.getVendorRedemptions(forceRefresh: forceRefresh);
+    final redRes =
+        await VendorService.getVendorRedemptions(forceRefresh: forceRefresh);
     if (!mounted) return;
 
     if (redRes['success'] == true && redRes['data'] != null) {
@@ -304,19 +318,25 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
           final amount = _parseOrderAmount(r);
           final itemCount = _parseItemCount(r);
           final desc = _formatOrderDescription(r);
-          final timeAgo = _formatTimeAgo(r['created_at']?.toString() ?? r['confirmed_at']?.toString());
+          final imageUrl = _firstOrderItemImage(r);
+          final timeAgo = _formatTimeAgo(
+              r['created_at']?.toString() ?? r['confirmed_at']?.toString());
           final customerName = r['customer_name']?.toString();
-          final platform = (customerName != null && customerName.trim().isNotEmpty)
-              ? customerName.trim()
-              : 'ZTEEL Order';
+          final platform =
+              (customerName != null && customerName.trim().isNotEmpty)
+                  ? customerName.trim()
+                  : 'ZTEEL Order';
 
           bool isToday = false;
-          final dateStr = r['confirmed_at']?.toString() ?? r['created_at']?.toString();
+          final dateStr =
+              r['confirmed_at']?.toString() ?? r['created_at']?.toString();
           if (dateStr != null) {
             final parsedDate = DateTime.tryParse(dateStr)?.toLocal();
             if (parsedDate != null) {
               final now = DateTime.now();
-              isToday = parsedDate.year == now.year && parsedDate.month == now.month && parsedDate.day == now.day;
+              isToday = parsedDate.year == now.year &&
+                  parsedDate.month == now.month &&
+                  parsedDate.day == now.day;
             }
           }
 
@@ -336,6 +356,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
             statusType: statusType,
             amount: amount,
             itemCount: itemCount,
+            imageUrl: imageUrl,
             rawSession: r,
           ));
         }
@@ -375,7 +396,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
 
   OrderStatus _parseStatusType(Map<String, dynamic> session) {
     final status = (session['status'] ?? 'pending').toString().toLowerCase();
-    if (status == 'confirmed' || status == 'completed' || status == 'delivered') {
+    if (status == 'confirmed' ||
+        status == 'completed' ||
+        status == 'delivered') {
       return OrderStatus.completed;
     }
     if (status == 'expired' || status == 'cancelled' || status == 'rejected') {
@@ -419,6 +442,19 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     return count > 0 ? count : 1;
   }
 
+  String _firstOrderItemImage(Map<String, dynamic> session) {
+    final items = session['items'] as List<dynamic>? ?? const [];
+    for (final item in items) {
+      if (item is! Map) continue;
+      final rawImage = item['image']?.toString() ??
+          item['image_url']?.toString() ??
+          '';
+      final imageUrl = ApiConfig.getImageUrl(rawImage);
+      if (imageUrl != null && imageUrl.isNotEmpty) return imageUrl;
+    }
+    return '';
+  }
+
   String _formatOrderDescription(Map<String, dynamic> session) {
     final items = (session['items'] as List<dynamic>?) ?? [];
     if (items.isEmpty) {
@@ -433,7 +469,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     for (final it in items) {
       if (it is Map<String, dynamic>) {
         final qty = it['quantity']?.toString() ?? '1';
-        final name = it['item_name_snapshot']?.toString() ?? it['name']?.toString() ?? 'Dish';
+        final name = it['item_name_snapshot']?.toString() ??
+            it['name']?.toString() ??
+            'Dish';
         names.add('${qty}x $name');
       }
     }
@@ -522,7 +560,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       final giftName = reward['gift_item_name_snapshot']?.toString();
       if (giftName != null && giftName.isNotEmpty) {
         milestoneMsg = '$rName (Free item: $giftName)';
-      } else if (rDisc != null && double.tryParse(rDisc) != null && double.tryParse(rDisc)! > 0) {
+      } else if (rDisc != null &&
+          double.tryParse(rDisc) != null &&
+          double.tryParse(rDisc)! > 0) {
         milestoneMsg = '$rName (Saved ₹$rDisc)';
       } else {
         milestoneMsg = rName;
@@ -534,7 +574,9 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
         ? 'Offers applied: ${offersList.map((o) {
             final title = o['title_snapshot']?.toString() ?? 'Offer';
             final dAmount = o['discount_amount']?.toString();
-            if (dAmount != null && double.tryParse(dAmount) != null && double.tryParse(dAmount)! > 0) {
+            if (dAmount != null &&
+                double.tryParse(dAmount) != null &&
+                double.tryParse(dAmount)! > 0) {
               return '$title (Saved ₹$dAmount)';
             }
             return title;
@@ -619,91 +661,104 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        body: RefreshIndicator(
-          onRefresh: () => _fetchDashboardData(forceRefresh: true),
-          color: const Color(0xFF0F172A),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            child: Column(
-              children: [
-                _HeroCard(
-                  vendorName: _vendorName,
-                  vendorCategory: _vendorCategory,
-                  vendorAvatarUrl: _vendorAvatarUrl,
-                  todayRevenue: _todayRevenue,
-                  pendingCount: _pendingCount,
-                  onNotificationTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                    );
-                  },
+    return Theme(
+      data: AppTypography.lightTheme(),
+      child: DefaultTextStyle.merge(
+        style: const TextStyle(fontFamily: AppTypography.fontFamily),
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          ),
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            body: RefreshIndicator(
+              onRefresh: () => _fetchDashboardData(forceRefresh: true),
+              color: const Color(0xFF0F172A),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
-                const SizedBox(height: 16),
-                _QuickActionsBar(
-                  onMenuTap: _openAllCategories,
-                  onOrdersTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const OrdersScreen()),
-                    );
-                  },
-                  onReviewsTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ReviewsScreen()),
-                    );
-                  },
-                  onRatingsTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ReviewsScreen()),
-                    );
-                  },
+                child: Column(
+                  children: [
+                    _HeroCard(
+                      vendorName: _vendorName,
+                      vendorCategory: _vendorCategory,
+                      vendorAvatarUrl: _vendorAvatarUrl,
+                      todayRevenue: _todayRevenue,
+                      pendingCount: _pendingCount,
+                      onNotificationTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _QuickActionsBar(
+                      onMenuTap: _openAllCategories,
+                      onOrdersTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const OrdersScreen()),
+                        );
+                      },
+                      onReviewsTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ReviewsScreen()),
+                        );
+                      },
+                      onRatingsTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const PerformanceAnalysisScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    _MajorCategoriesSection(
+                      categories: _categories,
+                      isLoading: _isLoadingCategories,
+                      errorMessage: _categoryError,
+                      onSeeAll: _openAllCategories,
+                      onRetry: () => _fetchCategories(),
+                    ),
+                    const SizedBox(height: 20),
+                    _LatestOrdersSection(
+                      orders: _orders,
+                      isLoading: _isLoadingOrders,
+                      errorMessage: _orderError,
+                      onSeeAll: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const OrdersScreen()),
+                        );
+                      },
+                      onOrderTap: (order) {
+                        if (order.rawSession.isNotEmpty) {
+                          _openSessionDetails(order.rawSession);
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const OrdersScreen()),
+                          );
+                        }
+                      },
+                      onRetry: () => _fetchOrders(),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                _MajorCategoriesSection(
-                  categories: _categories,
-                  isLoading: _isLoadingCategories,
-                  errorMessage: _categoryError,
-                  onSeeAll: _openAllCategories,
-                  onRetry: () => _fetchCategories(),
-                ),
-                const SizedBox(height: 20),
-                _LatestOrdersSection(
-                  orders: _orders,
-                  isLoading: _isLoadingOrders,
-                  errorMessage: _orderError,
-                  onSeeAll: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const OrdersScreen()),
-                    );
-                  },
-                  onOrderTap: (order) {
-                    if (order.rawSession.isNotEmpty) {
-                      _openSessionDetails(order.rawSession);
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const OrdersScreen()),
-                      );
-                    }
-                  },
-                  onRetry: () => _fetchOrders(),
-                ),
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
           ),
         ),
@@ -899,13 +954,15 @@ class _HeroHeader extends StatelessWidget {
                   top: 3,
                   right: 1,
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    constraints:
+                        const BoxConstraints(minWidth: 16, minHeight: 16),
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: const Color(0xFFEF4444),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+                      border: Border.all(
+                          color: const Color(0xFF0F172A), width: 1.5),
                     ),
                     child: Text(
                       unread > 9 ? '9+' : '$unread',
@@ -947,17 +1004,19 @@ class _HeroRevenueBadge extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withValues(alpha: 0.2),
+              color: const Color.fromARGB(255, 248, 249, 249)
+                  .withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: const Color(0xFF34D399).withValues(alpha: 0.3)),
+                  color: const Color.fromARGB(255, 249, 250, 250)
+                      .withValues(alpha: 0.3)),
             ),
             child: const Text(
               'Live',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF6EE7B7),
+                color: Color.fromARGB(255, 247, 249, 248),
               ),
             ),
           ),
@@ -1019,7 +1078,8 @@ class _HeroMetricsCapsule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ticketText = '$pendingCount ${pendingCount == 1 ? 'Ticket' : 'Tickets'}';
+    final ticketText =
+        '$pendingCount ${pendingCount == 1 ? 'Ticket' : 'Tickets'}';
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -1318,8 +1378,8 @@ class _QuickActionsBar extends StatelessWidget {
         onTap: onReviewsTap,
       ),
       _QuickAction(
-        icon: Icons.star_outline,
-        label: 'Ratings',
+        icon: Icons.bar_chart_outlined,
+        label: 'Analysis',
         onTap: onRatingsTap,
       ),
     ];
@@ -1429,7 +1489,6 @@ class _MajorCategoriesSection extends StatelessWidget {
       child: Column(
         children: [
           _SectionHeader(title: 'Major Categories', onSeeAll: onSeeAll),
-          const SizedBox(height: 10),
           if (isLoading)
             Container(
               height: 120,
@@ -1450,17 +1509,20 @@ class _MajorCategoriesSection extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 28),
+                  const Icon(Icons.error_outline_rounded,
+                      color: Colors.orange, size: 28),
                   const SizedBox(height: 6),
                   Text(
                     errorMessage!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: onRetry,
-                    child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text('Retry',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -1476,7 +1538,8 @@ class _MajorCategoriesSection extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.category_outlined, size: 32, color: Color(0xFF94A3B8)),
+                  const Icon(Icons.category_outlined,
+                      size: 32, color: Color(0xFF94A3B8)),
                   const SizedBox(height: 8),
                   const Text(
                     'No Categories Created',
@@ -1495,7 +1558,8 @@ class _MajorCategoriesSection extends StatelessWidget {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: onSeeAll,
-                    icon: const Icon(Icons.add, size: 16, color: Color(0xFF0F172A)),
+                    icon: const Icon(Icons.add,
+                        size: 16, color: Color(0xFF0F172A)),
                     label: const Text(
                       'Manage Categories',
                       style: TextStyle(
@@ -1506,7 +1570,8 @@ class _MajorCategoriesSection extends StatelessWidget {
                     ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ],
@@ -1704,17 +1769,20 @@ class _LatestOrdersSection extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 28),
+                  const Icon(Icons.error_outline_rounded,
+                      color: Colors.orange, size: 28),
                   const SizedBox(height: 6),
                   Text(
                     errorMessage!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: onRetry,
-                    child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text('Retry',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -1730,7 +1798,8 @@ class _LatestOrdersSection extends StatelessWidget {
               ),
               child: const Column(
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 36, color: Color(0xFF94A3B8)),
+                  Icon(Icons.receipt_long_outlined,
+                      size: 36, color: Color(0xFF94A3B8)),
                   SizedBox(height: 10),
                   Text(
                     'No Orders Yet',
@@ -1816,6 +1885,34 @@ class _OrderCard extends StatelessWidget {
     }
   }
 
+  Widget _buildThumbnail() {
+    if (order.imageUrl.isEmpty) return _buildThumbnailFallback();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        order.imageUrl,
+        width: 48,
+        height: 52,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildThumbnailFallback(),
+      ),
+    );
+  }
+
+  Widget _buildThumbnailFallback() {
+    return Container(
+      width: 48,
+      height: 52,
+      decoration: BoxDecoration(
+        color: _iconBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Icon(_icon, size: 19, color: _iconColor),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -1836,18 +1933,7 @@ class _OrderCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: _iconBg,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: _borderColor,
-                ),
-              ),
-              child: Icon(_icon, size: 18, color: _iconColor),
-            ),
+            _buildThumbnail(),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

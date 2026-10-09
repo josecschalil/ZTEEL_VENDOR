@@ -7,7 +7,6 @@ import 'package:frontend/screens/createOfferScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/vendor_cache_service.dart';
 import 'package:frontend/services/vendor_notification_service.dart';
-import 'package:frontend/services/shop_status_service.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 //
@@ -147,8 +146,8 @@ class _OffersScreenState extends State<OffersScreen>
   int _activeMilestonesCount = 0;
   int _totalMilestonesCount = 0;
   bool _cacheRefreshScheduled = false;
-
-  final _shopStatus = ShopStatusService.instance;
+  bool _offersMasterPaused = false;
+  bool _isUpdatingOffersMaster = false;
 
   late AnimationController _heroController;
   late Animation<double> _heroFade;
@@ -165,21 +164,22 @@ class _OffersScreenState extends State<OffersScreen>
       curve: Curves.easeOut,
     );
     _fetchOffers();
-    VendorCacheService.revision.addListener(_onCacheRevision);
-    _shopStatus.ensureLoaded();
+    VendorCacheService.offersRevision.addListener(_onOffersCacheRevision);
   }
 
   @override
   void dispose() {
-    VendorCacheService.revision.removeListener(_onCacheRevision);
+    VendorCacheService.offersRevision.removeListener(_onOffersCacheRevision);
     _heroController.dispose();
     super.dispose();
   }
 
   // ── Data ───────────────────────────────────────────────────────────────────
 
-  void _onCacheRevision() {
-    if (_cacheRefreshScheduled) return;
+  void _onOffersCacheRevision() {
+    // A write started by this screen has not completed yet; its current fetch
+    // will apply the response, so scheduling another one only causes a flash.
+    if (_isLoading || _cacheRefreshScheduled) return;
     _cacheRefreshScheduled = true;
     Future<void>.delayed(const Duration(milliseconds: 150), () {
       _cacheRefreshScheduled = false;
@@ -190,11 +190,17 @@ class _OffersScreenState extends State<OffersScreen>
   Future<void> _fetchOffers({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
     final res = await VendorService.getOffers(forceRefresh: forceRefresh);
-    final milestoneRes = await VendorService.getRewardMilestones(forceRefresh: forceRefresh);
+    final milestoneRes =
+        await VendorService.getRewardMilestones(forceRefresh: forceRefresh);
+    final masterStatusRes = await VendorService.getOfferMasterStatus();
     if (!mounted) return;
 
     int activeM = 0;
     int totalM = 0;
+    final masterPaused = masterStatusRes['success'] == true &&
+            masterStatusRes['data'] is Map<String, dynamic>
+        ? (masterStatusRes['data']['is_paused'] as bool? ?? _offersMasterPaused)
+        : _offersMasterPaused;
     if (milestoneRes['success'] == true && milestoneRes['data'] != null) {
       final rawM = milestoneRes['data'] as List<dynamic>;
       totalM = rawM.length;
@@ -278,29 +284,32 @@ class _OffersScreenState extends State<OffersScreen>
         _offers = fetched;
         _activeMilestonesCount = activeM;
         _totalMilestonesCount = totalM;
+        _offersMasterPaused = masterPaused;
         _isLoading = false;
       });
     } else {
       setState(() {
         _activeMilestonesCount = activeM;
         _totalMilestonesCount = totalM;
+        _offersMasterPaused = masterPaused;
         _isLoading = false;
       });
     }
   }
 
   Offer? get _featuredOffer {
-    if (_offers.isEmpty) return null;
-    return _offers.firstWhere(
-      (offer) => offer.isFeatured,
-      orElse: () => _offers.first,
-    );
+    for (final offer in _offers) {
+      if (!offer.isActive) continue;
+      if (offer.isFeatured) return offer;
+    }
+    return null;
   }
 
   int get _activeCount => _offers.where((o) => o.isActive).length;
   int get _inactiveCount => _offers.length - _activeCount;
   int get _liveCount =>
       _offers.where((o) => o.isActive && o.status == OfferStatus.live).length;
+  bool get _hasActiveOffers => _offers.any((offer) => offer.isActive);
   int get _maxDiscount =>
       _offers.where((o) => o.isActive && o.discountPercent != null).fold<int>(
           0,
@@ -310,6 +319,11 @@ class _OffersScreenState extends State<OffersScreen>
   // ── Actions ────────────────────────────────────────────────────────────────
 
   Future<void> _setAsFeatured(Offer offer) async {
+    if (offer.isFeatured) return;
+
+    final confirmed = await _confirmFeaturedOffer(offer);
+    if (!confirmed || !mounted) return;
+
     final res = await VendorService.updateOffer(
         id: offer.id, data: {'is_featured': true});
 
@@ -324,7 +338,8 @@ class _OffersScreenState extends State<OffersScreen>
       _heroController.forward();
 
       if (mounted) {
-        _toast('"${offer.title}" is now your featured promotion');
+        await _fetchOffers(forceRefresh: true);
+        if (!mounted) return;
       }
     } else {
       if (mounted) {
@@ -370,11 +385,24 @@ class _OffersScreenState extends State<OffersScreen>
     }
   }
 
-  Future<void> _toggleShopStatus(bool nextOpen) async {
-    final ok = await _shopStatus.toggle(nextOpen);
+  Future<void> _toggleOffersMasterStatus(bool shouldPause) async {
+    if (_isUpdatingOffersMaster) return;
+    setState(() => _isUpdatingOffersMaster = true);
+
+    final res = await VendorService.setOfferMasterPaused(shouldPause);
     if (!mounted) return;
-    if (!ok) {
-      _toast('Could not update shop status. Try again.', isError: true);
+    if (res['success'] == true && res['data'] is Map<String, dynamic>) {
+      setState(() {
+        _offersMasterPaused = res['data']['is_paused'] as bool? ?? shouldPause;
+        _isUpdatingOffersMaster = false;
+      });
+      await _fetchOffers(forceRefresh: true);
+    } else {
+      setState(() => _isUpdatingOffersMaster = false);
+      _toast(
+        res['error']?.toString() ?? 'Could not update all offers. Try again.',
+        isError: true,
+      );
     }
   }
 
@@ -546,7 +574,7 @@ class _OffersScreenState extends State<OffersScreen>
   @override
   Widget build(BuildContext context) {
     final featured = _featuredOffer;
-    final showFeatured = !_isLoading && _selectedTab == 0 && featured != null;
+    final showFeatured = !_isLoading && _selectedTab == 0 && _hasActiveOffers;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -570,28 +598,38 @@ class _OffersScreenState extends State<OffersScreen>
                 const SizedBox(height: 16),
                 _buildQuickActions(featured),
                 const SizedBox(height: 22),
-                if (showFeatured) ...[
+                if (_offersMasterPaused) ...[
+                  _buildOffersPausedState(),
+                  const SizedBox(height: 24),
+                ] else ...[
+                  if (showFeatured) ...[
+                    _SectionHeader(
+                      title: 'Featured promotion',
+                      actionLabel: featured == null ? null : 'View details',
+                      onAction: featured == null
+                          ? null
+                          : () => _showOfferDetailsModal(featured),
+                    ),
+                    const SizedBox(height: 12),
+                    if (featured == null)
+                      _buildFeaturedEmptyCard()
+                    else
+                      FadeTransition(
+                        opacity: _heroFade,
+                        child: _buildFeaturedCard(featured),
+                      ),
+                    const SizedBox(height: 24),
+                  ],
                   _SectionHeader(
-                    title: 'Featured promotion',
-                    actionLabel: 'View details',
-                    onAction: () => _showOfferDetailsModal(featured),
+                    title: 'All promotions',
+                    actionLabel: 'New offer',
+                    onAction: _goToCreateOffer,
                   ),
                   const SizedBox(height: 12),
-                  FadeTransition(
-                    opacity: _heroFade,
-                    child: _buildFeaturedCard(featured),
-                  ),
-                  const SizedBox(height: 24),
+                  _buildTabs(),
+                  const SizedBox(height: 14),
+                  _buildListArea(),
                 ],
-                _SectionHeader(
-                  title: 'All promotions',
-                  actionLabel: 'New offer',
-                  onAction: _goToCreateOffer,
-                ),
-                const SizedBox(height: 12),
-                _buildTabs(),
-                const SizedBox(height: 14),
-                _buildListArea(),
                 const SizedBox(height: 24),
                 const _SectionHeader(title: 'Loyalty rewards'),
                 const SizedBox(height: 12),
@@ -657,7 +695,7 @@ class _OffersScreenState extends State<OffersScreen>
                   ),
                 ),
                 child: Text(
-                  _liveCount > 0 ? '$_liveCount live' : '0 live',
+                  _liveCount > 0 ? ' live' : ' inactive',
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -789,12 +827,12 @@ class _OffersScreenState extends State<OffersScreen>
             ],
           ),
         ),
-        ValueListenableBuilder<bool>(
-          valueListenable: _shopStatus.status,
-          builder: (_, isOpen, __) => _ShopStatusPill(
-            isOpen: isOpen,
-            onTap: () => _toggleShopStatus(!isOpen),
-          ),
+        _OfferMasterStatusPill(
+          isPaused: _offersMasterPaused,
+          isUpdating: _isUpdatingOffersMaster,
+          onTap: _isUpdatingOffersMaster
+              ? null
+              : () => _toggleOffersMasterStatus(!_offersMasterPaused),
         ),
         const SizedBox(width: 8),
         ValueListenableBuilder<List<VendorNotification>>(
@@ -847,6 +885,143 @@ class _OffersScreenState extends State<OffersScreen>
   }
 
   // ── Featured promotion ─────────────────────────────────────────────────────
+
+  Widget _buildOffersPausedState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: _Pal.amberSoft,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _Pal.amberLine),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                color: _Pal.amber,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.pause_rounded,
+                color: _Pal.amberDeep,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Offers are paused',
+              style: TextStyle(
+                color: _Pal.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Your promotions are hidden from customers. Resume to restore the offers that were live before the pause.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _Pal.ink600,
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 18),
+            GestureDetector(
+              onTap: _isUpdatingOffersMaster
+                  ? null
+                  : () => _toggleOffersMasterStatus(false),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 160),
+                opacity: _isUpdatingOffersMaster ? 0.6 : 1,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: _Pal.ink,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Text(
+                    _isUpdatingOffersMaster
+                        ? 'Resuming offers…'
+                        : 'Resume offers',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeaturedEmptyCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: _Pal.amberSoft,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _Pal.amberLine),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _Pal.amber.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.star_outline_rounded,
+                  size: 20, color: _Pal.amberDeep),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No featured promotion yet',
+                    style: TextStyle(
+                      color: _Pal.ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Use Feature on an offer below to spotlight it here.',
+                    style: TextStyle(
+                      color: _Pal.ink600,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildFeaturedCard(Offer offer) {
     final statusLabel = offer.isActive ? 'Live now' : 'Paused';
@@ -1567,6 +1742,80 @@ class _OffersScreenState extends State<OffersScreen>
   }
 
   // ── Confirmation + API write ───────────────────────────────────────────────
+
+  Future<bool> _confirmFeaturedOffer(Offer offer) async {
+    final currentFeatured = _featuredOffer;
+    final replacementNotice = currentFeatured == null
+        ? 'This promotion will be highlighted first for customers browsing your storefront.'
+        : 'This will replace "${currentFeatured.title}" as the promotion highlighted first on your storefront.';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _Pal.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: _Pal.line),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+        title: const Text(
+          'Feature this offer?',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: _Pal.ink,
+            letterSpacing: -0.3,
+          ),
+        ),
+        content: Text(
+          replacementNotice,
+          style: const TextStyle(
+            fontSize: 12.5,
+            height: 1.45,
+            fontWeight: FontWeight.w500,
+            color: _Pal.ink600,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: _Pal.ink500,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _Pal.amber,
+              foregroundColor: _Pal.amberDeep,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Feature offer',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed == true;
+  }
 
   Future<bool> _confirmOfferStatusChange({
     required Offer offer,
@@ -2326,15 +2575,20 @@ class _QuickActionButton extends StatelessWidget {
 
 // ─── Hero pieces ─────────────────────────────────────────────────────────────
 
-class _ShopStatusPill extends StatelessWidget {
-  final bool isOpen;
-  final VoidCallback onTap;
+class _OfferMasterStatusPill extends StatelessWidget {
+  final bool isPaused;
+  final bool isUpdating;
+  final VoidCallback? onTap;
 
-  const _ShopStatusPill({required this.isOpen, required this.onTap});
+  const _OfferMasterStatusPill({
+    required this.isPaused,
+    required this.isUpdating,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final tint = isOpen ? _Pal.greenBright : _Pal.amberPale;
+    final tint = isPaused ? _Pal.amberPale : _Pal.greenBright;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -2354,7 +2608,7 @@ class _ShopStatusPill extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              isOpen ? 'Pause' : 'Resume',
+              isUpdating ? 'Updating' : (isPaused ? 'Resume' : 'Pause'),
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,

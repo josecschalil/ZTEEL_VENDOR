@@ -9,16 +9,17 @@ import 'package:frontend/screens/orderDetailScreen.dart';
 import 'package:frontend/screens/orderScreen.dart';
 import 'package:frontend/services/vendor_service.dart';
 
-// ─── Slate Theme Palette ─────────────────────────────────────────────────────
+// ─── Light Theme Palette ────────────────────────────────────────────────
 class _ScanTheme {
   const _ScanTheme._();
-
-  static const bg = Color(0xFF0F172A); // slate-900
-  static const surface = Color(0xFF1E293B); // slate-800
-  static const border = Color(0xFF334155); // slate-700
-  static const emerald = Color(0xFF10B981); // emerald-500
-  static const textPrimary = Colors.white;
-  static const textSecondary = Color(0xFF94A3B8); // slate-400
+  static const bg = Color(0xFF0F172A); // slate-50
+  static const surface = Color(0xFF0F172A);
+  static const surfaceRaised = Color(0xFF0F172A); // slate-100
+  static const border = Color(0xFF0F172A); // slate-200
+  static const textPrimary = Color(0xFFF8FAFC); // slate-900
+  static const textSecondary = Color(0xFF64748B); // slate-500
+  static const emerald = Color(0xFFF8FAFC); // emerald-500
+  static const dark = Color(0xFFF8FAFC); // slate-900
 }
 
 class QRScannerScreen extends StatefulWidget {
@@ -32,8 +33,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     with TickerProviderStateMixin {
   late AnimationController _scanLineController;
   late Animation<double> _scanLineAnim;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnim;
 
   final MobileScannerController _scannerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
@@ -47,30 +46,19 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   @override
   void initState() {
     super.initState();
-
     _scanLineController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
 
     _scanLineAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _scanLineController, curve: Curves.easeInOut),
-    );
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-
-    _pulseAnim = Tween<double>(begin: 0.96, end: 1.04).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
 
   @override
   void dispose() {
     _scanLineController.dispose();
-    _pulseController.dispose();
     _scannerController.dispose();
     super.dispose();
   }
@@ -97,8 +85,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   Future<void> _pickFromGallery() async {
     if (_isProcessing) return;
     try {
-      final XFile? image =
-          await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         final BarcodeCapture? capture =
             await _scannerController.analyzeImage(image.path);
@@ -130,8 +117,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             fontSize: 13,
           ),
         ),
-        backgroundColor:
-            success ? _ScanTheme.emerald : const Color(0xFF0F172A),
+        backgroundColor: success ? _ScanTheme.emerald : const Color(0xFF0F172A),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -313,19 +299,27 @@ class _QRScannerScreenState extends State<QRScannerScreen>
 
       // 2. Search for matching order in this vendor's redemptions
       final cleanRaw = rawCode.trim();
-      
+
       // Parse structured payload (JSON or URI) to extract the canonical ID
       String extractedId = cleanRaw;
       try {
         final decoded = jsonDecode(cleanRaw);
         if (decoded is Map<String, dynamic>) {
-          extractedId = (decoded['id'] ?? decoded['qr_code'] ?? decoded['redemption_id'] ?? cleanRaw).toString().trim();
+          extractedId = (decoded['id'] ??
+                  decoded['qr_code'] ??
+                  decoded['redemption_id'] ??
+                  cleanRaw)
+              .toString()
+              .trim();
         }
       } catch (_) {
         try {
           final uri = Uri.parse(cleanRaw);
           if (uri.hasQuery) {
-            extractedId = (uri.queryParameters['id'] ?? uri.queryParameters['qr_code'] ?? cleanRaw).trim();
+            extractedId = (uri.queryParameters['id'] ??
+                    uri.queryParameters['qr_code'] ??
+                    cleanRaw)
+                .trim();
           }
         } catch (_) {}
       }
@@ -346,8 +340,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           }
         }
       }
-
-
 
       // Close loading dialog
       if (mounted && Navigator.of(context).canPop()) {
@@ -449,8 +441,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
               '0.00';
           final lTotal = iMap['line_total']?.toString() ?? '0.00';
           final imgUrl = ApiConfig.getImageUrl(
-                  iMap['image']?.toString() ??
-                      iMap['image_url']?.toString()) ??
+                  iMap['image']?.toString() ?? iMap['image_url']?.toString()) ??
               '';
 
           return OrderLineItem(
@@ -518,544 +509,589 @@ class _QRScannerScreenState extends State<QRScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
+    return Scaffold(
+      backgroundColor: _ScanTheme.bg,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: _ScanTheme.textPrimary,
+          ),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text(
+          'Scan Order',
+          style: TextStyle(
+            color: _ScanTheme.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        centerTitle: true,
       ),
-      child: Scaffold(
-        backgroundColor: _ScanTheme.bg,
-        body: Stack(
+      body: SafeArea(
+        child: Column(
           children: [
-            // ── Live Camera Scanner View ──
-            Positioned.fill(
-              child: MobileScanner(
+            const Spacer(),
+            const Text(
+              'Align QR Code',
+              style: TextStyle(
+                color: _ScanTheme.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Scan the customer\'s order code to proceed',
+              style: TextStyle(
+                color: _ScanTheme.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 48),
+            Center(
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _ScanTheme.dark.withValues(alpha: 0.08),
+                      blurRadius: 32,
+                      offset: const Offset(0, 16),
+                    ),
+                    BoxShadow(
+                      color: _ScanTheme.dark.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(40),
+                      child: MobileScanner(
+                        controller: _scannerController,
+                        onDetect: (capture) {
+                          if (_isProcessing) return;
+                          for (final barcode in capture.barcodes) {
+                            final value = barcode.rawValue?.trim();
+                            if (value != null && value.isNotEmpty) {
+                              _handleScannedCode(value);
+                              break;
+                            }
+                          }
+                        },
+                        errorBuilder: (context, error) => Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.videocam_off_outlined,
+                                  color: _ScanTheme.textSecondary,
+                                  size: 40,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Camera Error\n${error.errorCode.name}',
+                                  style: const TextStyle(
+                                    color: _ScanTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    AnimatedBuilder(
+                      animation: _scanLineAnim,
+                      builder: (context, child) {
+                        final top = 20 + _scanLineAnim.value * 240;
+                        return Positioned(
+                          top: top,
+                          left: 20,
+                          right: 20,
+                          child: Container(
+                            height: 3,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  _ScanTheme.emerald.withValues(alpha: 0),
+                                  _ScanTheme.emerald,
+                                  _ScanTheme.emerald.withValues(alpha: 0),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      _ScanTheme.emerald.withValues(alpha: 0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _ScannerCornersPainter(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildFloatingButton(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Gallery',
+                  onTap: _pickFromGallery,
+                ),
+                const SizedBox(width: 10),
+                _buildFloatingButton(
+                  icon: _isTorchOn
+                      ? Icons.flashlight_on_rounded
+                      : Icons.flashlight_off_outlined,
+                  label: 'Torch',
+                  onTap: _toggleTorch,
+                  isActive: _isTorchOn,
+                ),
+                const SizedBox(width: 10),
+                _buildFloatingButton(
+                  icon: Icons.cameraswitch_outlined,
+                  label: 'Flip',
+                  onTap: _switchCamera,
+                ),
+              ],
+            ),
+            const Spacer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 84,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(
+            color: isActive ? _ScanTheme.emerald : const Color(0xFF334155),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isActive ? 0.22 : 0.14),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? _ScanTheme.emerald.withValues(alpha: 0.2)
+                    : Colors.white.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isActive ? _ScanTheme.emerald : Colors.white,
+                size: 17,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? _ScanTheme.emerald : const Color(0xFFE2E8F0),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _ScanTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _ScanTheme.border),
+            ),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              color: _ScanTheme.textPrimary,
+              size: 20,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Order scanner',
+                style: TextStyle(
+                  color: _ScanTheme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'Secure QR verification',
+                style: TextStyle(
+                  color: _ScanTheme.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: _ScanTheme.emerald.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+            border:
+                Border.all(color: _ScanTheme.emerald.withValues(alpha: 0.28)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.verified_user_outlined,
+                  size: 14, color: _ScanTheme.emerald),
+              SizedBox(width: 5),
+              Text(
+                'Secure',
+                style: TextStyle(
+                  color: _ScanTheme.emerald,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScannerWindow(double side) {
+    return Center(
+      child: Container(
+        width: side,
+        height: side,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            colors: [
+              _ScanTheme.emerald.withValues(alpha: 0.92),
+              const Color(0xFF38BDF8).withValues(alpha: 0.72),
+              _ScanTheme.emerald.withValues(alpha: 0.22),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: _ScanTheme.emerald.withValues(alpha: 0.16),
+              blurRadius: 28,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              MobileScanner(
                 controller: _scannerController,
                 onDetect: (capture) {
                   if (_isProcessing) return;
-                  final barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    if (barcode.rawValue != null &&
-                        barcode.rawValue!.trim().isNotEmpty) {
-                      _handleScannedCode(barcode.rawValue!.trim());
+                  for (final barcode in capture.barcodes) {
+                    final value = barcode.rawValue?.trim();
+                    if (value != null && value.isNotEmpty) {
+                      _handleScannedCode(value);
                       break;
                     }
                   }
                 },
-                errorBuilder: (context, error) {
-                  return Container(
-                    color: _ScanTheme.bg,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: _ScanTheme.surface,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: _ScanTheme.border),
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt_outlined,
-                                color: _ScanTheme.textSecondary,
-                                size: 40,
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            const Text(
-                              'Camera Access Required',
-                              style: TextStyle(
-                                color: _ScanTheme.textPrimary,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Please allow camera permission to scan order QR codes.\n${error.errorCode.name}',
-                              style: const TextStyle(
-                                color: _ScanTheme.textSecondary,
-                                fontSize: 12.5,
-                                height: 1.4,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                errorBuilder: (context, error) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.videocam_off_outlined,
+                          color: _ScanTheme.textSecondary,
+                          size: 38,
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Camera unavailable\n${error.errorCode.name}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _ScanTheme.textSecondary,
+                            fontSize: 12.5,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
-            ),
-
-            // ── Slate Overlay Outside Scanner Box ──
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _ScannerOverlayPainter(
-                  scanBoxSize: 260,
-                  centerY: size.height * 0.40,
+                  ),
                 ),
               ),
-            ),
-
-            // ── Top Header & Scanner Area ──
-            SafeArea(
-              child: Column(
-                children: [
-                  // Slate Glass Top Bar
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.of(context).maybePop(),
-                          child: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: _ScanTheme.bg.withValues(alpha: 0.7),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.15),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back_rounded,
-                              color: Colors.white,
-                              size: 19,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Scan Order QR',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                              SizedBox(height: 1),
-                              Text(
-                                'Align customer\'s code to view order',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: _ScanTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _switchCamera,
-                          child: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: _ScanTheme.bg.withValues(alpha: 0.7),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.15),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.cameraswitch_outlined,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Scanner Frame Area
-                  Expanded(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        _buildScannerFrame(),
-                      ],
-                    ),
-                  ),
-
-                  // Bottom Controls
-                  _buildBottomContent(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Animated Scanner Frame ─────────────────────────────────────────────────
-  Widget _buildScannerFrame() {
-    const double boxSize = 260;
-    const double cornerLen = 28;
-    const double cornerThick = 3.5;
-    const double cornerRadius = 12;
-
-    return ScaleTransition(
-      scale: _pulseAnim,
-      child: SizedBox(
-        width: boxSize,
-        height: boxSize,
-        child: Stack(
-          children: [
-            // Inner Viewport
-            ClipRRect(
-              borderRadius: BorderRadius.circular(cornerRadius),
-              child: Container(
-                width: boxSize,
-                height: boxSize,
-                color: Colors.transparent,
-              ),
-            ),
-
-            // Animated Laser Scan Line (Emerald Glow)
-            AnimatedBuilder(
-              animation: _scanLineAnim,
-              builder: (_, __) {
-                final top = 14 + _scanLineAnim.value * (boxSize - 28);
-                return Positioned(
-                  top: top,
-                  left: 14,
-                  right: 14,
+              ColoredBox(color: Colors.black.withValues(alpha: 0.12)),
+              AnimatedBuilder(
+                animation: _scanLineAnim,
+                builder: (context, child) => Positioned(
+                  top: 30 + _scanLineAnim.value * (side - 60),
+                  left: 28,
+                  right: 28,
                   child: Container(
                     height: 2.5,
                     decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
                       gradient: LinearGradient(
                         colors: [
                           _ScanTheme.emerald.withValues(alpha: 0),
-                          _ScanTheme.emerald.withValues(alpha: 0.95),
+                          _ScanTheme.emerald,
                           _ScanTheme.emerald.withValues(alpha: 0),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(2),
                       boxShadow: [
                         BoxShadow(
-                          color: _ScanTheme.emerald.withValues(alpha: 0.6),
+                          color: _ScanTheme.emerald.withValues(alpha: 0.8),
                           blurRadius: 10,
-                          spreadRadius: 2.5,
+                          spreadRadius: 1,
                         ),
                       ],
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+              CustomPaint(
+                  painter: _ScannerCornersPainter(color: _ScanTheme.emerald)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            // Corner Brackets — Top Left
-            _corner(
-              top: 0,
-              left: 0,
-              tl: true,
-              cornerLen: cornerLen,
-              thick: cornerThick,
-              r: cornerRadius,
+  Widget _buildSecurityHint() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      decoration: BoxDecoration(
+        color: _ScanTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _ScanTheme.border),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: _ScanTheme.emerald, size: 18),
+          SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'Only QR codes for your shop can be confirmed.',
+              style: TextStyle(
+                color: _ScanTheme.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            // Top Right
-            _corner(
-              top: 0,
-              right: 0,
-              tr: true,
-              cornerLen: cornerLen,
-              thick: cornerThick,
-              r: cornerRadius,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControls() {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: _ScanTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _ScanTheme.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildControlButton(
+              icon: Icons.photo_library_outlined,
+              label: 'Gallery',
+              onTap: _pickFromGallery,
             ),
-            // Bottom Left
-            _corner(
-              bottom: 0,
-              left: 0,
-              bl: true,
-              cornerLen: cornerLen,
-              thick: cornerThick,
-              r: cornerRadius,
+          ),
+          Expanded(
+            child: _buildControlButton(
+              icon: _isTorchOn
+                  ? Icons.flashlight_on_rounded
+                  : Icons.flashlight_off_outlined,
+              label: _isTorchOn ? 'Torch on' : 'Torch',
+              onTap: _toggleTorch,
+              isActive: _isTorchOn,
             ),
-            // Bottom Right
-            _corner(
-              bottom: 0,
-              right: 0,
-              br: true,
-              cornerLen: cornerLen,
-              thick: cornerThick,
-              r: cornerRadius,
+          ),
+          Expanded(
+            child: _buildControlButton(
+              icon: Icons.cameraswitch_outlined,
+              label: 'Flip camera',
+              onTap: _switchCamera,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        decoration: BoxDecoration(
+          color: isActive
+              ? _ScanTheme.emerald.withValues(alpha: 0.14)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? _ScanTheme.emerald : _ScanTheme.textPrimary,
+              size: 20,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isActive ? _ScanTheme.emerald : _ScanTheme.textSecondary,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _corner({
-    double? top,
-    double? left,
-    double? right,
-    double? bottom,
-    bool tl = false,
-    bool tr = false,
-    bool bl = false,
-    bool br = false,
-    required double cornerLen,
-    required double thick,
-    required double r,
-  }) {
-    return Positioned(
-      top: top,
-      left: left,
-      right: right,
-      bottom: bottom,
-      child: CustomPaint(
-        size: Size(cornerLen + thick, cornerLen + thick),
-        painter: _CornerPainter(
-          tl: tl,
-          tr: tr,
-          bl: bl,
-          br: br,
-          color: _ScanTheme.emerald,
-          strokeWidth: thick,
-          radius: r,
-        ),
-      ),
-    );
-  }
-
-  // ── Bottom Instructions + Controls ─────────────────────────────────────────
-  Widget _buildBottomContent() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: _ScanTheme.surface.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _ScanTheme.border),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.center_focus_strong_rounded,
-                  color: _ScanTheme.emerald,
-                  size: 14,
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Point camera at customer QR code',
-                  style: TextStyle(
-                    color: _ScanTheme.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-
-          // Torch + Gallery buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildActionButton(
-                icon: _isTorchOn
-                    ? Icons.flashlight_on_rounded
-                    : Icons.flashlight_off_outlined,
-                label: _isTorchOn ? 'Torch On' : 'Torch Off',
-                isActive: _isTorchOn,
-                onTap: _toggleTorch,
-              ),
-              const SizedBox(width: 28),
-              _buildActionButton(
-                icon: Icons.photo_library_outlined,
-                label: 'Scan Gallery',
-                isActive: false,
-                onTap: _pickFromGallery,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    bool isActive = false,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? _ScanTheme.emerald
-                  : _ScanTheme.surface.withValues(alpha: 0.85),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isActive
-                    ? _ScanTheme.emerald
-                    : Colors.white.withValues(alpha: 0.16),
-                width: 1.2,
-              ),
-              boxShadow: isActive
-                  ? [
-                      BoxShadow(
-                        color: _ScanTheme.emerald.withValues(alpha: 0.4),
-                        blurRadius: 14,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : [
-                      const BoxShadow(
-                        color: Color(0x33000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? Colors.white : _ScanTheme.textSecondary,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ── Slate Overlay with Transparent Scanner Cutout ────────────────────────────
-class _ScannerOverlayPainter extends CustomPainter {
-  final double scanBoxSize;
-  final double centerY;
-
-  _ScannerOverlayPainter({required this.scanBoxSize, required this.centerY});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF0F172A).withValues(alpha: 0.72);
-    final cx = size.width / 2;
-    final left = cx - scanBoxSize / 2;
-    final top = centerY - scanBoxSize / 2;
-    const radius = Radius.circular(14);
-
-    final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final holeRect = RRect.fromLTRBR(
-        left, top, left + scanBoxSize, top + scanBoxSize, radius);
-
-    final path = Path()
-      ..addRect(fullRect)
-      ..addRRect(holeRect)
-      ..fillType = PathFillType.evenOdd;
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_ScannerOverlayPainter old) =>
-      old.scanBoxSize != scanBoxSize || old.centerY != centerY;
-}
-
-// ── Corner Bracket Painter ───────────────────────────────────────────────────
-class _CornerPainter extends CustomPainter {
-  final bool tl, tr, bl, br;
+// ─── Custom Painter for Scanner Corners ────────────────────────────────────
+class _ScannerCornersPainter extends CustomPainter {
   final Color color;
-  final double strokeWidth;
-  final double radius;
 
-  const _CornerPainter({
-    this.tl = false,
-    this.tr = false,
-    this.bl = false,
-    this.br = false,
-    required this.color,
-    required this.strokeWidth,
-    required this.radius,
-  });
+  _ScannerCornersPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = strokeWidth
+      ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final w = size.width;
-    final h = size.height;
-    final r = radius;
-    final s = strokeWidth / 2;
+    const double cornerLength = 32.0;
+    const double padding = 24.0;
 
-    final path = Path();
+    // Top Left
+    canvas.drawPath(
+      Path()
+        ..moveTo(padding, padding + cornerLength)
+        ..lineTo(padding, padding)
+        ..lineTo(padding + cornerLength, padding),
+      paint,
+    );
 
-    if (tl) {
-      path.moveTo(s, h - s);
-      path.lineTo(s, r + s);
-      path.arcToPoint(Offset(r + s, s),
-          radius: Radius.circular(r), clockwise: true);
-      path.lineTo(w - s, s);
-    } else if (tr) {
-      path.moveTo(s, s);
-      path.lineTo(w - r - s, s);
-      path.arcToPoint(Offset(w - s, r + s),
-          radius: Radius.circular(r), clockwise: true);
-      path.lineTo(w - s, h - s);
-    } else if (bl) {
-      path.moveTo(w - s, h - s);
-      path.lineTo(r + s, h - s);
-      path.arcToPoint(Offset(s, h - r - s),
-          radius: Radius.circular(r), clockwise: true);
-      path.lineTo(s, s);
-    } else if (br) {
-      final p2 = Path();
-      p2.moveTo(s, h - s);
-      p2.lineTo(w - r - s, h - s);
-      p2.arcToPoint(Offset(w - s, h - r - s),
-          radius: Radius.circular(r), clockwise: false);
-      p2.lineTo(w - s, s);
-      canvas.drawPath(p2, paint);
-      return;
-    }
+    // Top Right
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width - padding - cornerLength, padding)
+        ..lineTo(size.width - padding, padding)
+        ..lineTo(size.width - padding, padding + cornerLength),
+      paint,
+    );
 
-    canvas.drawPath(path, paint);
+    // Bottom Left
+    canvas.drawPath(
+      Path()
+        ..moveTo(padding, size.height - padding - cornerLength)
+        ..lineTo(padding, size.height - padding)
+        ..lineTo(padding + cornerLength, size.height - padding),
+      paint,
+    );
+
+    // Bottom Right
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width - padding - cornerLength, size.height - padding)
+        ..lineTo(size.width - padding, size.height - padding)
+        ..lineTo(size.width - padding, size.height - padding - cornerLength),
+      paint,
+    );
   }
 
   @override
-  bool shouldRepaint(_CornerPainter old) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

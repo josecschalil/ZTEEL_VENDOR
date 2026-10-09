@@ -439,7 +439,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   Widget _buildHero(double topPadding) {
     return Container(
       decoration: const BoxDecoration(
-        color: _K.dark,
+        color: Color.fromRGBO(15, 23, 42, 1),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(28),
           bottomRight: Radius.circular(28),
@@ -538,12 +538,12 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.only(top: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.07),
+                    color: Colors.white.withValues(alpha: 0.03),
                     borderRadius: BorderRadius.circular(16),
                     border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        Border.all(color: Colors.white.withValues(alpha: 0.04)),
                   ),
                   child: Row(
                     children: [
@@ -569,29 +569,34 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
   Widget _heroStat(String value, String label, {Color? valueColor}) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-              height: 1.1,
-              color: valueColor ?? Colors.white,
+      child: Container(
+        padding: const EdgeInsets.only(bottom: 10, top: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.6,
+                height: 1.1,
+                color: valueColor ?? Colors.white,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.5),
-              letterSpacing: 0.2,
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.5),
+                letterSpacing: 0.2,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -603,8 +608,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
   Widget _buildGridHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           const Expanded(
             child: Column(
@@ -619,7 +625,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                     letterSpacing: -0.3,
                   ),
                 ),
-                SizedBox(height: 1),
                 Text(
                   'Tap any card to view items',
                   style: TextStyle(fontSize: 11.5, color: _K.textMuted),

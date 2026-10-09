@@ -461,6 +461,95 @@ class VendorService {
     }
   }
 
+  /// Persist only the vendor's delivery location without saving unrelated
+  /// in-progress edits from the profile form.
+  static Future<Map<String, dynamic>> updateVendorLocation({
+    required String address,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http
+          .patch(
+            Uri.parse(ApiConfig.vendorProfileUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'address': address,
+              'latitude': latitude,
+              'longitude': longitude,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await VendorCacheService.writeProfile(data);
+        return {'success': true, 'data': data};
+      }
+
+      return {
+        'success': false,
+        'error': _extractApiError(data, 'Failed to update shop location.'),
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Error saving shop location: $e'};
+    }
+  }
+
+  /// Patch a small, explicit subset of the vendor profile. This is used by
+  /// field-level editing so unsaved values in another profile field are never
+  /// sent to the server inadvertently.
+  static Future<Map<String, dynamic>> updateVendorProfileFields(
+    Map<String, dynamic> fields,
+  ) async {
+    if (fields.isEmpty) {
+      return {'success': false, 'error': 'No profile changes to save'};
+    }
+
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http
+          .patch(
+            Uri.parse(ApiConfig.vendorProfileUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(fields),
+          )
+          .timeout(const Duration(seconds: 15));
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (fields['business_name'] is String) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('business_name', fields['business_name'] as String);
+        }
+        await VendorCacheService.writeProfile(data);
+        return {'success': true, 'data': data};
+      }
+
+      return {
+        'success': false,
+        'error': _extractApiError(data, 'Failed to update shop profile.'),
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Error saving shop profile: $e'};
+    }
+  }
+
   /// Remove icon image or cover image from the vendor profile
   static Future<Map<String, dynamic>> removeVendorImage({
     bool removeIcon = false,
@@ -1070,6 +1159,65 @@ class VendorService {
     }
   }
 
+  /// Read the server-owned master pause state for this vendor's offers.
+  static Future<Map<String, dynamic>> getOfferMasterStatus() async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse(ApiConfig.vendorOfferMasterStatusUrl),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 15));
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'error': data is Map ? data['detail'] ?? data.toString() : 'Failed to load offer status',
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Error loading offer status: $e'};
+    }
+  }
+
+  /// Pause or resume every offer through the server-side master switch.
+  static Future<Map<String, dynamic>> setOfferMasterPaused(bool isPaused) async {
+    final token = await _getAccessToken();
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.vendorOfferMasterStatusUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'is_paused': isPaused}),
+          )
+          .timeout(const Duration(seconds: 15));
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        await VendorCacheService.invalidate('offers');
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'error': data is Map ? data['detail'] ?? data.toString() : 'Failed to update offer status',
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Error updating offer status: $e'};
+    }
+  }
+
   /// Create a new offer
   static Future<Map<String, dynamic>> createOffer(Map<String, dynamic> offerData) async {
     final token = await _getAccessToken();
@@ -1130,13 +1278,25 @@ class VendorService {
       final resData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (resData is Map<String, dynamic>) {
-          await VendorCacheService.upsertListRecord('offers', resData);
+          // Featuring an offer also clears the featured flag from its siblings,
+          // so a single-record cache update would leave the list inconsistent.
+          if (data.containsKey('is_featured')) {
+            await VendorCacheService.invalidate('offers');
+          } else {
+            await VendorCacheService.upsertListRecord('offers', resData);
+          }
         } else {
           await VendorCacheService.invalidate('offers');
         }
         return {'success': true, 'data': resData};
       } else {
-        return {'success': false, 'error': resData['detail'] ?? 'Failed to update offer'};
+        final error = resData is Map
+            ? (resData['detail'] ??
+                resData.entries
+                    .map((entry) => '${entry.key}: ${entry.value}')
+                    .join(', '))
+            : 'Failed to update offer';
+        return {'success': false, 'error': error};
       }
     } catch (e) {
       return {'success': false, 'error': 'Error updating offer: $e'};

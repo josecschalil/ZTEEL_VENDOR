@@ -2,13 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/realtime_order_service.dart';
 import 'package:frontend/services/vendor_service.dart';
 import 'package:frontend/services/vendor_cache_service.dart';
+import 'package:frontend/screens/HelpSupportScreen.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
+import 'package:frontend/screens/locationPageScreen.dart';
 import 'package:frontend/screens/terms_policy_screen.dart';
 
 // ─── Design tokens matching the Artisan Trattoria dashboard ──────────────────
@@ -26,11 +27,8 @@ class _Dt {
   static const textSecondary = Color(0xFF64748B); // slate-500
   static const textMuted = Color(0xFF94A3B8); // slate-400
 
-  // Accents — slate-900 primary, emerald secondary (matches dashboard)
+  // Accents — slate throughout, matching the dashboard.
   static const accent = Color(0xFF0F172A); // slate-900
-  static const emerald = Color(0xFF10B981); // emerald-500
-  static const emeraldLight = Color(0xFF6EE7B7); // emerald-300
-  static const emeraldBg = Color(0xFFECFDF5); // emerald-50
 }
 
 class ProfileEditScreen extends StatefulWidget {
@@ -51,7 +49,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   );
   int _selectedDayIndex = 0;
 
-  String _selectedCategory = 'restaurant';
   String _phone = '';
   double _latitude = 12.9716;
   double _longitude = 77.5946;
@@ -62,10 +59,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   String? _coverImageUrl;
 
   bool _isLoading = true;
-  bool _isSaving = false;
   bool _isUploadingIcon = false;
   bool _isUploadingCover = false;
-  bool _isMapInteractive = false;
+  bool _isUpdatingLocation = false;
+  bool _isEditingShopName = false;
+  bool _isEditingDescription = false;
+  bool _isEditingHours = false;
+  String? _savingProfilePart;
+  String _shopNameBeforeEdit = '';
+  String _descriptionBeforeEdit = '';
+  List<List<_OpeningSession>> _hoursBeforeEdit = [];
   bool _cacheRefreshScheduled = false;
 
   final ImagePicker _picker = ImagePicker();
@@ -78,20 +81,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   Future<void> _loadVendorProfile({bool forceRefresh = false}) async {
-    final res = await VendorService.getVendorProfile(forceRefresh: forceRefresh);
+    final res =
+        await VendorService.getVendorProfile(forceRefresh: forceRefresh);
     if (!mounted) return;
 
     if (res['success'] == true && res['data'] != null) {
       final data = res['data'] as Map<String, dynamic>;
       setState(() {
-        if (data['business_name'] != null)
+        if (!_isEditingShopName && data['business_name'] != null)
           _shopNameController.text = data['business_name'].toString();
-        if (data['shop_description'] != null)
+        if (!_isEditingDescription && data['shop_description'] != null)
           _descriptionController.text = data['shop_description'].toString();
         if (data['address'] != null)
           _addressController.text = data['address'].toString();
-        if (data['category'] != null)
-          _selectedCategory = data['category'].toString().toLowerCase();
         if (data['phone_number'] != null)
           _phone = data['phone_number'].toString();
         if (data['latitude'] != null)
@@ -100,7 +102,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           _longitude = (data['longitude'] as num).toDouble();
         _iconImageUrl = data['icon_image']?.toString();
         _coverImageUrl = data['cover_image']?.toString();
-        if (data['business_hours'] != null && data['business_hours'] is List) {
+        if (!_isEditingHours &&
+            data['business_hours'] != null &&
+            data['business_hours'] is List) {
           _parseBusinessHours(data['business_hours'] as List);
         }
         _isLoading = false;
@@ -462,50 +466,152 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     ));
   }
 
-  Future<void> _saveChanges() async {
-    if (_isSaving) return;
-    setState(() => _isSaving = true);
-
-    final profileRes = await VendorService.updateVendorProfile(
-      businessName: _shopNameController.text.trim(),
-      shopDescription: _descriptionController.text.trim(),
-      address: _addressController.text.trim(),
-      category: _selectedCategory,
-      latitude: _latitude,
-      longitude: _longitude,
-      iconImage: _iconImageFile,
-      coverImage: _coverImageFile,
+  Future<void> _saveShopName() async {
+    final name = _shopNameController.text.trim();
+    if (name.isEmpty) {
+      _showSnack('Shop name cannot be empty');
+      return;
+    }
+    await _saveProfilePart(
+      part: 'shop_name',
+      fields: {'business_name': name},
+      onSuccess: () => _isEditingShopName = false,
+      successMessage: 'Shop name saved.',
     );
+  }
 
-    if (profileRes['success'] != true) {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      _showSnack(profileRes['error'] ?? 'Failed to update profile');
+  Future<void> _saveDescription() => _saveProfilePart(
+        part: 'description',
+        fields: {'shop_description': _descriptionController.text.trim()},
+        onSuccess: () => _isEditingDescription = false,
+        successMessage: 'Description saved.',
+      );
+
+  Future<void> _saveProfilePart({
+    required String part,
+    required Map<String, dynamic> fields,
+    required VoidCallback onSuccess,
+    required String successMessage,
+  }) async {
+    if (_savingProfilePart != null) return;
+    setState(() => _savingProfilePart = part);
+    final result = await VendorService.updateVendorProfileFields(fields);
+    if (!mounted) return;
+
+    setState(() {
+      _savingProfilePart = null;
+      if (result['success'] == true) onSuccess();
+    });
+    if (result['success'] == true) {
+      _showSnack(successMessage, success: true);
+    } else {
+      _showSnack(result['error'] ?? 'Failed to save changes');
+    }
+  }
+
+  List<List<_OpeningSession>> _copyHours() => _daySessions
+      .map((sessions) => sessions
+          .map((session) =>
+              _OpeningSession(start: session.start, end: session.end))
+          .toList())
+      .toList();
+
+  List<Map<String, dynamic>> _hoursPayload() => List.generate(7, (index) {
+        final sessions = _daySessions[index];
+        return {
+          'weekday': index,
+          'is_closed': sessions.isEmpty,
+          if (sessions.isNotEmpty)
+            'slots': sessions
+                .map((session) => {
+                      'opens_at':
+                          '${session.start.hour.toString().padLeft(2, '0')}:${session.start.minute.toString().padLeft(2, '0')}:00',
+                      'closes_at':
+                          '${session.end.hour.toString().padLeft(2, '0')}:${session.end.minute.toString().padLeft(2, '0')}:00',
+                      'closes_next_day': false,
+                    })
+                .toList(),
+        };
+      });
+
+  void _startHoursEditing() {
+    setState(() {
+      _hoursBeforeEdit = _copyHours();
+      _isEditingHours = true;
+    });
+  }
+
+  void _discardHoursEdit() {
+    setState(() {
+      for (var index = 0; index < 7; index++) {
+        _daySessions[index] = _hoursBeforeEdit[index]
+            .map((session) =>
+                _OpeningSession(start: session.start, end: session.end))
+            .toList();
+      }
+      _isEditingHours = false;
+    });
+  }
+
+  Future<void> _saveHours() async {
+    if (_savingProfilePart != null) return;
+    for (var index = 0; index < 7; index++) {
+      final message = _sessionValidationMessage(index);
+      if (message != null) {
+        _showSnack('${_fullDayLabel(index)}: $message');
+        return;
+      }
+    }
+
+    setState(() => _savingProfilePart = 'hours');
+    final result = await VendorService.updateBusinessHours(_hoursPayload());
+    if (!mounted) return;
+    setState(() {
+      _savingProfilePart = null;
+      if (result['success'] == true) _isEditingHours = false;
+    });
+    if (result['success'] == true) {
+      _showSnack('Opening hours saved.', success: true);
+    } else {
+      _showSnack(result['error'] ?? 'Failed to save opening hours');
+    }
+  }
+
+  Future<void> _openLocationPicker() async {
+    if (_isUpdatingLocation) return;
+
+    final picked = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialPosition: LatLng(_latitude, _longitude),
+          initialAddress: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim(),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isUpdatingLocation = true);
+    final result = await VendorService.updateVendorLocation(
+      address: picked.address,
+      latitude: picked.latitude,
+      longitude: picked.longitude,
+    );
+    if (!mounted) return;
+
+    setState(() => _isUpdatingLocation = false);
+    if (result['success'] != true) {
+      _showSnack(result['error'] ?? 'Failed to update shop location');
       return;
     }
 
-    List<Map<String, dynamic>> daysSchedule = [];
-    for (int i = 0; i < 7; i++) {
-      final sessions = _daySessions[i];
-      final isClosed = sessions.isEmpty;
-      final slots = sessions
-          .map((s) => {
-                'opens_at':
-                    '${s.start.hour.toString().padLeft(2, '0')}:${s.start.minute.toString().padLeft(2, '0')}:00',
-                'closes_at':
-                    '${s.end.hour.toString().padLeft(2, '0')}:${s.end.minute.toString().padLeft(2, '0')}:00',
-                'closes_next_day': false,
-              })
-          .toList();
-      daysSchedule.add(
-          {'weekday': i, 'is_closed': isClosed, if (!isClosed) 'slots': slots});
-    }
-
-    await VendorService.updateBusinessHours(daysSchedule);
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-    _showSnack('Profile saved.', success: true);
-    _loadVendorProfile();
+    setState(() {
+      _addressController.text = picked.address;
+      _latitude = picked.latitude;
+      _longitude = picked.longitude;
+    });
+    _showSnack('Shop location updated.', success: true);
   }
 
   Future<void> _handleLogout() async {
@@ -574,7 +680,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: _Dt.emerald,
+            primary: _Dt.dark,
             onSurface: _Dt.textPrimary,
             surface: Color(0xFF1E293B),
           ),
@@ -618,8 +724,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         }
       }
     });
-    _showSnack('Applied ${_fullDayLabel(sourceDayIndex)} hours to all 7 days.',
-        success: true);
+
   }
 
   void _applyHoursToWeekdays(int sourceDayIndex) {
@@ -633,10 +738,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         }
       }
     });
-    _showSnack(
-        'Applied ${_fullDayLabel(sourceDayIndex)} hours to weekdays (Mon–Fri).',
-        success: true);
-  }
+      }
 
   void _applyHoursToCustomDays(int sourceDayIndex, List<int> targetDayIndices) {
     final sourceSessions = _daySessions[sourceDayIndex];
@@ -649,9 +751,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         }
       }
     });
-    _showSnack(
-        'Applied ${_fullDayLabel(sourceDayIndex)} hours to ${targetDayIndices.length} selected days.',
-        success: true);
+
   }
 
   void _showApplyHoursModal(int sourceDayIndex) {
@@ -669,7 +769,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: _Dt.dark,
+      backgroundColor: Colors.white,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -698,7 +798,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         height: 4,
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF334155),
+                          color: _Dt.border,
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -710,13 +810,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         Container(
                           padding: const EdgeInsets.all(9),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
+                            color: _Dt.surfaceRaised,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF334155)),
+                            border: Border.all(color: _Dt.border),
                           ),
                           child: const Icon(
                             Icons.copy_all_rounded,
-                            color: Colors.white,
+                            color: _Dt.textPrimary,
                             size: 18,
                           ),
                         ),
@@ -728,7 +828,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               Text(
                                 'Apply $dayName Schedule',
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: _Dt.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -737,7 +837,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               Text(
                                 summaryText,
                                 style: const TextStyle(
-                                  color: _Dt.textMuted,
+                                  color: _Dt.textSecondary,
                                   fontSize: 11.5,
                                 ),
                                 maxLines: 1,
@@ -793,9 +893,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: _Dt.surfaceRaised,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFF334155)),
+                        border: Border.all(color: _Dt.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -806,7 +906,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               const Text(
                                 'SELECT SPECIFIC DAYS',
                                 style: TextStyle(
-                                  color: _Dt.textMuted,
+                                  color: _Dt.textSecondary,
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.9,
@@ -830,7 +930,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                 child: Text(
                                   allOtherSelected ? 'Clear all' : 'Select all',
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: _Dt.dark,
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -865,17 +965,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                   height: 52,
                                   decoration: BoxDecoration(
                                     color: isSource
-                                        ? const Color(0xFF0F172A)
+                                        ? _Dt.surfaceRaised
                                         : isSelected
-                                            ? Colors.white
-                                            : const Color(0xFF0F172A),
+                                            ? _Dt.dark
+                                            : Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: isSource
-                                          ? const Color(0xFF1E293B)
+                                          ? _Dt.border
                                           : isSelected
-                                              ? Colors.white
-                                              : const Color(0xFF334155),
+                                              ? _Dt.dark
+                                              : _Dt.border,
                                       width: isSelected ? 1.5 : 1,
                                     ),
                                   ),
@@ -886,10 +986,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                         _dayLabel(i),
                                         style: TextStyle(
                                           color: isSource
-                                              ? _Dt.textSecondary
+                                              ? _Dt.textMuted
                                               : isSelected
-                                                  ? _Dt.dark
-                                                  : _Dt.border,
+                                                  ? Colors.white
+                                                  : _Dt.textPrimary,
                                           fontSize: 13,
                                           fontWeight: FontWeight.w800,
                                         ),
@@ -916,7 +1016,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                             border: isSelected
                                                 ? null
                                                 : Border.all(
-                                                    color: _Dt.textSecondary,
+                                                    color: _Dt.border,
                                                     width: 1.2,
                                                   ),
                                           ),
@@ -957,13 +1057,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: selectedDays.isEmpty
-                              ? const Color(0xFF1E293B)
-                              : Colors.white,
+                              ? _Dt.surfaceRaised
+                              : _Dt.dark,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: selectedDays.isEmpty
-                                ? const Color(0xFF334155)
-                                : Colors.white,
+                            color: selectedDays.isEmpty ? _Dt.border : _Dt.dark,
                           ),
                         ),
                         child: Center(
@@ -973,8 +1071,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                 : 'Apply to ${selectedDays.length} Selected Day${selectedDays.length > 1 ? 's' : ''}',
                             style: TextStyle(
                               color: selectedDays.isEmpty
-                                  ? _Dt.textSecondary
-                                  : _Dt.dark,
+                                  ? _Dt.textMuted
+                                  : Colors.white,
                               fontSize: 13.5,
                               fontWeight: FontWeight.w800,
                             ),
@@ -1004,20 +1102,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: _Dt.surfaceRaised,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF334155)),
+          border: Border.all(color: _Dt.border),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: _Dt.surfaceRaised,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF334155)),
+                border: Border.all(color: _Dt.border),
               ),
-              child: Icon(icon, color: Colors.white, size: 16),
+              child: Icon(icon, color: _Dt.textPrimary, size: 16),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1027,7 +1125,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   Text(
                     title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: _Dt.textPrimary,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                     ),
@@ -1068,9 +1166,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: Scaffold(
         backgroundColor: _Dt.bg,
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: _Dt.emerald))
+            ? const Center(child: CircularProgressIndicator(color: _Dt.dark))
             : RefreshIndicator(
-            onRefresh: () => _loadVendorProfile(forceRefresh: true),
+                onRefresh: () => _loadVendorProfile(forceRefresh: true),
                 color: _Dt.dark,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(
@@ -1084,8 +1182,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       const SizedBox(height: 16),
                       _buildSection('Location', child: _buildLocationCard()),
                       const SizedBox(height: 16),
-                      _buildSection('Opening Hours',
-                          child: _buildOpenHoursCard()),
+                      _buildSection(
+                        'Opening Hours',
+                        action: _buildHoursEditAction(),
+                        child: _buildOpenHoursCard(),
+                      ),
                       const SizedBox(height: 16),
                       _buildSection('Account', child: _buildAccountCard()),
                       const SizedBox(height: 20),
@@ -1199,7 +1300,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
-                              color: _Dt.emerald,
+                              color: _Dt.dark,
                               strokeWidth: 2.5,
                             ),
                           ),
@@ -1224,7 +1325,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: _isUploadingCover ? null : _showCoverPhotoOptions,
+                        onTap:
+                            _isUploadingCover ? null : _showCoverPhotoOptions,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
@@ -1298,7 +1400,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   height: avatarSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF1E293B),
+                    color: _Dt.surfaceRaised,
                     border: Border.all(
                       color: Colors.white,
                       width: 4,
@@ -1314,13 +1416,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   child: ClipOval(
                     child: _isUploadingIcon
                         ? Container(
-                            color: const Color(0xFF1E293B),
+                            color: _Dt.surfaceRaised,
                             child: const Center(
                               child: SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
-                                  color: _Dt.emerald,
+                                  color: _Dt.dark,
                                   strokeWidth: 2,
                                 ),
                               ),
@@ -1346,7 +1448,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: _Dt.emerald,
+                      color: _Dt.dark,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                       boxShadow: [
@@ -1373,7 +1475,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   // ─── Section wrapper ──────────────────────────────────────────────────────
 
-  Widget _buildSection(String title, {required Widget child}) {
+  Widget _buildSection(String title, {Widget? action, required Widget child}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -1381,14 +1483,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 10),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: _Dt.textPrimary,
-                letterSpacing: -0.3,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _Dt.textPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+                if (action != null) action,
+              ],
             ),
           ),
           child,
@@ -1403,196 +1512,268 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return _Card(
       child: Column(
         children: [
-          _FieldRow(
+          _buildEditableProfileField(
             icon: Icons.storefront_outlined,
             label: 'Shop name',
-            child: TextField(
-              controller: _shopNameController,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: _Dt.textPrimary),
-              cursorColor: _Dt.emerald,
-              decoration: const InputDecoration(
-                hintText: 'Enter your shop name',
-                hintStyle: TextStyle(
-                    fontSize: 13,
-                    color: _Dt.textMuted,
-                    fontWeight: FontWeight.w400),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
+            controller: _shopNameController,
+            hint: 'Enter your shop name',
+            isEditing: _isEditingShopName,
+            isSaving: _savingProfilePart == 'shop_name',
+            onEdit: () => setState(() {
+              _shopNameBeforeEdit = _shopNameController.text;
+              _isEditingShopName = true;
+            }),
+            onDiscard: () => setState(() {
+              _shopNameController.text = _shopNameBeforeEdit;
+              _isEditingShopName = false;
+            }),
+            onSave: _saveShopName,
           ),
           _buildInCardDivider(),
-          _FieldRow(
+          _buildEditableProfileField(
             icon: Icons.notes_outlined,
             label: 'Description',
-            child: TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              minLines: 1,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: _Dt.textPrimary,
-                  height: 1.5),
-              cursorColor: _Dt.emerald,
-              decoration: const InputDecoration(
-                hintText: 'Describe your shop in a few words…',
-                hintStyle: TextStyle(
-                    fontSize: 13,
-                    color: _Dt.textMuted,
-                    fontWeight: FontWeight.w400),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          _buildInCardDivider(),
-          _FieldRow(
-            icon: Icons.location_on_outlined,
-            label: 'Address',
-            child: TextField(
-              controller: _addressController,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: _Dt.textPrimary),
-              cursorColor: _Dt.emerald,
-              decoration: const InputDecoration(
-                hintText: 'Enter your shop address',
-                hintStyle: TextStyle(
-                    fontSize: 13,
-                    color: _Dt.textMuted,
-                    fontWeight: FontWeight.w400),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
+            controller: _descriptionController,
+            hint: 'Describe your shop in a few words…',
+            maxLines: 3,
+            isEditing: _isEditingDescription,
+            isSaving: _savingProfilePart == 'description',
+            onEdit: () => setState(() {
+              _descriptionBeforeEdit = _descriptionController.text;
+              _isEditingDescription = true;
+            }),
+            onDiscard: () => setState(() {
+              _descriptionController.text = _descriptionBeforeEdit;
+              _isEditingDescription = false;
+            }),
+            onSave: _saveDescription,
           ),
         ],
       ),
     );
   }
 
-  // ─── Location map card ────────────────────────────────────────────────────
+  Widget _buildEditableProfileField({
+    required IconData icon,
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required bool isEditing,
+    required bool isSaving,
+    required VoidCallback onEdit,
+    required VoidCallback onDiscard,
+    required Future<void> Function() onSave,
+    int maxLines = 1,
+  }) {
+    final value = controller.text.trim();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, size: 18, color: _Dt.textMuted),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _Dt.textMuted,
+                          letterSpacing: 0.2)),
+                  const Spacer(),
+                  if (!isEditing)
+                    InkWell(
+                      onTap: onEdit,
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.edit_outlined,
+                            size: 16, color: _Dt.textSecondary),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 5),
+              if (isEditing) ...[
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  minLines: 1,
+                  maxLines: maxLines,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight:
+                        maxLines == 1 ? FontWeight.w600 : FontWeight.w500,
+                    color: _Dt.textPrimary,
+                    height: maxLines == 1 ? null : 1.5,
+                  ),
+                  cursorColor: _Dt.dark,
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: _Dt.textMuted,
+                        fontWeight: FontWeight.w400),
+                    filled: true,
+                    fillColor: _Dt.surfaceRaised,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: _Dt.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: _Dt.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: _Dt.dark, width: 1.2),
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.all(11),
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: isSaving ? null : onDiscard,
+                      style: TextButton.styleFrom(
+                        foregroundColor: _Dt.textSecondary,
+                        minimumSize: const Size(0, 34),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      child: const Text('Discard',
+                          style: TextStyle(
+                              fontSize: 11.5, fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      height: 34,
+                      child: ElevatedButton(
+                        onPressed: isSaving ? null : onSave,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _Dt.dark,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: _Dt.dark.withOpacity(0.55),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 13),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9)),
+                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 14,
+                                width: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Save',
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else
+                Text(
+                  value.isEmpty ? 'Not set' : value,
+                  maxLines: maxLines,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight:
+                        value.isEmpty ? FontWeight.w400 : FontWeight.w600,
+                    color: value.isEmpty ? _Dt.textMuted : _Dt.textPrimary,
+                    height: maxLines == 1 ? null : 1.45,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Location display ─────────────────────────────────────────────────────
 
   Widget _buildLocationCard() {
-    final shopLocation = LatLng(_latitude, _longitude);
     return _Card(
-      padding: EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: SizedBox(
-          height: 180,
-          child: Stack(
+      child: GestureDetector(
+        onDoubleTap: _openLocationPicker,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _Dt.surfaceRaised,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _Dt.border),
+          ),
+          child: Row(
             children: [
-              GestureDetector(
-                onDoubleTap: () {
-                  setState(() {
-                    _isMapInteractive = !_isMapInteractive;
-                  });
-                },
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: shopLocation,
-                    initialZoom: 14,
-                    interactionOptions: InteractionOptions(
-                      flags: _isMapInteractive
-                          ? (InteractiveFlag.pinchZoom |
-                              InteractiveFlag.drag |
-                              InteractiveFlag.doubleTapZoom)
-                          : InteractiveFlag.none,
-                    ),
-                  ),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _Dt.surfaceRaised,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  _isUpdatingLocation
+                      ? Icons.sync_rounded
+                      : Icons.location_on_rounded,
+                  color: _isUpdatingLocation ? _Dt.textSecondary : _Dt.dark,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.frontend',
+                    Text(
+                      _isUpdatingLocation
+                          ? 'Updating location…'
+                          : 'Shop location',
+                      style: const TextStyle(
+                        color: _Dt.textPrimary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: shopLocation,
-                          width: 44,
-                          height: 44,
-                          child: const Icon(
-                            Icons.location_on_rounded,
-                            color: _Dt.dark,
-                            size: 40,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 3),
+                    Text(
+                      _addressController.text.trim().isEmpty
+                          ? 'No location selected'
+                          : _addressController.text.trim(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _Dt.textSecondary,
+                        fontSize: 12,
+                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
               ),
-
-              // Interaction helper badge
-              Positioned(
-                bottom: 10,
-                right: 10,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isMapInteractive = !_isMapInteractive;
-                    });
-                  },
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _isMapInteractive
-                          ? _Dt.dark.withValues(alpha: 0.88)
-                          : Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _isMapInteractive
-                            ? _Dt.emerald.withValues(alpha: 0.6)
-                            : Colors.white.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x26000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _isMapInteractive
-                              ? Icons.lock_open_rounded
-                              : Icons.touch_app_outlined,
-                          size: 13,
-                          color: _isMapInteractive
-                              ? _Dt.emeraldLight
-                              : Colors.white,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          _isMapInteractive
-                              ? 'Map active · Tap to lock'
-                              : 'Double tap to edit map',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color: _isMapInteractive
-                                ? _Dt.emeraldLight
-                                : Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _isUpdatingLocation ? null : _openLocationPicker,
+                tooltip: 'Edit location',
+                icon: const Icon(
+                  Icons.edit_location_alt_outlined,
+                  color: _Dt.textMuted,
+                  size: 20,
                 ),
               ),
             ],
@@ -1604,8 +1785,48 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   // ─── Opening hours card ───────────────────────────────────────────────────
 
+  Widget _buildHoursEditAction() {
+    final isSaving = _savingProfilePart == 'hours';
+    if (!_isEditingHours) {
+      return IconButton(
+        onPressed: _savingProfilePart == null ? _startHoursEditing : null,
+        tooltip: 'Edit opening hours',
+        visualDensity: VisualDensity.compact,
+        icon: const Icon(Icons.edit_outlined,
+            color: _Dt.textSecondary, size: 18),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: isSaving ? null : _discardHoursEdit,
+          tooltip: 'Discard opening hours changes',
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.close_rounded,
+              color: _Dt.textSecondary, size: 19),
+        ),
+        IconButton(
+          onPressed: isSaving ? null : _saveHours,
+          tooltip: 'Save opening hours',
+          visualDensity: VisualDensity.compact,
+          icon: isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: _Dt.dark),
+                )
+              : const Icon(Icons.check_rounded, color: _Dt.dark, size: 21),
+        ),
+      ],
+    );
+  }
+
   Widget _buildOpenHoursCard() {
-    final selectedDayValidation = _sessionValidationMessage(_selectedDayIndex);
+    final selectedDayValidation =
+        _isEditingHours ? _sessionValidationMessage(_selectedDayIndex) : null;
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1630,7 +1851,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           color: isSelected
                               ? _Dt.dark
                               : hasSessions
-                                  ? _Dt.emerald.withOpacity(0.5)
+                                  ? _Dt.dark.withOpacity(0.35)
                                   : _Dt.border,
                           width: isSelected ? 1.5 : 1,
                         ),
@@ -1647,7 +1868,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               color: isSelected
                                   ? Colors.white
                                   : hasSessions
-                                      ? _Dt.emerald
+                                      ? _Dt.dark
                                       : _Dt.textMuted,
                             ),
                           ),
@@ -1660,7 +1881,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               color: isSelected
                                   ? Colors.white.withOpacity(0.6)
                                   : hasSessions
-                                      ? _Dt.emeraldLight
+                                      ? _Dt.textSecondary
                                       : _Dt.textMuted,
                             ),
                           ),
@@ -1685,31 +1906,31 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       color: _Dt.textPrimary),
                 ),
               ),
-              if (_daySessions[_selectedDayIndex].isNotEmpty) ...[],
-              GestureDetector(
-                onTap: () => _addSession(_selectedDayIndex),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _Dt.surfaceRaised,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _Dt.border),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add, size: 13, color: _Dt.textPrimary),
-                      SizedBox(width: 4),
-                      Text('Add session',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _Dt.textPrimary)),
-                    ],
+              if (_isEditingHours)
+                GestureDetector(
+                  onTap: () => _addSession(_selectedDayIndex),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _Dt.surfaceRaised,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _Dt.border),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, size: 13, color: _Dt.textPrimary),
+                        SizedBox(width: 4),
+                        Text('Add session',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: _Dt.textPrimary)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1741,8 +1962,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     Expanded(
                       child: _TimeChip(
                         label: _formatTime(session.start),
-                        onTap: () =>
-                            _pickSessionTime(_selectedDayIndex, idx, true),
+                        onTap: _isEditingHours
+                            ? () => _pickSessionTime(
+                                _selectedDayIndex, idx, true)
+                            : null,
                       ),
                     ),
                     const Padding(
@@ -1756,30 +1979,34 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     Expanded(
                       child: _TimeChip(
                         label: _formatTime(session.end),
-                        onTap: () =>
-                            _pickSessionTime(_selectedDayIndex, idx, false),
+                        onTap: _isEditingHours
+                            ? () => _pickSessionTime(
+                                _selectedDayIndex, idx, false)
+                            : null,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => _removeSession(_selectedDayIndex, idx),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: _Dt.surfaceRaised,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: _Dt.border),
+                    if (_isEditingHours) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => _removeSession(_selectedDayIndex, idx),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: _Dt.surfaceRaised,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: _Dt.border),
+                          ),
+                          child: const Icon(Icons.close,
+                              size: 14, color: _Dt.textSecondary),
                         ),
-                        child: const Icon(Icons.close,
-                            size: 14, color: _Dt.textSecondary),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               );
             }),
-          if (_daySessions[_selectedDayIndex].isNotEmpty)
+          if (_isEditingHours && _daySessions[_selectedDayIndex].isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: InkWell(
@@ -1866,15 +2093,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: _Dt.emeraldBg,
+              color: _Dt.surfaceRaised,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _Dt.emerald.withOpacity(0.3)),
+              border: Border.all(color: _Dt.border),
             ),
             child: const Text('Verified',
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: _Dt.emerald)),
+                    color: _Dt.dark)),
           ),
         ],
       ),
@@ -1888,34 +2115,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          // Save button — slate-900 filled, matches dashboard CTAs
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _saveChanges,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _Dt.dark,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: _Dt.dark.withOpacity(0.55),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25)),
-              ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white))
-                  : const Text('Save changes',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2)),
-            ),
-          ),
-          const SizedBox(height: 10),
           // Logout — outline, minimal
           SizedBox(
             width: double.infinity,
@@ -1992,6 +2191,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         initialTab: LegalTab.privacy,
                       ),
                     ),
+                  ),
+                ),
+                const Divider(height: 1, color: _Dt.border),
+                _buildLegalTile(
+                  title: 'Help & Support',
+                  subtitle: 'Get help with your shop, account, or ZTEEL tools',
+                  icon: Icons.support_agent_outlined,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
                   ),
                 ),
               ],
@@ -2104,46 +2313,9 @@ class _Card extends StatelessWidget {
   }
 }
 
-class _FieldRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Widget child;
-  const _FieldRow(
-      {required this.icon, required this.label, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Icon(icon, size: 18, color: const Color(0xFF94A3B8)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF94A3B8),
-                      letterSpacing: 0.2)),
-              const SizedBox(height: 4),
-              child,
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _TimeChip extends StatelessWidget {
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   const _TimeChip({required this.label, required this.onTap});
 
   @override

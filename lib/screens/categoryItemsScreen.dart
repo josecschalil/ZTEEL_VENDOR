@@ -226,7 +226,14 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         }
       }
       setState(() {
-        _items = fetched;
+        _items = fetched.map((serverItem) {
+          if (_busyIds.contains(serverItem.id)) {
+            // Keep the optimistic local state while the API call is in flight
+            return _items.firstWhere((e) => e.id == serverItem.id,
+                orElse: () => serverItem);
+          }
+          return serverItem;
+        }).toList();
         _isLoading = false;
       });
     } else {
@@ -261,16 +268,12 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     _busyIds.remove(item.id);
     if (!mounted) return;
 
-    if (res['success'] == true) {
-      _showSnack(
-        makeAvailable
-            ? '"${item.name}" is live again.'
-            : '"${item.name}" is hidden from customers.',
-        success: true,
-      );
-    } else {
+    if (res['success'] != true) {
       _replaceItem(item); // roll back
       _showSnack(res['error']?.toString() ?? 'Could not update availability.');
+    } else {
+      // Force refresh to pull the updated state from the server and prevent stale cache flip-flops
+      _fetchItems(forceRefresh: true);
     }
   }
 
@@ -600,12 +603,12 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: _searchFocused ? 0.12 : 0.08),
+        color: Colors.white.withValues(alpha: _searchFocused ? 0.04 : 0.02),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: _searchFocused
-              ? _K.emeraldLight.withValues(alpha: 0.7)
-              : Colors.white.withValues(alpha: 0.12),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.05),
           width: 1.2,
         ),
       ),
@@ -613,19 +616,19 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
         controller: _searchCtrl,
         focusNode: _searchFocus,
         textInputAction: TextInputAction.search,
-        cursorColor: _K.emeraldLight,
+        cursorColor: Colors.white.withValues(alpha: 0.7),
         style: const TextStyle(
             color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           isDense: true,
           hintText: 'Search dishes in ${widget.categoryName}',
           hintStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 13.5,
             fontWeight: FontWeight.w400,
           ),
           prefixIcon: Icon(Icons.search_rounded,
-              color: Colors.white.withValues(alpha: 0.55), size: 19),
+              color: Colors.white.withValues(alpha: 0.75), size: 19),
           prefixIconConstraints:
               const BoxConstraints(minWidth: 44, minHeight: 44),
           suffixIcon: _query.isNotEmpty

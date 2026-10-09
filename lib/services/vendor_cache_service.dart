@@ -37,6 +37,9 @@ class VendorCacheService {
   static Future<void>? _initializing;
   static Box<String>? _box;
   static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+  /// Changes only when the offers collection is written or invalidated. Screens
+  /// that display offers should not rebuild for unrelated order/profile writes.
+  static final ValueNotifier<int> offersRevision = ValueNotifier<int>(0);
 
   static Future<void> initialize() => _initializing ??= _open();
 
@@ -147,6 +150,7 @@ class VendorCacheService {
       }),
     );
     revision.value++;
+    if (resource == 'offers') offersRevision.value++;
   }
 
   static Future<void> writeProfile(Map<String, dynamic> profile) async {
@@ -215,6 +219,7 @@ class VendorCacheService {
     if (vendorId == null) return;
     await _box?.delete(_key(vendorId, resource));
     revision.value++;
+    if (resource == 'offers') offersRevision.value++;
   }
 
   /// Causes cache-backed screens to rebuild their current snapshot. This is

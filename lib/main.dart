@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:frontend/app_colors.dart';
+import 'package:frontend/app_typography.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:frontend/screens/PhoneAuthScreen.dart';
 import 'package:frontend/screens/order_detail_route.dart';
@@ -42,6 +43,7 @@ void main() async {
   }
 
   runApp(ZTEELVendorApp(initialScreen: SplashScreen(nextScreen: targetScreen)));
+  FlutterNativeSplash.remove();
   _orderNotificationSubscription ??=
       VendorOrderRealtimeService.instance.events.where((event) => event.isNewOrder).listen(
     (event) => unawaited(VendorNotificationService.recordNewOrder(
@@ -111,10 +113,7 @@ class ZTEELVendorApp extends StatelessWidget {
       navigatorKey: _navigatorKey,
       title: 'ZTEEL Vendor',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.orangeWarm),
-        useMaterial3: true,
-      ),
+      theme: AppTypography.lightTheme(),
       builder: (context, child) {
         return _OfflineWrapper(child: child!);
       },

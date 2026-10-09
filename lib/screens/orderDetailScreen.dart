@@ -4,8 +4,7 @@ import 'package:frontend/services/vendor_service.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 //
-// Same slate / white tokens as createOfferScreen.dart (plus amber, which is
-// only used for "pending" and the milestone reward).
+// Slate / white tokens shared with the rest of the vendor experience.
 class _Pal {
   const _Pal._();
 
@@ -23,13 +22,6 @@ class _Pal {
   static const green = Color(0xFF10B981);
   static const red = Color(0xFFE11D48);
   static const amber = Color(0xFFF59E0B);
-  static const amberInk = Color(0xFFB45309);
-
-  static const cardShadow = BoxShadow(
-    color: Color(0x06000000),
-    blurRadius: 4,
-    offset: Offset(0, 2),
-  );
 }
 
 class OrderLineItem {
@@ -110,22 +102,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     _currentStatus = widget.status.toLowerCase();
   }
 
-  // ── Derived values ─────────────────────────────────────────────────────────
-
-  String get _cleanOffers => widget.offersSummary.trim();
-
-  bool get _hasOffers =>
-      _cleanOffers.isNotEmpty &&
-      !_cleanOffers.startsWith('[') &&
-      !_cleanOffers.toLowerCase().startsWith('no ');
-
-  bool get _hasMilestone =>
-      widget.milestoneUnlocked &&
-      widget.milestoneMessage.trim().isNotEmpty &&
-      !widget.milestoneMessage.startsWith('[');
-
   bool get _hasSavings {
-    final raw = widget.savingsAmount.replaceAll('₹', '').replaceAll(',', '');
+    final raw = widget.savingsAmount
+        .replaceAll('₹', '')
+        .replaceAll(',', '')
+        .replaceAll('-', '');
     return (double.tryParse(raw.trim()) ?? 0.0) > 0.0;
   }
 
@@ -190,7 +171,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _Pal.red),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Reject order', style: TextStyle(color: Colors.white)),
+            child: const Text('Reject order',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -222,7 +204,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _Pal.bg,
-      // In the bottomNavigationBar slot so snackbars float above it.
       bottomNavigationBar: _buildBottomBar(context),
       body: SafeArea(
         bottom: false,
@@ -231,24 +212,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _buildTopBar(context),
             Expanded(
               child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _SectionLabel('Items',
-                        trailing: _itemsLabel(widget.items.length)),
-                    const SizedBox(height: 10),
-                    _buildItemsCard(),
-                    if (_hasOffers || _hasMilestone) ...[
-                      const SizedBox(height: 22),
-                      const _SectionLabel('Offers and rewards'),
-                      const SizedBox(height: 10),
-                      _buildRewards(),
+                    _buildOrderIdentity(),
+                    const SizedBox(height: 20),
+                    for (int index = 0;
+                        index < widget.items.length;
+                        index++) ...[
+                      _ItemRow(item: widget.items[index]),
+                      if (index != widget.items.length - 1)
+                        const SizedBox(height: 14),
                     ],
                     const SizedBox(height: 22),
-                    const _SectionLabel('Payment breakdown'),
-                    const SizedBox(height: 10),
-                    _buildBreakdownCard(),
+                    _buildOrderSummary(),
                   ],
                 ),
               ),
@@ -263,14 +242,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Widget _buildTopBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 20, 6),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).maybePop(),
             child: Container(
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: _Pal.wash,
                 shape: BoxShape.circle,
@@ -280,124 +259,150 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   size: 18, color: _Pal.ink700),
             ),
           ),
-          const SizedBox(width: 12),
-          const Text(
-            'Order details',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: _Pal.ink,
-              letterSpacing: -0.3,
+          const Expanded(
+            child: Center(
+              child: Text(
+                'Order details',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: _Pal.ink,
+                  letterSpacing: -0.3,
+                ),
+              ),
             ),
           ),
+          const SizedBox(width: 40),
         ],
       ),
     );
   }
 
-  Widget _buildItemsCard() {
-    return _Card(
-      child: Column(
-        children: [
-          for (int i = 0; i < widget.items.length; i++) ...[
-            _ItemRow(item: widget.items[i]),
-            if (i != widget.items.length - 1) ...[
-              const SizedBox(height: 14),
-              const Divider(color: _Pal.line, height: 1),
-              const SizedBox(height: 14),
-            ],
-          ],
-        ],
+  Widget _buildOrderIdentity() {
+    final isPending = _currentStatus == 'pending';
+    final isConfirmed = _currentStatus == 'confirmed';
+    final isRejected = _currentStatus == 'rejected';
+    final color = isConfirmed
+        ? _Pal.green
+        : isRejected
+            ? _Pal.red
+            : isPending
+                ? _Pal.amber
+                : _Pal.ink500;
+    final label = isConfirmed
+        ? 'Completed'
+        : isRejected
+            ? 'Rejected'
+            : isPending
+                ? 'Awaiting action'
+                : _currentStatus;
+    final customer = widget.customerName?.trim();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _Pal.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _Pal.line),
       ),
-    );
-  }
-
-  // ── 4. Offers and rewards ──────────────────────────────────────────────────
-
-  Widget _buildRewards() {
-    return Column(
-      children: [
-        if (_hasOffers)
-          _RewardTile(
-            icon: Icons.local_offer_rounded,
-            accent: _Pal.green,
-            labelColor: _Pal.green,
-            title: 'Applied promotion',
-            message: _cleanOffers,
-          ),
-        if (_hasOffers && _hasMilestone) const SizedBox(height: 10),
-        if (_hasMilestone)
-          _RewardTile(
-            icon: Icons.emoji_events_rounded,
-            accent: _Pal.amber,
-            labelColor: _Pal.amberInk,
-            title: 'Milestone reward unlocked',
-            message: widget.milestoneMessage,
-          ),
-      ],
-    );
-  }
-
-  // ── 5. Breakdown ───────────────────────────────────────────────────────────
-
-  Widget _buildBreakdownCard() {
-    return _Card(
-      child: Column(
+      child: Row(
         children: [
-          _SummaryRow('Item total', widget.subtotalAmount, _Pal.ink),
-          if (_hasSavings) ...[
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _Pal.ink,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(Icons.receipt_long_rounded,
+                color: Colors.white, size: 21),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.discount_outlined, size: 14, color: _Pal.green),
-                    SizedBox(width: 6),
-                    Text(
-                      'Special discount',
-                      style: TextStyle(
-                        color: _Pal.green,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                Text(widget.orderId,
+                    style: const TextStyle(
+                        color: _Pal.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800)),
+                const SizedBox(height: 3),
                 Text(
-                  '-${widget.savingsAmount}',
+                  customer == null || customer.isEmpty
+                      ? _itemsLabel(widget.items.length)
+                      : customer,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: _Pal.green,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                  ),
+                      color: _Pal.ink500,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500),
                 ),
               ],
             ),
-          ],
-          const SizedBox(height: 14),
-          const Divider(color: _Pal.line, height: 1),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Total payable',
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(label,
                 style: TextStyle(
-                  color: _Pal.ink700,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
+                    color: color, fontSize: 10.5, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderSummary() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _Pal.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _Pal.line),
+      ),
+      child: Column(
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Order summary',
+              style: TextStyle(
+                color: _Pal.ink,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
               ),
-              Text(
-                widget.totalAmount,
-                style: const TextStyle(
-                  color: _Pal.ink,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.6,
-                ),
-              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SummaryRow('Subtotal', widget.subtotalAmount, _Pal.ink700),
+          if (_hasSavings) ...[
+            const SizedBox(height: 10),
+            _SummaryRow('Discount', widget.savingsAmount, _Pal.green),
+          ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Divider(color: _Pal.line, height: 1),
+          ),
+          Row(
+            children: [
+              const Text('Total',
+                  style: TextStyle(
+                      color: _Pal.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800)),
+              const Spacer(),
+              Text(widget.totalAmount,
+                  style: const TextStyle(
+                      color: _Pal.ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5)),
             ],
           ),
         ],
@@ -422,7 +427,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ? 'Order expired'
                 : isRejected
                     ? 'Order rejected'
-                : 'Order cancelled';
+                    : 'Order cancelled';
     final icon = isPending
         ? Icons.check_rounded
         : isConfirmed
@@ -431,183 +436,101 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ? Icons.timer_off_rounded
                 : isRejected
                     ? Icons.cancel_rounded
-                : Icons.block_rounded;
+                    : Icons.block_rounded;
     final bg = isPending
         ? _Pal.ink
         : isConfirmed
-            ? _Pal.green
+            ? const Color(0xFF0F172A)
             : isExpired
                 ? _Pal.wash
                 : isRejected
                     ? _Pal.wash
-                : _Pal.wash;
-    final fg =
-        (isPending || isConfirmed) ? Colors.white : _Pal.ink500;
+                    : _Pal.wash;
+    final fg = (isPending || isConfirmed) ? Colors.white : _Pal.ink500;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
-        12,
+        18,
         20,
-        MediaQuery.of(context).padding.bottom + 14,
+        MediaQuery.of(context).padding.bottom + 16,
       ),
       decoration: BoxDecoration(
         color: _Pal.surface,
-        border:
-            Border(top: BorderSide(color: _Pal.line.withValues(alpha: 0.8))),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border.all(color: _Pal.line.withValues(alpha: 0.9)),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x08000000), blurRadius: 12, offset: Offset(0, -4)),
+              color: Color(0x10000000), blurRadius: 18, offset: Offset(0, -5)),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          Row(
             children: [
-              const Text(
-                'Total',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: _Pal.ink400,
+              if (isPending) ...[
+                Material(
+                  color: _Pal.red.withValues(alpha: 0.08),
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: _Pal.red.withValues(alpha: 0.3)),
+                  ),
+                  child: InkWell(
+                    onTap: _isSubmitting ? null : _handleReject,
+                    child: const SizedBox(
+                      height: 54,
+                      width: 54,
+                      child: Icon(Icons.close_rounded, color: _Pal.red),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                widget.totalAmount,
-                style: const TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w900,
-                  color: _Pal.ink,
-                  letterSpacing: -0.5,
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Material(
+                  color: bg,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: (isPending || isConfirmed)
+                        ? BorderSide.none
+                        : const BorderSide(color: _Pal.line),
+                  ),
+                  child: InkWell(
+                    onTap: canComplete ? _handleMarkComplete : null,
+                    child: SizedBox(
+                      height: 54,
+                      child: Center(
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(icon, color: fg, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(label,
+                                      style: TextStyle(
+                                          color: fg,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800)),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(width: 18),
-          if (isPending) ...[
-            Material(
-              color: _Pal.wash,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: const BorderSide(color: _Pal.red),
-              ),
-              child: InkWell(
-                onTap: _isSubmitting ? null : _handleReject,
-                child: const SizedBox(
-                  height: 52,
-                  width: 52,
-                  child: Icon(Icons.close_rounded, color: _Pal.red),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: Material(
-              color: bg,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: (isPending || isConfirmed)
-                    ? BorderSide.none
-                    : const BorderSide(color: _Pal.line),
-              ),
-              child: InkWell(
-                onTap: canComplete ? _handleMarkComplete : null,
-                child: SizedBox(
-                  height: 52,
-                  child: Center(
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(icon, color: fg, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                label,
-                                style: TextStyle(
-                                  color: fg,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.1,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
-    );
-  }
-}
-
-// ─── Shared pieces ───────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final String title;
-  final String? trailing;
-  const _SectionLabel(this.title, {this.trailing});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: _Pal.ink,
-            letterSpacing: -0.2,
-          ),
-        ),
-        if (trailing != null)
-          Text(
-            trailing!,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: _Pal.ink400,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _Card extends StatelessWidget {
-  final Widget child;
-  const _Card({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _Pal.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _Pal.line.withValues(alpha: 0.8)),
-        boxShadow: const [_Pal.cardShadow],
-      ),
-      child: child,
     );
   }
 }
@@ -622,218 +545,105 @@ class _ItemRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isImgMissing = item.imageUrl.isEmpty;
     final isNameMissing = item.name.startsWith('[');
-    final hasOffer = item.appliedOffer != null &&
-        item.appliedOffer!.trim().isNotEmpty &&
-        !item.appliedOffer!.startsWith('[');
     final hasNote = item.note.trim().isNotEmpty && !item.note.startsWith('[');
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: isImgMissing ? _Pal.red.withValues(alpha: 0.08) : _Pal.wash,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isImgMissing ? _Pal.red.withValues(alpha: 0.4) : _Pal.line,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: isImgMissing
-                ? const Icon(Icons.restaurant, color: _Pal.red, size: 20)
-                : Image.network(
-                    item.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.restaurant,
-                      color: _Pal.red,
-                      size: 20,
-                    ),
-                  ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isNameMissing ? _Pal.red : _Pal.ink,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.1,
-                  height: 1.25,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 2.5),
-                    decoration: BoxDecoration(
-                      color: _Pal.wash,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _Pal.line),
-                    ),
-                    child: Text(
-                      item.quantity,
-                      style: const TextStyle(
-                        color: _Pal.ink600,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      item.unitPrice,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _Pal.ink400,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (hasOffer) ...[
-                const SizedBox(height: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _Pal.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.local_offer_rounded,
-                          size: 10, color: _Pal.green),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          item.appliedOffer!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _Pal.green,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (hasNote) ...[
-                const SizedBox(height: 6),
-                Text(
-                  item.note,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _Pal.ink500,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          item.lineTotal,
-          style: const TextStyle(
-            color: _Pal.ink,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.2,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Reward tile ─────────────────────────────────────────────────────────────
-
-class _RewardTile extends StatelessWidget {
-  final IconData icon;
-  final Color accent;
-  final Color labelColor;
-  final String title;
-  final String message;
-  const _RewardTile({
-    required this.icon,
-    required this.accent,
-    required this.labelColor,
-    required this.title,
-    required this.message,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.28)),
+        color: _Pal.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _Pal.line.withValues(alpha: 0.7)),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x060F172A), blurRadius: 12, offset: Offset(0, 4)),
+        ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: accent,
-              borderRadius: BorderRadius.circular(10),
+              color: _Pal.wash,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, size: 17, color: Colors.white),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: isImgMissing
+                  ? const Icon(Icons.restaurant_rounded,
+                      color: _Pal.ink500, size: 27)
+                  : Image.network(
+                      item.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.restaurant_rounded,
+                        color: _Pal.ink500,
+                        size: 27,
+                      ),
+                    ),
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  item.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11.5,
+                    color: isNameMissing ? _Pal.red : _Pal.ink,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: labelColor,
+                    letterSpacing: -0.15,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  message,
+                  item.unitPrice,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: _Pal.ink,
-                    height: 1.35,
+                      color: _Pal.ink500,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500),
+                ),
+                if (hasNote) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    item.note,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _Pal.ink400, fontSize: 10.5),
                   ),
+                ],
+                const SizedBox(height: 9),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _Pal.wash,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(item.quantity,
+                      style: const TextStyle(
+                          color: _Pal.ink600,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          Text(item.lineTotal,
+              style: const TextStyle(
+                  color: _Pal.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2)),
         ],
       ),
     );

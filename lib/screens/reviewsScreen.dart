@@ -9,7 +9,8 @@ class _Colors {
   static const border = Color(0xFFE2E8F0);
   static const textPrimary = Color(0xFF0F172A);
   static const textSecondary = Color(0xFF64748B);
-  static const primary = Color(0xFFEE5B2B);
+  static const textFaint = Color(0xFF94A3B8);
+  static const primary = Color(0xFF0F172A);
   static const amber = Color(0xFFF59E0B);
   static const emerald = Color(0xFF10B981);
   static const emeraldBg = Color(0xFFECFDF5);
@@ -112,8 +113,9 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
           'Customer Reviews & Ratings',
           style: TextStyle(
             color: _Colors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.25,
           ),
         ),
         actions: [
@@ -191,7 +193,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                     Text(
                                       rating > 0 ? rating.toStringAsFixed(1) : '0.0',
                                       style: const TextStyle(
-                                        fontSize: 44,
+                                        fontSize: 36,
                                         fontWeight: FontWeight.w900,
                                         color: _Colors.textPrimary,
                                         height: 1.0,
@@ -202,7 +204,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                       child: Text(
                                         '/ 5.0',
                                         style: TextStyle(
-                                          fontSize: 14,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: _Colors.textSecondary,
                                         ),
@@ -219,7 +221,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                     } else if (rating >= starVal - 0.5) {
                                       return const Icon(Icons.star_half_rounded, color: _Colors.amber, size: 20);
                                     } else {
-                                      return Icon(Icons.star_outline_rounded, color: Colors.grey[300], size: 20);
+                                      return const Icon(Icons.star_outline_rounded,
+                                          color: _Colors.textFaint, size: 20);
                                     }
                                   }),
                                 ),
@@ -227,8 +230,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                 Text(
                                   '$reviewCount ${reviewCount == 1 ? "Customer Review" : "Customer Reviews"}',
                                   style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
                                     color: _Colors.textSecondary,
                                   ),
                                 ),
@@ -251,7 +254,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                           child: Text(
                                             '$star ★',
                                             style: const TextStyle(
-                                              fontSize: 11,
+                                              fontSize: 10.5,
                                               fontWeight: FontWeight.w600,
                                               color: _Colors.textSecondary,
                                             ),
@@ -276,8 +279,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                             '$count',
                                             textAlign: TextAlign.end,
                                             style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w600,
                                               color: _Colors.textSecondary,
                                             ),
                                           ),
@@ -307,8 +310,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                 'Ratings submitted by verified diners on Zteel',
                                 style: TextStyle(
                                   color: Color(0xFF065F46),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -348,8 +351,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                             ? 'All Reviews (${filteredReviews.length})'
                             : '$_selectedFilter-Star Reviews (${filteredReviews.length})',
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
                           color: _Colors.textPrimary,
                         ),
                       ),
@@ -378,8 +381,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                           const Text(
                             'No reviews to display',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
                               color: _Colors.textPrimary,
                             ),
                           ),
@@ -390,7 +393,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                 : 'No $_selectedFilter-star reviews yet.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
                               color: _Colors.textSecondary,
                             ),
                           ),
@@ -436,8 +440,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                     dinerName.isNotEmpty ? dinerName[0].toUpperCase() : 'C',
                                     style: const TextStyle(
                                       color: _Colors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
                                     ),
                                   ),
                                 ),
@@ -452,8 +456,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                             child: Text(
                                               dinerName,
                                               style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w800,
                                                 color: _Colors.textPrimary,
                                               ),
                                               maxLines: 1,
@@ -491,7 +495,11 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           dateStr,
-                                          style: const TextStyle(fontSize: 11, color: _Colors.textSecondary),
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: _Colors.textSecondary,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -501,8 +509,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                   children: List.generate(5, (index) {
                                     return Icon(
                                       index < r ? Icons.star_rounded : Icons.star_outline_rounded,
-                                      color: index < r ? _Colors.amber : Colors.grey[300],
-                                      size: 16,
+                                      color: index < r ? _Colors.amber : _Colors.textFaint,
+                                      size: 15,
                                     );
                                   }),
                                 ),
@@ -520,8 +528,9 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                 child: Text(
                                   comment,
                                   style: const TextStyle(
-                                    fontSize: 13,
-                                    color: _Colors.textPrimary,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: _Colors.textSecondary,
                                     height: 1.45,
                                   ),
                                 ),
@@ -573,8 +582,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             color: isSelected ? Colors.white : _Colors.textPrimary,
           ),
         ),

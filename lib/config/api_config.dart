@@ -24,6 +24,8 @@ class ApiConfig {
   static String vendorMenuItemDetailUrl(String id) =>
       '$baseUrl/api/v1/vendor/menu-items/$id/';
   static String get vendorOffersUrl => '$baseUrl/api/v1/vendor/offers/';
+  static String get vendorOfferMasterStatusUrl =>
+      '$baseUrl/api/v1/vendor/offers/master-status/';
   static String vendorOfferDetailUrl(String id) =>
       '$baseUrl/api/v1/vendor/offers/$id/';
   static String get vendorRewardMilestonesUrl =>
@@ -36,8 +38,7 @@ class ApiConfig {
       '$baseUrl/api/v1/vendor/redemptions/$qrCode/scan/';
   static String vendorRejectRedemptionUrl(String qrCode) =>
       '$baseUrl/api/v1/vendor/redemptions/$qrCode/reject/';
-  static String get vendorReviewsUrl =>
-      '$baseUrl/api/v1/vendor/reviews/';
+  static String get vendorReviewsUrl => '$baseUrl/api/v1/vendor/reviews/';
 
   // ── Realtime order endpoints ──────────────────────────────────────────────
   static String get vendorRealtimeTicketUrl =>

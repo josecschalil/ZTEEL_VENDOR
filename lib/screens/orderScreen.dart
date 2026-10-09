@@ -783,9 +783,6 @@ class _OrdersScreenState extends State<OrdersScreen>
     );
   }
 
-  // ─── Order card ───────────────────────────────────────────────────────────
-  // Structure, padding, radii — untouched. Colors only.
-
   Widget _buildOrderCardFromSession(Map<String, dynamic> session) {
     final qrCode = session['qr_code']?.toString() ?? '';
     final isQrMissing = qrCode.isEmpty && session['order_number'] == null;
@@ -794,6 +791,24 @@ class _OrdersScreenState extends State<OrdersScreen>
 
     final status = (session['status'] ?? '').toString().toLowerCase();
     final isConfirmed = status == 'confirmed';
+    final isPending = status == 'pending';
+    final isRejected = status == 'rejected';
+    final statusColor = isConfirmed
+        ? _C.emerald
+        : isRejected
+            ? _C.red
+            : isPending
+                ? const Color(0xFFF59E0B)
+                : _C.textSecondary;
+    final statusLabel = isConfirmed
+        ? 'Completed'
+        : isRejected
+            ? 'Rejected'
+            : isPending
+                ? 'Pending'
+                : status.isEmpty
+                    ? 'Unknown'
+                    : status;
 
     final finalTotal = session['final_total']?.toString() ??
         session['subtotal']?.toString() ??
@@ -805,214 +820,137 @@ class _OrdersScreenState extends State<OrdersScreen>
 
     final isCardHasMissingData =
         isQrMissing || isTotalMissing || isItemsMissing;
+    final customer = session['customer_name']?.toString().trim() ?? '';
+    final itemCount = items.length;
+    final firstItem = isItemsMissing
+        ? null
+        : Map<String, dynamic>.from(items.first as Map);
 
     return GestureDetector(
       onTap: () => _openSessionDetails(session),
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _C.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isCardHasMissingData ? _C.red : _C.border,
             width: isCardHasMissingData ? 1.5 : 0.8,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF0F172A).withValues(alpha: 0.045),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header row ──────────────────────────────────────────────────
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: _C.surfaceRaised,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(
+                    Icons.receipt_long_rounded,
+                    color: isCardHasMissingData ? _C.red : _C.dark,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        orderIdStr,
+                      Text(orderIdStr,
                         style: TextStyle(
-                          color: isQrMissing ? _C.red : _C.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.8,
+                          color: isQrMissing ? _C.red : _C.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
                         ),
                       ),
-                      if (session['customer_name'] != null &&
-                          session['customer_name']
-                              .toString()
-                              .trim()
-                              .isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          session['customer_name'].toString().trim(),
-                          style: const TextStyle(
-                            color: _C.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                      const SizedBox(height: 2),
+                      Text(
+                        customer.isEmpty
+                            ? '$itemCount ${itemCount == 1 ? 'item' : 'items'}'
+                            : '$customer · $itemCount ${itemCount == 1 ? 'item' : 'items'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: _C.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500),
+                      ),
                     ],
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => _openSessionDetails(session),
-                  child: const Text(
-                    'Show Details',
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(statusLabel.toUpperCase(),
                     style: TextStyle(
-                      color: _C.dark, // was AppColors.orange
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.25,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 13),
 
-            // ── Items list ──────────────────────────────────────────────────
             if (isItemsMissing)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: _C.red.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _C.red),
-                      ),
-                      child: const Icon(Icons.fastfood_rounded,
-                          color: _C.red, size: 24),
-                    ),
-                    const SizedBox(width: 14),
-                    const Text(
-                      '[Missing Items Data]',
-                      style: TextStyle(
-                        color: _C.red,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              )
+              const _MissingItemPreview()
             else
-              ...items.map(
-                  (item) => _buildSessionItemRow(item as Map<String, dynamic>)),
+              _buildSessionItemRow(firstItem!),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 13),
             const Divider(color: _C.border, thickness: 1),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
 
-            // ── Footer row ──────────────────────────────────────────────────
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Action / status badge
-                if (!isConfirmed && status == 'pending')
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GestureDetector(
-                        onTap: () => _confirmOrder(qrCode),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _C.emerald,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: _C.emerald),
-                          ),
-                          child: const Text(
-                            'Mark Completed',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _rejectOrder(qrCode),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _C.red.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: _C.red),
-                          ),
-                          child: const Text(
-                            'Reject',
-                            style: TextStyle(
-                              color: _C.red,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isConfirmed
-                          ? _C.emeraldBg // was AppColors.surfaceRaised
-                          : _C.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isConfirmed ? _C.emerald : _C.red,
-                      ),
-                    ),
-                    child: Text(
-                      status.toUpperCase(),
-                      style: TextStyle(
-                        color: isConfirmed ? _C.emerald : _C.red,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                if (isPending) ...[
+                  _CompactAction(
+                    icon: Icons.close_rounded,
+                    color: _C.red,
+                    onTap: () => _rejectOrder(qrCode),
                   ),
-
-                // Amount
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'Total amount',
-                      style: TextStyle(color: _C.textSecondary, fontSize: 11),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isTotalMissing ? '₹0.00' : '₹$finalTotal',
-                      style: TextStyle(
-                        color: isTotalMissing
-                            ? _C.red
-                            : _C.dark, // was AppColors.orange
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
+                  const SizedBox(width: 7),
+                  _CompactAction(
+                    label: 'Complete',
+                    icon: Icons.check_rounded,
+                    color: _C.emerald,
+                    filled: true,
+                    onTap: () => _confirmOrder(qrCode),
+                  ),
+                ]
+                else
+                  const Text('Tap to view details',
+                    style: TextStyle(color: _C.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                Text(
+                  isTotalMissing ? '₹0.00' : '₹$finalTotal',
+                  style: TextStyle(
+                    color: isTotalMissing ? _C.red : _C.dark,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
                 ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right_rounded, size: 18, color: _C.textSecondary),
               ],
             ),
           ],
@@ -1103,9 +1041,7 @@ class _OrdersScreenState extends State<OrdersScreen>
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
+    return Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
@@ -1160,12 +1096,84 @@ class _OrdersScreenState extends State<OrdersScreen>
             ),
           ),
         ],
-      ),
     );
   }
 }
 
 // ─── Shared sub-widget ────────────────────────────────────────────────────────
+
+class _MissingItemPreview extends StatelessWidget {
+  const _MissingItemPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: _C.red.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.fastfood_rounded, color: _C.red, size: 23),
+        ),
+        const SizedBox(width: 14),
+        const Text(
+          'Missing items data',
+          style: TextStyle(color: _C.red, fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactAction extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String? label;
+  final bool filled;
+  final VoidCallback onTap;
+
+  const _CompactAction({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.label,
+    this.filled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: filled ? color : color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(11),
+        child: Container(
+          height: 34,
+          padding: EdgeInsets.symmetric(horizontal: label == null ? 9 : 11),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: filled ? Colors.white : color),
+              if (label != null) ...[
+                const SizedBox(width: 4),
+                Text(label!,
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _AvatarFallback extends StatelessWidget {
   const _AvatarFallback();
