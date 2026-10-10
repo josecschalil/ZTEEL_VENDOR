@@ -462,7 +462,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
           onRefresh: () => _fetchItems(forceRefresh: true),
           child: CustomScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics()),
             slivers: [
               SliverPersistentHeader(
                 pinned: true,
@@ -491,7 +492,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 child: _reveal(2, _buildContent(list)),
               ),
               SliverToBoxAdapter(
-                child: SizedBox(height: MediaQuery.sizeOf(context).height * 0.65),
+                child:
+                    SizedBox(height: MediaQuery.sizeOf(context).height * 0.65),
               ),
             ],
           ),
@@ -500,42 +502,57 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
     );
   }
 
-    Widget _buildHeroAnim(double top, double progress) {
+  Widget _buildHeroAnim(double top, double progress) {
     final bgColor = Color.lerp(_K.dark, Colors.white, progress)!;
     final titleOpacity = (1.0 - (progress * 2)).clamp(0.0, 1.0);
-    
+
     // Search bar background: dark translucent -> iOS light grey
     final searchBg = Color.lerp(
-      _searchFocused ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.02),
-      const Color(0xFFF2F2F7),
-      progress
-    )!;
-    
+        _searchFocused
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.white.withValues(alpha: 0.02),
+        const Color(0xFFF2F2F7),
+        progress)!;
+
     // Search bar border: subtle white -> transparent
     final searchBorder = Color.lerp(
-      _searchFocused ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
-      Colors.transparent,
-      progress
-    )!;
-    
+        _searchFocused
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.white.withValues(alpha: 0.05),
+        Colors.transparent,
+        progress)!;
+
     final searchTextColor = Color.lerp(Colors.white, _K.textPrimary, progress)!;
-    final searchHintColor = Color.lerp(Colors.white.withValues(alpha: 0.8), _K.textMuted, progress)!;
-    final searchIconColor = Color.lerp(Colors.white.withValues(alpha: 0.75), _K.textMuted, progress)!;
-    final backIconColor = Color.lerp(Colors.white.withValues(alpha: 0.9), _K.dark, progress)!;
-    final backBgColor = Color.lerp(Colors.white.withValues(alpha: 0.1), Colors.transparent, progress)!;
-    final backBorderColor = Color.lerp(Colors.white.withValues(alpha: 0.1), Colors.transparent, progress)!;
+    final searchHintColor = Color.lerp(
+        Colors.white.withValues(alpha: 0.8), _K.textMuted, progress)!;
+    final searchIconColor = Color.lerp(
+        Colors.white.withValues(alpha: 0.75), _K.textMuted, progress)!;
+    final backIconColor =
+        Color.lerp(Colors.white.withValues(alpha: 0.9), _K.dark, progress)!;
+    final backBgColor = Color.lerp(
+        Colors.white.withValues(alpha: 0.1), Colors.transparent, progress)!;
+    final backBorderColor = Color.lerp(
+        Colors.white.withValues(alpha: 0.1), Colors.transparent, progress)!;
 
     final radius = Radius.circular(lerpDouble(36, 0, progress)!);
 
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.only(bottomLeft: radius, bottomRight: radius),
+        borderRadius:
+            BorderRadius.only(bottomLeft: radius, bottomRight: radius),
         // Just a very subtle 1px border at the bottom when scrolled, rather than shadow, for a clean appbar
-        border: progress > 0.9 ? Border(bottom: BorderSide(color: _K.border, width: 0.5)) : null,
-        boxShadow: progress > 0.9 
-            ? [] 
-            : [const BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8))],
+        border: progress > 0.9
+            ? Border(bottom: BorderSide(color: _K.border, width: 0.5))
+            : null,
+        boxShadow: progress > 0.9
+            ? []
+            : [
+                const BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 20,
+                    offset: Offset(0, 8))
+              ],
       ),
       padding: EdgeInsets.fromLTRB(20, top + 10, 20, 10),
       child: Stack(
@@ -577,16 +594,19 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 ),
                 const SizedBox(width: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.15)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.restaurant_menu_rounded, size: 12, color: Colors.white.withValues(alpha: 0.7)),
+                      Icon(Icons.restaurant_menu_rounded,
+                          size: 12, color: Colors.white.withValues(alpha: 0.7)),
                       const SizedBox(width: 6),
                       Text(
                         ' dishes',
@@ -612,7 +632,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               duration: const Duration(milliseconds: 200),
               decoration: BoxDecoration(
                 color: searchBg,
-                borderRadius: BorderRadius.circular(10), // Standard slightly rounded pill
+                borderRadius:
+                    BorderRadius.circular(10), // Standard slightly rounded pill
                 border: Border.all(color: searchBorder, width: 1.2),
               ),
               child: TextField(
@@ -620,23 +641,35 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                 focusNode: _searchFocus,
                 textInputAction: TextInputAction.search,
                 cursorColor: const Color(0xFF475569), // Strict slate-600
-                style: TextStyle(color: searchTextColor, fontSize: 15, fontWeight: FontWeight.w400),
+                style: TextStyle(
+                    color: searchTextColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400),
                 decoration: InputDecoration(
                   isDense: true,
-                  hintText: 'Search',
-                  hintStyle: TextStyle(color: searchHintColor, fontSize: 15, fontWeight: FontWeight.w400),
-                  prefixIcon: Icon(Icons.search_rounded, color: searchIconColor, size: 19),
-                  prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  hintText: 'Search for Menu Items',
+                  hintStyle: TextStyle(
+                      color: searchHintColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: searchIconColor, size: 19),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.cancel, color: searchIconColor.withValues(alpha: 0.5), size: 18),
+                          icon: Icon(Icons.cancel,
+                              color: searchIconColor.withValues(alpha: 0.5),
+                              size: 18),
                           onPressed: _searchCtrl.clear,
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          constraints:
+                              const BoxConstraints(minWidth: 36, minHeight: 36),
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: lerpDouble(12, 8, progress)!),
+                  contentPadding: EdgeInsets.symmetric(
+                      vertical: lerpDouble(12, 8, progress)!),
                 ),
               ),
             ),
@@ -675,10 +708,11 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
               ),
             ),
           ),
-          
+
           // Back Button (Always stays, but changes colors)
           Positioned(
-            left: -8, // Slight alignment correction to match standard iOS spacing
+            left:
+                -8, // Slight alignment correction to match standard iOS spacing
             top: 2,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
@@ -690,7 +724,8 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen>
                   shape: BoxShape.circle,
                   border: Border.all(color: backBorderColor),
                 ),
-                child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: backIconColor),
+                child: Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: backIconColor),
               ),
             ),
           ),
@@ -1489,7 +1524,8 @@ class _SkeletonTile extends StatelessWidget {
 
 class _CategoryHeroDelegate extends SliverPersistentHeaderDelegate {
   final double topPadding;
-  final Widget Function(BuildContext context, double shrinkOffset, double progress) builder;
+  final Widget Function(
+      BuildContext context, double shrinkOffset, double progress) builder;
   final double expandedHeight;
   final double collapsedHeight;
 
@@ -1501,8 +1537,11 @@ class _CategoryHeroDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final progress = (maxExtent == minExtent) ? 0.0 : (shrinkOffset / (maxExtent - minExtent)).clamp(0.0, 1.0);
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final progress = (maxExtent == minExtent)
+        ? 0.0
+        : (shrinkOffset / (maxExtent - minExtent)).clamp(0.0, 1.0);
     return SizedBox.expand(
       child: builder(context, shrinkOffset, progress),
     );
